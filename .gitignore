@@ -1,0 +1,22 @@
+# Gradle
+.gradle/
+**/build/
+
+# VS Code
+.vscode/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# Java
+*.class
+
+# Logs
+*.log

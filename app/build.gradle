@@ -1,0 +1,32 @@
+plugins {
+    id 'application' // 실행 가능한 Java 앱 
+    id 'org.openjfx.javafxplugin' version '0.1.0' // JavaFX 사용
+}
+
+repositories {
+    mavenCentral() // dependency 다운로드
+}
+
+dependencies { 
+    testImplementation libs.junit.jupiter  // 테스트
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21) // 팀 공통 Java 21
+    }
+}
+
+javafx {
+    version = '21' // JavaFX 21
+    modules = [ 'javafx.controls', 'javafx.fxml' ]
+}
+
+application {
+    mainClass = 'com.team.tetris.Main' // 현재 실행 진입점
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
