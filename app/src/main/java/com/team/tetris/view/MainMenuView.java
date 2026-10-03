@@ -55,16 +55,42 @@ public class MainMenuView {
     }
 
     public void render(MainMenuItem selectedMenu) {
-        for (int i = 0; i < menuLabels.size(); i++) {
-            Label label = menuLabels.get(i);
 
-            label.getStyleClass().remove("menu-item-selected");
+    String[] menuTexts = {
+        "게임 시작",
+        "설정",
+        "스코어보드",
+        "종료"
+    };
 
-            if (i == selectedMenu.ordinal()) {
-                label.getStyleClass().add("menu-item-selected");
-            }
+    for (int i = 0; i < menuLabels.size(); i++) {
+
+        Label label = menuLabels.get(i);
+
+        if (i == selectedMenu.ordinal()) {
+
+            label.setText("▶ " + menuTexts[i]);
+
+            label.setStyle(
+                "-fx-font-size: 22px;" +
+                "-fx-font-weight: bold;" +
+                "-fx-background-color: #dddddd;" +
+                "-fx-padding: 6 15 6 15;"
+            );
+
+        } else {
+
+            label.setText("   " + menuTexts[i]);
+
+            label.setStyle(
+                "-fx-font-size: 20px;" +
+                "-fx-font-weight: normal;" +
+                "-fx-background-color: transparent;" +
+                "-fx-padding: 6 15 6 15;"
+            );
         }
     }
+}
 
     public void showKeyGuide(String moveKeys, String selectKey) {
         keyGuideLabel.setText(
