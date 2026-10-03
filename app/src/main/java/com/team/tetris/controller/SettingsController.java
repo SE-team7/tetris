@@ -3,6 +3,10 @@ package com.team.tetris.controller;
 import com.team.tetris.util.SceneManager;
 import com.team.tetris.view.SettingsView;
 
+import javafx.scene.control.Button;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
+
 public class SettingsController {
 
     private final SettingsView settingsView;
@@ -11,6 +15,8 @@ public class SettingsController {
     private final Runnable resetScoreboardAction;
     private final Runnable saveSettingsAction;
     private final Runnable resetDefaultAction;
+
+    private String waitingForKeyAction;
 
     public SettingsController(
         SettingsView settingsView,
@@ -26,6 +32,7 @@ public class SettingsController {
         this.resetDefaultAction = resetDefaultAction;
 
         connectActions();
+        connectKeySettings();
     }
 
     private void connectActions() {
@@ -57,13 +64,77 @@ public class SettingsController {
             .setOnAction(event -> backToMainMenu());
     }
 
+    private void connectKeySettings() {
+
+        String[] actions = {
+            "MOVE_LEFT",
+            "MOVE_RIGHT",
+            "SOFT_DROP",
+            "HARD_DROP",
+            "ROTATE",
+            "PAUSE",
+            "MENU_UP",
+            "MENU_DOWN",
+            "MENU_LEFT",
+            "MENU_RIGHT",
+            "SELECT"
+        };
+
+        for (String action : actions) {
+
+            Button button =
+                settingsView.getKeyButton(action);
+
+            if (button != null) {
+                button.setOnAction(event -> {
+                    waitingForKeyAction = action;
+                    settingsView.showMessage(
+                        action + " : 새 키를 누르세요"
+                    );
+                });
+            }
+        }
+
+        settingsView.getRoot().addEventFilter(
+    KeyEvent.KEY_PRESSED,
+    event -> {
+        if (waitingForKeyAction != null) {
+            handleKey(event.getCode());
+            event.consume();
+        }
+    }
+);
+    }
+
     public void show() {
+        waitingForKeyAction = null;
         sceneManager.showSettings();
+    }
+
+    public void handleKey(KeyCode key) {
+
+        if (waitingForKeyAction == null) {
+            return;
+        }
+
+        settingsView.setKeyText(
+            waitingForKeyAction,
+            key.getName()
+        );
+
+        settingsView.showMessage(
+            waitingForKeyAction
+            + " → "
+            + key.getName()
+        );
+
+        waitingForKeyAction = null;
     }
 
     public void changeScreenSize(String screenSize) {
 
         switch (screenSize) {
+
             case "SMALL":
                 sceneManager.getStage().setWidth(640);
                 sceneManager.getStage().setHeight(720);
@@ -114,6 +185,19 @@ public class SettingsController {
         settingsView.getColorBlindCheckBox()
             .setSelected(false);
 
+        settingsView.setKeyText("MOVE_LEFT", "A");
+        settingsView.setKeyText("MOVE_RIGHT", "D");
+        settingsView.setKeyText("SOFT_DROP", "S");
+        settingsView.setKeyText("HARD_DROP", "ENTER");
+        settingsView.setKeyText("ROTATE", "P");
+        settingsView.setKeyText("PAUSE", "ESC");
+
+        settingsView.setKeyText("MENU_UP", "W");
+        settingsView.setKeyText("MENU_DOWN", "S");
+        settingsView.setKeyText("MENU_LEFT", "A");
+        settingsView.setKeyText("MENU_RIGHT", "D");
+        settingsView.setKeyText("SELECT", "SPACE");
+
         changeScreenSize("MEDIUM");
 
         if (resetDefaultAction != null) {
@@ -137,6 +221,7 @@ public class SettingsController {
     }
 
     public void backToMainMenu() {
+        waitingForKeyAction = null;
         sceneManager.showMainMenu();
     }
 }
