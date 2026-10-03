@@ -11,41 +11,78 @@ import javafx.scene.shape.Rectangle;
 
 public class GameView {
 
+    // 팀 회의에서 정한 내부 보드 크기
     private static final int ROWS = 25;
     private static final int COLS = 10;
-    private static final double CELL_SIZE = 25;
+
+    private static final double CELL_SIZE = 22;
 
     private final BorderPane root;
     private final GridPane boardGrid;
+    private final GridPane nextBlockGrid;
 
     private final Label scoreLabel;
     private final Label pauseLabel;
-    private final Label nextBlockLabel;
 
     public GameView() {
+
         root = new BorderPane();
         root.setPadding(new Insets(20));
+        root.setStyle("-fx-background-color: #202020;");
 
+        /*
+         * BOARD
+         */
         boardGrid = new GridPane();
         boardGrid.setAlignment(Pos.CENTER);
 
         createEmptyBoard();
 
+        /*
+         * NEXT BLOCK
+         */
         Label nextTitle = new Label("NEXT");
-        nextTitle.getStyleClass().add("title");
+        nextTitle.setStyle(
+            "-fx-text-fill: white;" +
+            "-fx-font-size: 20px;" +
+            "-fx-font-weight: bold;"
+        );
 
-        nextBlockLabel = new Label("다음 블록");
+        nextBlockGrid = new GridPane();
+        nextBlockGrid.setAlignment(Pos.CENTER);
 
+        createEmptyNextBlock();
+
+        /*
+         * SCORE
+         */
         Label scoreTitle = new Label("SCORE");
-        scoreTitle.getStyleClass().add("title");
+        scoreTitle.setStyle(
+            "-fx-text-fill: white;" +
+            "-fx-font-size: 20px;" +
+            "-fx-font-weight: bold;"
+        );
 
         scoreLabel = new Label("0");
+        scoreLabel.setStyle(
+            "-fx-text-fill: white;" +
+            "-fx-font-size: 24px;"
+        );
+
+        /*
+         * PAUSE
+         */
         pauseLabel = new Label();
+        pauseLabel.setStyle(
+            "-fx-text-fill: yellow;" +
+            "-fx-font-size: 20px;" +
+            "-fx-font-weight: bold;"
+        );
 
         VBox sidePanel = new VBox(
-            15,
+            20,
             nextTitle,
-            nextBlockLabel,
+            nextBlockGrid,
             scoreTitle,
             scoreLabel,
             pauseLabel
@@ -53,24 +90,51 @@ public class GameView {
 
         sidePanel.setAlignment(Pos.TOP_CENTER);
         sidePanel.setPadding(new Insets(20));
+        sidePanel.setPrefWidth(180);
 
         root.setCenter(boardGrid);
         root.setRight(sidePanel);
     }
 
     private void createEmptyBoard() {
+
         boardGrid.getChildren().clear();
 
         for (int row = 0; row < ROWS; row++) {
+
             for (int col = 0; col < COLS; col++) {
-                Rectangle cell = new Rectangle(CELL_SIZE, CELL_SIZE);
+
+                Rectangle cell =
+                    new Rectangle(CELL_SIZE, CELL_SIZE);
 
                 cell.setStyle(
-                    "-fx-fill: white;" +
-                    "-fx-stroke: lightgray;"
+                    "-fx-fill: #111111;" +
+                    "-fx-stroke: #555555;" +
+                    "-fx-stroke-width: 0.5;"
                 );
 
                 boardGrid.add(cell, col, row);
+            }
+        }
+    }
+
+    private void createEmptyNextBlock() {
+
+        nextBlockGrid.getChildren().clear();
+
+        for (int row = 0; row < 4; row++) {
+
+            for (int col = 0; col < 4; col++) {
+
+                Rectangle cell =
+                    new Rectangle(20, 20);
+
+                cell.setStyle(
+                    "-fx-fill: #111111;" +
+                    "-fx-stroke: #555555;"
+                );
+
+                nextBlockGrid.add(cell, col, row);
             }
         }
     }
@@ -80,10 +144,13 @@ public class GameView {
     }
 
     public void updateScore(int score) {
-        scoreLabel.setText(String.valueOf(score));
+        scoreLabel.setText(
+            String.valueOf(score)
+        );
     }
 
     public void setPaused(boolean paused) {
+
         if (paused) {
             pauseLabel.setText("PAUSED");
         } else {
@@ -91,7 +158,8 @@ public class GameView {
         }
     }
 
-    public void setNextBlockText(String text) {
-        nextBlockLabel.setText(text);
-    }
+    /*
+     * 이후 BlockType / currentBlock API 연결 시
+     * 실제 블록을 Board 위에 렌더링할 예정
+     */
 }
