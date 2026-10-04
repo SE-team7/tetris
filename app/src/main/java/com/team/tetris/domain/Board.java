@@ -1,9 +1,7 @@
 package com.team.tetris.domain;
 
 public class Board {
-    public static final int HIDDEN_ROWS = 5;
-    public static final int VISIBLE_ROWS = 20;
-    public static final int ROWS = HIDDEN_ROWS + VISIBLE_ROWS;
+    public static final int ROWS = 25;
     public static final int COLS = 10;
 
     private final BlockType[][] cells;
@@ -11,47 +9,34 @@ public class Board {
     public Board() {
         cells = new BlockType[ROWS][COLS];
     }
-
+    //이동가능 확인
     public boolean canMove(Block block, int deltaRow, int deltaCol) {
-        Position[] movedCells = new Position[block.getCells().length];
-        Position[] currentCells = block.getCells();
-
-        for (int i = 0; i < currentCells.length; i++) {
-            movedCells[i] = new Position(
-                    currentCells[i].getRow() + deltaRow,
-                    currentCells[i].getCol() + deltaCol
-            );
-        }
-
-        return canPlace(movedCells);
+        return canPlace(block.getMovedCells(deltaRow, deltaCol));
     }
-
+    //회전 가능 확인
     public boolean canRotate(Block block) {
-        Block rotatedBlock = new Block(block.getType(), block.getPosition());
-
-        for (int i = 0; i <= block.getRotation(); i++) {
-            rotatedBlock.rotate();
-        }
-
-        return canPlace(rotatedBlock);
+        return canPlace(block.getRotatedCells());
     }
-
+    //현재 위치에 블록 배치 가능한지 확인
     public boolean canPlace(Block block) {
         return canPlace(block.getCells());
     }
-
+    //보드에 블록 고정
     public void lockBlock(Block block) {
-        for (Position cell : block.getCells()) {
+        Position[] blockCells = block.getCells();
+
+        if (!canPlace(blockCells)) {
+            throw new IllegalArgumentException("block cannot be locked here");
+        }
+
+        for (Position cell : blockCells) {
             int row = cell.getRow();
             int col = cell.getCol();
 
-            if (!isInside(row, col)) {
-                throw new IllegalArgumentException("block is outside of board");
-            }
             cells[row][col] = block.getType();
         }
     }
-
+    //줄 삭제 +삭제한 줄 개수 반환
     public int clearLines() {
         int clearedLines = 0;
 
@@ -65,7 +50,7 @@ public class Board {
 
         return clearedLines;
     }
-
+    //고정된 블록 상태 반환
     public BlockType[][] getCells() {
         BlockType[][] copy = new BlockType[ROWS][COLS];
 
@@ -75,7 +60,7 @@ public class Board {
 
         return copy;
     }
-
+    //보드 초기화
     public void reset() {
         for (int row = 0; row < ROWS; row++) {
             for (int col = 0; col < COLS; col++) {
@@ -83,7 +68,7 @@ public class Board {
             }
         }
     }
-
+    // 좌표 배열이 현재 보드에 배치 가능한지 확인
     private boolean canPlace(Position[] positions) {
         for (Position position : positions) {
             int row = position.getRow();
@@ -96,11 +81,11 @@ public class Board {
 
         return true;
     }
-
+    // 보드 범위 안인지 확인
     private boolean isInside(int row, int col) {
         return row >= 0 && row < ROWS && col >= 0 && col < COLS;
     }
-
+    // 해당 줄이 꽉 찼는지 확인
     private boolean isLineFull(int row) {
         for (int col = 0; col < COLS; col++) {
             if (cells[row][col] == null) {
@@ -109,7 +94,7 @@ public class Board {
         }
         return true;
     }
-
+    //한 줄 삭제 후 위쪽 줄을 한 칸씩 아래로 이동
     private void clearLine(int targetRow) {
         for (int row = targetRow; row > 0; row--) {
             System.arraycopy(cells[row - 1], 0, cells[row], 0, COLS);
