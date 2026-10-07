@@ -76,9 +76,7 @@ public class SettingsView {
 
         row = addKeyRow(keyGrid, row, "MENU_UP", "W");
         row = addKeyRow(keyGrid, row, "MENU_DOWN", "S");
-        row = addKeyRow(keyGrid, row, "MENU_LEFT", "A");
-        row = addKeyRow(keyGrid, row, "MENU_RIGHT", "D");
-        addKeyRow(keyGrid, row, "SELECT", "SPACE");
+        addKeyRow(keyGrid, row, "SELECT", "ENTER");
 
         /*
          * COLOR BLIND MODE

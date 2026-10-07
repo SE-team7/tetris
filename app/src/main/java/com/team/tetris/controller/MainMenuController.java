@@ -37,7 +37,7 @@ public class MainMenuController {
         mainMenuView.render(selectedMenu);
         mainMenuView.showKeyGuide(
             "W/S 또는 ↑/↓",
-            "ENTER/SPACE"
+            "ENTER"
         );
 
         sceneManager.showMainMenu();
@@ -54,7 +54,7 @@ public class MainMenuController {
             return;
         }
 
-        if (key == KeyCode.ENTER || key == KeyCode.SPACE) {
+        if (key == KeyCode.ENTER) {
             selectMenu(selectedMenu);
         }
     }
@@ -66,7 +66,7 @@ public class MainMenuController {
             (selectedMenu.ordinal() + direction + items.length)
             % items.length;
 
-        selectedMenu = items[nextIndex];
+        selectedMenu = items[nextIndex);
         mainMenuView.render(selectedMenu);
     }
 

@@ -67,7 +67,7 @@ public class SettingsController {
     private void connectKeySettings() {
 
         String[] actions = {
-            "MOVE_LEFT",
+            "MOVE_LEFT",       
             "MOVE_RIGHT",
             "SOFT_DROP",
             "HARD_DROP",
@@ -75,8 +75,6 @@ public class SettingsController {
             "PAUSE",
             "MENU_UP",
             "MENU_DOWN",
-            "MENU_LEFT",
-            "MENU_RIGHT",
             "SELECT"
         };
 
@@ -194,9 +192,7 @@ public class SettingsController {
 
         settingsView.setKeyText("MENU_UP", "W");
         settingsView.setKeyText("MENU_DOWN", "S");
-        settingsView.setKeyText("MENU_LEFT", "A");
-        settingsView.setKeyText("MENU_RIGHT", "D");
-        settingsView.setKeyText("SELECT", "SPACE");
+        settingsView.setKeyText("SELECT", "ENTER");
 
         changeScreenSize("MEDIUM");
 
