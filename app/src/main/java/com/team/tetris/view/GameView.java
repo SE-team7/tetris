@@ -2,6 +2,7 @@ package com.team.tetris.view;
 
 import com.team.tetris.domain.Block;
 import com.team.tetris.domain.BlockType;
+import com.team.tetris.domain.Board;
 import com.team.tetris.domain.Position;
 
 import javafx.geometry.Insets;
@@ -323,11 +324,12 @@ public class GameView {
         BlockType[][] board,
         Block currentBlock
     ) {
-
+        
+        
         int boardRows =
-            board == null
-                ? 25
-                : board.length;
+        board == null
+        ? Board.ROWS
+        : board.length;
 
         int firstVisibleRow =
             Math.max(

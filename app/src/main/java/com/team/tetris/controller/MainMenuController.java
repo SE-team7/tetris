@@ -66,7 +66,7 @@ public class MainMenuController {
             (selectedMenu.ordinal() + direction + items.length)
             % items.length;
 
-        selectedMenu = items[nextIndex);
+        selectedMenu = items[nextIndex];
         mainMenuView.render(selectedMenu);
     }
 
