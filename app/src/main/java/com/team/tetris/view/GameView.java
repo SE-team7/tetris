@@ -29,6 +29,7 @@ public class GameView {
     private final Label[][] nextCells;
 
     private final Label scoreLabel;
+    private final Label levelLabel;
     private final Label statusLabel;
 
     private final Button pauseButton;
@@ -54,8 +55,7 @@ public class GameView {
         boardGrid.setHgap(2);
         boardGrid.setVgap(1);
 
-        boardCells =
-            new Label[VISIBLE_ROWS][COLS];
+        boardCells = new Label[VISIBLE_ROWS][COLS];
 
         createTextBoard();
 
@@ -69,8 +69,7 @@ public class GameView {
         nextGrid.setHgap(2);
         nextGrid.setVgap(1);
 
-        nextCells =
-            new Label[NEXT_SIZE][NEXT_SIZE];
+        nextCells = new Label[NEXT_SIZE][NEXT_SIZE];
 
         createNextArea();
 
@@ -80,11 +79,15 @@ public class GameView {
         Label scoreTitle = createTitle("SCORE");
 
         scoreLabel = new Label("0");
-        scoreLabel.setStyle(
-            "-fx-text-fill: white;" +
-            "-fx-font-family: 'Consolas';" +
-            "-fx-font-size: 24px;"
-        );
+        scoreLabel.setStyle(infoStyle());
+
+        /*
+         * LEVEL
+         */
+        Label levelTitle = createTitle("LEVEL");
+
+        levelLabel = new Label("1");
+        levelLabel.setStyle(infoStyle());
 
         /*
          * STATUS
@@ -124,6 +127,8 @@ public class GameView {
             nextGrid,
             scoreTitle,
             scoreLabel,
+            levelTitle,
+            levelLabel,
             statusLabel,
             pauseButton,
             quitButton
@@ -137,11 +142,6 @@ public class GameView {
         root.setRight(sidePanel);
     }
 
-    /*
-     * Professor example:
-     * X = board border
-     * O / block letter = tetromino cell
-     */
     private void createTextBoard() {
 
         boardGrid.getChildren().clear();
@@ -228,6 +228,14 @@ public class GameView {
             "-fx-text-fill: white;";
     }
 
+    private String infoStyle() {
+
+        return
+            "-fx-text-fill: white;" +
+            "-fx-font-family: 'Consolas';" +
+            "-fx-font-size: 24px;";
+    }
+
     private Label createTitle(String text) {
 
         Label label = new Label(text);
@@ -243,14 +251,14 @@ public class GameView {
     }
 
     /*
-     * Main render API
+     * GameController API
      */
     public void render(
         BlockType[][] board,
         Block currentBlock,
         Block nextBlock,
         int score,
-        boolean paused
+        int level
     ) {
 
         clearBoard();
@@ -272,12 +280,9 @@ public class GameView {
         }
 
         updateScore(score);
-        setPaused(paused);
+        updateLevel(level);
     }
 
-    /*
-     * Fixed blocks
-     */
     private void renderFixedBlocks(
         BlockType[][] board
     ) {
@@ -317,19 +322,15 @@ public class GameView {
         }
     }
 
-    /*
-     * Falling block
-     */
     private void renderCurrentBlock(
         BlockType[][] board,
         Block currentBlock
     ) {
-        
-        
+
         int boardRows =
-        board == null
-        ? Board.ROWS
-        : board.length;
+            board == null
+                ? Board.ROWS
+                : board.length;
 
         int firstVisibleRow =
             Math.max(
@@ -360,11 +361,6 @@ public class GameView {
         }
     }
 
-    /*
-     * NEXT block:
-     * use coordinates given by Block.
-     * UI does not redefine block shapes.
-     */
     private void renderNextBlock(
         Block nextBlock
     ) {
@@ -473,10 +469,6 @@ public class GameView {
 
         if (colorBlindMode) {
 
-            /*
-             * Color-blind mode:
-             * color + block letter are both used.
-             */
             return switch (type) {
 
                 case I -> "#56B4E9";
@@ -489,9 +481,6 @@ public class GameView {
             };
         }
 
-        /*
-         * Team-agreed normal colors.
-         */
         return switch (type) {
 
             case I -> "#00FFFF";
@@ -549,9 +538,27 @@ public class GameView {
     }
 
     public void updateScore(int score) {
+
         scoreLabel.setText(
             String.valueOf(score)
         );
+    }
+
+    public void updateLevel(int level) {
+
+        levelLabel.setText(
+            String.valueOf(level)
+        );
+    }
+
+    /*
+     * 2번 GameController에서 사용하는 API
+     */
+    public void applyColorBlindMode(
+        boolean enabled
+    ) {
+
+        setColorBlindMode(enabled);
     }
 
     public void setColorBlindMode(
@@ -565,7 +572,9 @@ public class GameView {
         return colorBlindMode;
     }
 
-    public void setPaused(boolean paused) {
+    public void setPaused(
+        boolean paused
+    ) {
 
         this.paused = paused;
 
@@ -587,7 +596,7 @@ public class GameView {
     }
 
     /*
-     * GameController connection API
+     * GameController 연결 API
      */
     public void setGameActions(
         Runnable pauseAction,
