@@ -1,6 +1,7 @@
 package com.team.tetris.util;
 
 import com.team.tetris.view.MainMenuView;
+import com.team.tetris.view.ScoreboardView;
 import com.team.tetris.view.SettingsView;
 
 import javafx.application.Platform;
@@ -14,21 +15,26 @@ public class SceneManager {
 
     private final MainMenuView mainMenuView;
     private final SettingsView settingsView;
+    private final ScoreboardView scoreboardView;
 
     private final Scene mainMenuScene;
     private final Scene settingsScene;
+    private final Scene scoreboardScene;
 
     public SceneManager(
         Stage stage,
         MainMenuView mainMenuView,
-        SettingsView settingsView
+        SettingsView settingsView,
+        ScoreboardView scoreboardView
     ) {
         this.stage = stage;
         this.mainMenuView = mainMenuView;
         this.settingsView = settingsView;
+        this.scoreboardView = scoreboardView;
 
         this.mainMenuScene = createScene(mainMenuView.getRoot());
         this.settingsScene = createScene(settingsView.getRoot());
+        this.scoreboardScene = createScene(scoreboardView.getRoot());
     }
 
     public void showMainMenu() {
@@ -46,6 +52,15 @@ public class SceneManager {
 
         Platform.runLater(
             () -> settingsView.getRoot().requestFocus()
+        );
+    }
+
+    public void showScoreboard() {
+        stage.setScene(scoreboardScene);
+        stage.show();
+
+        Platform.runLater(
+            () -> scoreboardView.getRoot().requestFocus()
         );
     }
 
