@@ -52,7 +52,8 @@ public class SettingsController {
             );
 
         settingsView.getResetScoreboardButton()
-            .setOnAction(event -> resetScoreboard());
+           
+        .setOnAction(event -> resetScoreboard());
 
         settingsView.getResetDefaultButton()
             .setOnAction(event -> resetToDefault());
