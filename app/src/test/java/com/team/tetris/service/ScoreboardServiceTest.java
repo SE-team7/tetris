@@ -6,6 +6,8 @@ import com.team.tetris.util.FileManager;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -56,5 +58,16 @@ class ScoreboardServiceTest {
 
         reloaded.resetScoreboard();
         assertTrue(new ScoreboardService(new FileManager(tempDir)).getTopScores().isEmpty());
+    }
+
+    @Test
+    void fileErrors_doNotStopGame() throws IOException {
+        // 저장 폴더 자리에 일반 파일이 있어 읽기·쓰기 모두 실패하는 상황
+        Path blocker = Files.writeString(tempDir.resolve("blocker"), "");
+        ScoreboardService service = assertDoesNotThrow(() -> new ScoreboardService(new FileManager(blocker)));
+
+        assertEquals(1, assertDoesNotThrow(() -> service.addScore("A", 100, 1, 1)));
+        assertEquals(1, service.getTopScores().size()); // 이번 실행 동안은 기록 유지
+        assertDoesNotThrow(service::resetScoreboard);
     }
 }
