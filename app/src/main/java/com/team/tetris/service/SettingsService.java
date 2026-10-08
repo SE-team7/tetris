@@ -36,7 +36,9 @@ public class SettingsService {
         Properties props = new Properties();
         try {
             props.load(new StringReader(fileManager.readFile(FILE_NAME)));
-        } catch (IOException e) {
+        } catch (IOException | UncheckedIOException | IllegalArgumentException e) {
+            // 읽기 실패 시 기본 설정으로 시작 (게임은 계속 진행)
+            System.err.println("설정 불러오기 실패: " + e.getMessage());
             return settings;
         }
 
@@ -61,7 +63,7 @@ public class SettingsService {
         return settings;
     }
 
-    /** 설정을 파일에 저장한다. */
+    /** 설정을 파일에 저장한다. 저장에 실패해도 예외를 던지지 않는다. (현재 실행 중에는 설정이 유지됨) */
     public void save(Settings settings) {
         Properties props = new Properties();
         props.setProperty(SCREEN_SIZE, settings.getScreenSize().name());
@@ -73,10 +75,10 @@ public class SettingsService {
         StringWriter writer = new StringWriter();
         try {
             props.store(writer, "Tetris settings");
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            fileManager.writeFile(FILE_NAME, writer.toString());
+        } catch (IOException | UncheckedIOException e) {
+            System.err.println("설정 저장 실패: " + e.getMessage());
         }
-        fileManager.writeFile(FILE_NAME, writer.toString());
     }
 
     /** 모든 설정을 기본값으로 되돌려 저장하고, 기본 설정을 반환한다. */

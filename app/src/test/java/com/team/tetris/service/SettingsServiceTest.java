@@ -9,6 +9,8 @@ import javafx.scene.input.KeyCode;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -52,6 +54,30 @@ class SettingsServiceTest {
 
         assertFalse(service.resetToDefault().isColorBlindMode());
         assertFalse(service.load().isColorBlindMode());
+    }
+
+    @Test
+    void fileErrors_doNotStopGame() throws IOException {
+        // 저장 폴더 자리에 일반 파일이 있어 읽기·쓰기 모두 실패하는 상황
+        Path blocker = Files.writeString(tempDir.resolve("blocker"), "");
+        SettingsService service = new SettingsService(new FileManager(blocker));
+
+        Settings loaded = assertDoesNotThrow(service::load);
+        assertEquals(ScreenSize.MEDIUM, loaded.getScreenSize()); // 기본값으로 시작
+        assertDoesNotThrow(() -> service.save(new Settings()));
+        assertNotNull(assertDoesNotThrow(service::resetToDefault));
+    }
+
+    @Test
+    void load_ignoresInvalidValues() {
+        FileManager fileManager = new FileManager(tempDir);
+        fileManager.writeFile("settings.properties",
+                "screenSize=HUGE\nkey.MOVE_LEFT=NOT_A_KEY\nkey.ROTATE=UP\n");
+
+        Settings loaded = new SettingsService(fileManager).load();
+        assertEquals(ScreenSize.MEDIUM, loaded.getScreenSize());
+        assertEquals(KeyCode.A, loaded.getKey(KeyAction.MOVE_LEFT));
+        assertEquals(KeyCode.UP, loaded.getKey(KeyAction.ROTATE));
     }
 
     @Test

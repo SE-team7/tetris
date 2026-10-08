@@ -3,6 +3,7 @@ package com.team.tetris.service;
 import com.team.tetris.domain.Score;
 import com.team.tetris.util.FileManager;
 
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -63,7 +64,15 @@ public class ScoreboardService {
 
     private List<Score> load() {
         List<Score> loaded = new ArrayList<>();
-        for (String line : fileManager.readFile(FILE_NAME).split("\\R")) {
+        String content;
+        try {
+            content = fileManager.readFile(FILE_NAME);
+        } catch (UncheckedIOException e) {
+            // 읽기 실패 시 빈 스코어보드로 시작 (게임은 계속 진행)
+            System.err.println("스코어보드 불러오기 실패: " + e.getMessage());
+            return loaded;
+        }
+        for (String line : content.split("\\R")) {
             String[] parts = line.split(",");
             if (parts.length != 4) {
                 continue;
@@ -93,7 +102,12 @@ public class ScoreboardService {
               .append(s.getLevel()).append(',')
               .append(s.getClearedLines()).append('\n');
         }
-        fileManager.writeFile(FILE_NAME, sb.toString());
+        try {
+            fileManager.writeFile(FILE_NAME, sb.toString());
+        } catch (UncheckedIOException e) {
+            // 저장 실패 시 메모리의 기록은 유지 (이번 실행 동안은 스코어보드에 보임)
+            System.err.println("스코어보드 저장 실패: " + e.getMessage());
+        }
     }
 
     // 파일 형식을 깨뜨리는 문자(쉼표, 줄바꿈) 제거
