@@ -3,15 +3,11 @@ package com.team.tetris.controller;
 import com.team.tetris.domain.Settings;
 import com.team.tetris.service.GameEngineService;
 import com.team.tetris.view.GameView;
+
 import javafx.animation.AnimationTimer;
 import javafx.scene.input.KeyCode;
 
 public class GameController {
-
-    // 키 입력이 변환될 게임 동작
-    public enum GameAction {
-        MOVE_LEFT, MOVE_RIGHT, MOVE_DOWN, ROTATE, HARD_DROP, PAUSE
-    }
 
     private final GameEngineService gameEngine;
     private final GameView gameView;
@@ -89,12 +85,12 @@ public class GameController {
             return;
         }
 
-        GameAction action = settings.findGameAction(key);
+        Settings.KeyAction action= settings.findGameAction(key);
         if (action == null) {
             return;
         }
 
-        if (action == GameAction.PAUSE) {
+        if (action == Settings.KeyAction.PAUSE) {
             togglePause();
             return;
         }
@@ -106,11 +102,16 @@ public class GameController {
         switch (action) {
             case MOVE_LEFT  -> gameEngine.moveLeft();
             case MOVE_RIGHT -> gameEngine.moveRight();
-            case MOVE_DOWN  -> gameEngine.moveDown();
+            case SOFT_DROP  -> gameEngine.moveDown();
             case ROTATE     -> gameEngine.rotate();
             case HARD_DROP  -> gameEngine.hardDrop();
             default         -> { }
         }
+
+        if (gameEngine.isGameOver()) {
+        handleGameOver();
+        return;
+    }
 
         render();
     }
@@ -121,7 +122,8 @@ public class GameController {
                 gameEngine.getCurrentBlock(),
                 gameEngine.getNextBlock(),
                 gameEngine.getScore(),
-                gameEngine.getLevel()
+                gameEngine.getLevel(),
+                gameEngine.isPaused()
         );
     }
 

@@ -1,12 +1,12 @@
 package com.team.tetris.service;
 
-import com.team.tetris.domain.Score;
-import com.team.tetris.util.FileManager;
-
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
+import com.team.tetris.domain.Score;
+import com.team.tetris.util.FileManager;
 
 /**
  * 상위 점수 기록 관리. 기록은 FileManager를 통해 파일에 저장된다.
