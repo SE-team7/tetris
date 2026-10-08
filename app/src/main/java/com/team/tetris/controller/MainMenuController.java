@@ -12,29 +12,33 @@ public class MainMenuController {
     private final MainMenuView mainMenuView;
     private final SceneManager sceneManager;
 
-    private final Runnable startGameAction;
-    private final Runnable showScoreboardAction;
+    private final GameController gameController;
+    private final ScoreboardController scoreboardController;
 
     private MainMenuItem selectedMenu;
 
     public MainMenuController(
         MainMenuView mainMenuView,
         SceneManager sceneManager,
-        Runnable startGameAction,
-        Runnable showScoreboardAction
+        GameController gameController,
+        ScoreboardController scoreboardController
     ) {
         this.mainMenuView = mainMenuView;
         this.sceneManager = sceneManager;
-        this.startGameAction = startGameAction;
-        this.showScoreboardAction = showScoreboardAction;
+        this.gameController = gameController;
+        this.scoreboardController = scoreboardController;
 
-        this.selectedMenu = MainMenuItem.START_GAME;
+        this.selectedMenu =
+            MainMenuItem.START_GAME;
     }
 
     public void show() {
-        selectedMenu = MainMenuItem.START_GAME;
+
+        selectedMenu =
+            MainMenuItem.START_GAME;
 
         mainMenuView.render(selectedMenu);
+
         mainMenuView.showKeyGuide(
             "W/S 또는 ↑/↓",
             "ENTER"
@@ -44,12 +48,17 @@ public class MainMenuController {
     }
 
     public void handleKey(KeyCode key) {
-        if (key == KeyCode.W || key == KeyCode.UP) {
+
+        if (key == KeyCode.W
+            || key == KeyCode.UP) {
+
             moveSelection(-1);
             return;
         }
 
-        if (key == KeyCode.S || key == KeyCode.DOWN) {
+        if (key == KeyCode.S
+            || key == KeyCode.DOWN) {
+
             moveSelection(1);
             return;
         }
@@ -59,23 +68,36 @@ public class MainMenuController {
         }
     }
 
-    private void moveSelection(int direction) {
-        MainMenuItem[] items = MainMenuItem.values();
+    private void moveSelection(
+        int direction
+    ) {
+
+        MainMenuItem[] items =
+            MainMenuItem.values();
 
         int nextIndex =
-            (selectedMenu.ordinal() + direction + items.length)
+            (
+                selectedMenu.ordinal()
+                + direction
+                + items.length
+            )
             % items.length;
 
-        selectedMenu = items[nextIndex];
+        selectedMenu =
+            items[nextIndex];
+
         mainMenuView.render(selectedMenu);
     }
 
-    public void selectMenu(MainMenuItem menuItem) {
+    public void selectMenu(
+        MainMenuItem menuItem
+    ) {
+
         switch (menuItem) {
+
             case START_GAME:
-                if (startGameAction != null) {
-                    startGameAction.run();
-                }
+                sceneManager.showGame();
+                gameController.startGame();
                 break;
 
             case SETTINGS:
@@ -83,9 +105,7 @@ public class MainMenuController {
                 break;
 
             case SCOREBOARD:
-                if (showScoreboardAction != null) {
-                    showScoreboardAction.run();
-                }
+                scoreboardController.show();
                 break;
 
             case EXIT:
