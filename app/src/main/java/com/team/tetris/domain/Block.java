@@ -86,53 +86,65 @@ public class Block {
         return cells;
     }
 
-    //블록 타입 회전 시 상대좌표
+    // 초기 모양에서 고정된 회전축을 기준으로 시계방향 회전
     private int[][] getOffsets(BlockType blockType, int targetRotation) {
-        return switch (blockType) {
-            case I -> switch (targetRotation) {
-                case 0, 2 -> new int[][]{{-3, 0}, {-2, 0}, {-1, 0}, {0, 0}};
-                case 1, 3 -> new int[][]{{0, 0}, {0, 1}, {0, 2}, {0, 3}};
-                default -> throw new IllegalStateException("Unexpected rotation: " + targetRotation);
-            };
+        if (targetRotation < 0 || targetRotation > 3) {
+            throw new IllegalStateException(
+                    "Unexpected rotation: " + targetRotation
+            );
+        }
 
-            case O -> new int[][]{{-1, 0}, {-1, 1}, {0, 0}, {0, 1}};
-
-            case J -> switch (targetRotation) {
-                case 0 -> new int[][]{{-2, 1}, {-1, 1}, {0, 0}, {0, 1}};
-                case 1 -> new int[][]{{-1, 0}, {0, 0}, {0, 1}, {0, 2}};
-                case 2 -> new int[][]{{-2, 0}, {-2, 1}, {-1, 0}, {0, 0}};
-                case 3 -> new int[][]{{-1, -2}, {-1, -1}, {-1, 0}, {0, 0}};
-                default -> throw new IllegalStateException("Unexpected rotation: " + targetRotation);
+        int[][] offsets = switch (blockType) {
+            case I -> new int[][]{
+                    {-3, 0}, {-2, 0}, {-1, 0}, {0, 0}
             };
-
-            case L -> switch (targetRotation) {
-                case 0 -> new int[][]{{-2, 0}, {-1, 0}, {0, 0}, {0, 1}};
-                case 1 -> new int[][]{{-1, 0}, {-1, 1}, {-1, 2}, {0, 0}};
-                case 2 -> new int[][]{{-2, -1}, {-2, 0}, {-1, 0}, {0, 0}};
-                case 3 -> new int[][]{{-1, 2}, {0, 0}, {0, 1}, {0, 2}};
-                default -> throw new IllegalStateException("Unexpected rotation: " + targetRotation);
+            case O -> new int[][]{
+                    {-1, 0}, {-1, 1}, {0, 0}, {0, 1}
             };
-
-            case S -> switch (targetRotation) {
-                case 0, 2 -> new int[][]{{-1, 1}, {-1, 2}, {0, 0}, {0, 1}};
-                case 1, 3 -> new int[][]{{-2, -1}, {-1, -1}, {-1, 0}, {0, 0}};
-                default -> throw new IllegalStateException("Unexpected rotation: " + targetRotation);
+            case J -> new int[][]{
+                    {-2, 1}, {-1, 1}, {0, 0}, {0, 1}
             };
-
-            case Z -> switch (targetRotation) {
-                case 0, 2 -> new int[][]{{-1, -1}, {-1, 0}, {0, 0}, {0, 1}};
-                case 1, 3 -> new int[][]{{-2, 1}, {-1, 0}, {-1, 1}, {0, 0}};
-                default -> throw new IllegalStateException("Unexpected rotation: " + targetRotation);
+            case L -> new int[][]{
+                    {-2, 0}, {-1, 0}, {0, 0}, {0, 1}
             };
-
-            case T -> switch (targetRotation) {
-                case 0 -> new int[][]{{-1, -1}, {-1, 0}, {-1, 1}, {0, 0}};
-                case 1 -> new int[][]{{-2, 0}, {-1, -1}, {-1, 0}, {0, 0}};
-                case 2 -> new int[][]{{-1, 1}, {0, 0}, {0, 1}, {0, 2}};
-                case 3 -> new int[][]{{-2, 0}, {-1, 0}, {-1, 1}, {0, 0}};
-                default -> throw new IllegalStateException("Unexpected rotation: " + targetRotation);
+            case S -> new int[][]{
+                    {-1, 1}, {-1, 2}, {0, 0}, {0, 1}
             };
-        
+            case Z -> new int[][]{
+                    {-1, -1}, {-1, 0}, {0, 0}, {0, 1}
+            };
+            case T -> new int[][]{
+                    {-1, -1}, {-1, 0}, {-1, 1}, {0, 0}
+            };
         };
+
+        // O는 회전해도 차지하는 셀이 동일
+        if (blockType == BlockType.O) {
+            return offsets;
+        }
+
+        
+        int[] pivot2 = switch (blockType) {
+            case I -> new int[]{-3, 1};
+            case J, S -> new int[]{-2, 2};
+            case L, Z, T -> new int[]{-2, 0};
+            case O -> throw new IllegalStateException(
+                    "O block does not require rotation"
+            );
+        };
+
+        for (int turn = 0; turn < targetRotation; turn++) {
+            for (int[] offset : offsets) {
+                int relativeRow2 = offset[0] * 2 - pivot2[0];
+                int relativeCol2 = offset[1] * 2 - pivot2[1];
+
+                // row는 아래로, col은 오른쪽으로 증가
+                // 시계방향 90도: (row, col) → (col, -row)
+                offset[0] = (pivot2[0] + relativeCol2) / 2;
+                offset[1] = (pivot2[1] - relativeRow2) / 2;
+            }
+        }
+
+        return offsets;
     }
 }
