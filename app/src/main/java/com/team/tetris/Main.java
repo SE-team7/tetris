@@ -1,21 +1,27 @@
 package com.team.tetris;
 
+import com.team.tetris.controller.GameController;
+import com.team.tetris.controller.GameOverController;
 import com.team.tetris.controller.MainMenuController;
 import com.team.tetris.controller.ScoreboardController;
 import com.team.tetris.controller.SettingsController;
 
+import com.team.tetris.domain.Settings;
+
+import com.team.tetris.service.GameEngineService;
 import com.team.tetris.service.ScoreboardService;
+import com.team.tetris.service.SettingsService;
 
 import com.team.tetris.util.FileManager;
 import com.team.tetris.util.SceneManager;
 
+import com.team.tetris.view.GameOverView;
 import com.team.tetris.view.GameView;
 import com.team.tetris.view.MainMenuView;
 import com.team.tetris.view.ScoreboardView;
 import com.team.tetris.view.SettingsView;
 
 import javafx.application.Application;
-import javafx.scene.Scene;
 import javafx.stage.Stage;
 
 public class Main extends Application {
@@ -40,14 +46,30 @@ public class Main extends Application {
         GameView gameView =
             new GameView();
 
+        GameOverView gameOverView =
+            new GameOverView();
+
         /*
-         * Services
+         * File / Services
          */
         FileManager fileManager =
             new FileManager();
 
         ScoreboardService scoreboardService =
-            new ScoreboardService(fileManager);
+            new ScoreboardService(
+                fileManager
+            );
+
+        SettingsService settingsService =
+            new SettingsService(
+                fileManager
+            );
+
+        Settings settings =
+            settingsService.load();
+
+        GameEngineService gameEngine =
+            new GameEngineService();
 
         /*
          * Scene Manager
@@ -57,8 +79,14 @@ public class Main extends Application {
                 stage,
                 mainMenuView,
                 settingsView,
-                scoreboardView
+                scoreboardView,
+                gameView,
+                gameOverView
             );
+
+        sceneManager.applyScreenSize(
+            settings.getScreenSize()
+        );
 
         /*
          * Scoreboard Controller
@@ -72,32 +100,26 @@ public class Main extends Application {
             );
 
         /*
-         * Temporary game start connection.
-         *
-         * GameController from member 2 is not
-         * present in the current repository yet.
+         * Game Over Controller
          */
-        Runnable startGameAction = () -> {
+        GameOverController gameOverController =
+            new GameOverController(
+                scoreboardService,
+                scoreboardController,
+                gameOverView,
+                sceneManager::showGameOver
+            );
 
-            Scene gameScene =
-                new Scene(gameView.getRoot(), 800, 800);
-
-            var css =
-                getClass().getResource("/style.css");
-
-            if (css != null) {
-                gameScene
-                    .getStylesheets()
-                    .add(css.toExternalForm());
-            }
-
-            stage.setScene(gameScene);
-            stage.show();
-
-            gameView
-                .getRoot()
-                .requestFocus();
-        };
+        /*
+         * Game Controller
+         */
+        GameController gameController =
+            new GameController(
+                gameEngine,
+                gameView,
+                settings,
+                gameOverController
+            );
 
         /*
          * Main Menu Controller
@@ -106,32 +128,32 @@ public class Main extends Application {
             new MainMenuController(
                 mainMenuView,
                 sceneManager,
-                startGameAction,
-                scoreboardController::show
+                gameController,
+                scoreboardController
             );
 
         /*
          * Settings Controller
-         *
-         * Scoreboard reset can now use the real
-         * ScoreboardService.
-         *
-         * SettingsService does not exist in the
-         * current repository yet, so save/reset
-         * callbacks remain temporary.
          */
         SettingsController settingsController =
             new SettingsController(
                 settingsView,
+                settingsService,
+                scoreboardService,
                 sceneManager,
-                scoreboardService::resetScoreboard,
-                () -> System.out.println(
-                    "SettingsService.save() 연결 필요"
-                ),
-                () -> System.out.println(
-                    "SettingsService.resetToDefault() 연결 필요"
-                )
+                settings
             );
+
+        /*
+         * Game buttons
+         */
+        gameView.setGameActions(
+            gameController::togglePause,
+            () -> {
+                gameController.quitGame();
+                sceneManager.showMainMenu();
+            }
+        );
 
         /*
          * Keyboard input
@@ -140,39 +162,52 @@ public class Main extends Application {
             .getRoot()
             .setOnKeyPressed(
                 event ->
-                    mainMenuController.handleKey(
-                        event.getCode()
-                    )
+                    mainMenuController
+                        .handleKey(
+                            event.getCode()
+                        )
             );
 
         scoreboardView
             .getRoot()
             .setOnKeyPressed(
                 event ->
-                    scoreboardController.handleKey(
-                        event.getCode()
-                    )
+                    scoreboardController
+                        .handleKey(
+                            event.getCode()
+                        )
             );
 
-        /*
-         * Keep reference while SettingsController
-         * is connected through SettingsView.
-         */
-        @SuppressWarnings("unused")
-        SettingsController controllerReference =
-            settingsController;
+        gameView
+            .getRoot()
+            .setOnKeyPressed(
+                event ->
+                    gameController
+                        .handleKey(
+                            event.getCode()
+                        )
+            );
+
+        gameOverView
+            .getRoot()
+            .setOnKeyPressed(
+                event ->
+                    gameOverController
+                        .handleKey(
+                            event.getCode()
+                        )
+            );
 
         /*
          * Initial screen
          */
         mainMenuController.show();
-
-        mainMenuView
-            .getRoot()
-            .requestFocus();
     }
 
-    public static void main(String[] args) {
+    public static void main(
+        String[] args
+    ) {
+
         launch(args);
     }
 }
