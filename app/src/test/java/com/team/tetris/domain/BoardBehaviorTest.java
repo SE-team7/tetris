@@ -24,21 +24,26 @@ public class BoardBehaviorTest {
     void rejectsMovementOutsideWallsAndBottom() {
         Board board = new Board();
 
-        // I의 초기 모양은 세로이므로 col=0이 왼쪽 끝
+        // 초기 세로 I는 기준 열만 차지
         Block left = new Block(BlockType.I, new Position(10, 0));
+
         assertTrue(board.canPlace(left));
         assertFalse(board.canMove(left, 0, -1));
 
-        // O는 기준 col과 col+1을 차지
+        // O는 기준 열과 오른쪽 열을 차지
         Block right = new Block(
-                BlockType.O, new Position(10, Board.COLS - 2)
+                BlockType.O,
+                new Position(10, Board.COLS - 2)
         );
+
         assertTrue(board.canPlace(right));
         assertFalse(board.canMove(right, 0, 1));
 
         Block bottom = new Block(
-                BlockType.O, new Position(Board.ROWS - 1, 4)
+                BlockType.O,
+                new Position(Board.ROWS - 1, 4)
         );
+
         assertTrue(board.canPlace(bottom));
         assertFalse(board.canMove(bottom, 1, 0));
     }
@@ -51,7 +56,10 @@ public class BoardBehaviorTest {
                 new Block(BlockType.O, new Position(10, 4))
         );
 
-        Block moving = new Block(BlockType.O, new Position(10, 2));
+        Block moving = new Block(
+                BlockType.O,
+                new Position(10, 2)
+        );
 
         assertTrue(board.canPlace(moving));
         assertFalse(board.canMove(moving, 0, 1));
@@ -66,7 +74,13 @@ public class BoardBehaviorTest {
             Block block = new Block(type, new Position(10, 5));
 
             for (int i = 0; i < 4; i++) {
-                assertTrue(board.canRotate(block), type + " 회전 가능");
+                // 1차에서는 O의 변화 없는 회전도 충돌 검사상 허용
+                assertTrue(
+                        board.canRotate(block),
+                        type + " rotation " + block.getRotation()
+                                + " should be allowed in empty space"
+                );
+
                 block.rotate();
             }
         }
@@ -76,32 +90,41 @@ public class BoardBehaviorTest {
     void rejectsRotationOutsideRightWall() {
         Board board = new Board();
 
-        // 현재 세로 I는 보드 안에 있지만,
-        // 회전하면 col=8,9,10,11을 차지
-        Block block = new Block(BlockType.I, new Position(10, 8));
+        // 현재 세로 I: (7,9), (8,9), (9,9), (10,9)
+        // 회전 후 가로 I: (8,8), (8,9), (8,10), (8,11)
+        Block block = new Block(
+                BlockType.I,
+                new Position(10, 9)
+        );
 
         assertTrue(board.canPlace(block));
         assertFalse(board.canRotate(block));
 
-        // 가능 여부 확인만으로 상태가 바뀌면 안 됨
+        // 회전 가능 여부 확인은 실제 상태를 변경하지 않음
         assertEquals(0, block.getRotation());
+        assertEquals(10, block.getPosition().getRow());
+        assertEquals(9, block.getPosition().getCol());
     }
 
     @Test
     void rejectsRotationIntoLockedBlock() {
         Board board = new Board();
 
-        // 고정된 O: (9,6), (9,7), (10,6), (10,7)
+        // 고정 O: (8,6), (8,7), (9,6), (9,7)
         board.lockBlock(
-                new Block(BlockType.O, new Position(10, 6))
+                new Block(BlockType.O, new Position(9, 6))
         );
 
-        // 현재 I: (7,5), (8,5), (9,5), (10,5)
-        // 회전 후: (10,5), (10,6), (10,7), (10,8)
-        Block block = new Block(BlockType.I, new Position(10, 5));
+        // 현재 세로 I: (7,5), (8,5), (9,5), (10,5)
+        // 회전 후 가로 I: (8,4), (8,5), (8,6), (8,7)
+        Block block = new Block(
+                BlockType.I,
+                new Position(10, 5)
+        );
 
         assertTrue(board.canPlace(block));
         assertFalse(board.canRotate(block));
+        assertEquals(0, block.getRotation());
     }
 
     @Test
@@ -112,7 +135,9 @@ public class BoardBehaviorTest {
                 new Block(BlockType.O, new Position(10, 4))
         );
 
-        BlockType[][] expected = new BlockType[Board.ROWS][Board.COLS];
+        BlockType[][] expected =
+                new BlockType[Board.ROWS][Board.COLS];
+
         expected[9][4] = BlockType.O;
         expected[9][5] = BlockType.O;
         expected[10][4] = BlockType.O;
@@ -145,9 +170,11 @@ public class BoardBehaviorTest {
     void doesNotClearIncompleteLine() {
         Board board = new Board();
 
-        lockHorizontalI(board, 24, 0);
-        lockHorizontalI(board, 24, 4);
-        // 바닥의 col=8,9는 빈칸
+        int bottomRow = Board.ROWS - 1;
+
+        lockHorizontalI(board, bottomRow, 0);
+        lockHorizontalI(board, bottomRow, 4);
+        // 바닥의 8, 9열은 빈칸
 
         BlockType[][] before = board.getCells();
 
@@ -159,20 +186,25 @@ public class BoardBehaviorTest {
     void clearsOneLineAndMovesCellsAboveDown() {
         Board board = new Board();
 
-        lockHorizontalI(board, 24, 0);
-        lockHorizontalI(board, 24, 4);
-        board.lockBlock(
-                new Block(BlockType.O, new Position(24, 8))
-        );
-        // 24행은 가득 참, 23행에는 O 두 칸
+        int bottomRow = Board.ROWS - 1;
 
+        lockHorizontalI(board, bottomRow, 0);
+        lockHorizontalI(board, bottomRow, 4);
+
+        board.lockBlock(
+                new Block(BlockType.O, new Position(bottomRow, 8))
+        );
+
+        // 바닥 행은 가득 참
+        // 바로 위 행에는 O 두 칸이 남음
         assertEquals(1, board.clearLines());
 
-        BlockType[][] expected = new BlockType[Board.ROWS][Board.COLS];
-        expected[24][8] = BlockType.O;
-        expected[24][9] = BlockType.O;
+        BlockType[][] expected =
+                new BlockType[Board.ROWS][Board.COLS];
 
-        // 남은 O 두 칸이 23행에서 24행으로 내려와야 함
+        expected[bottomRow][8] = BlockType.O;
+        expected[bottomRow][9] = BlockType.O;
+
         assertBoardEquals(expected, board.getCells());
         assertEquals(0, board.clearLines());
     }
@@ -181,20 +213,28 @@ public class BoardBehaviorTest {
     void clearsTwoAdjacentLinesAndMovesCellsAboveDown() {
         Board board = new Board();
 
-        // O 다섯 개로 23행과 24행을 모두 채움
+        int bottomRow = Board.ROWS - 1;
+
+        // O 다섯 개로 아래 두 행을 채움
         for (int col = 0; col < Board.COLS; col += 2) {
             board.lockBlock(
-                    new Block(BlockType.O, new Position(24, col))
+                    new Block(
+                            BlockType.O,
+                            new Position(bottomRow, col)
+                    )
             );
         }
 
-        lockHorizontalI(board, 22, 0);
+        // 삭제될 두 행 바로 위에 가로 I 배치
+        lockHorizontalI(board, bottomRow - 2, 0);
 
         assertEquals(2, board.clearLines());
 
-        BlockType[][] expected = new BlockType[Board.ROWS][Board.COLS];
+        BlockType[][] expected =
+                new BlockType[Board.ROWS][Board.COLS];
+
         for (int col = 0; col < 4; col++) {
-            expected[24][col] = BlockType.I;
+            expected[bottomRow][col] = BlockType.I;
         }
 
         assertBoardEquals(expected, board.getCells());
@@ -204,13 +244,20 @@ public class BoardBehaviorTest {
     void clearsFourAdjacentLines() {
         Board board = new Board();
 
+        int bottomRow = Board.ROWS - 1;
+
+        // 세로 I로 아래 네 행을 채움
         for (int col = 0; col < Board.COLS; col++) {
             board.lockBlock(
-                    new Block(BlockType.I, new Position(24, col))
+                    new Block(
+                            BlockType.I,
+                            new Position(bottomRow, col)
+                    )
             );
         }
 
         assertEquals(4, board.clearLines());
+
         assertBoardEquals(
                 new BlockType[Board.ROWS][Board.COLS],
                 board.getCells()
@@ -242,6 +289,7 @@ public class BoardBehaviorTest {
         );
 
         BlockType[][] returned = board.getCells();
+
         returned[9][4] = null;
         returned[0][0] = BlockType.I;
 
@@ -252,8 +300,20 @@ public class BoardBehaviorTest {
     }
 
     private void lockHorizontalI(Board board, int row, int col) {
-        Block block = new Block(BlockType.I, new Position(row, col));
-        block.rotate(); // 가로 I
+        /*
+         * 새 I 회전축 기준:
+         * 90도 회전 후 상대좌표는
+         * (-2,-1), (-2,0), (-2,1), (-2,2).
+         *
+         * 지정한 row행의 col~col+3에 배치하려면
+         * 기준 위치를 (row+2, col+1)로 설정.
+         */
+        Block block = new Block(
+                BlockType.I,
+                new Position(row + 2, col + 1)
+        );
+
+        block.rotate();
         board.lockBlock(block);
     }
 
