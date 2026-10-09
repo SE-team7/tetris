@@ -407,62 +407,17 @@ public class SettingsController {
         KeyCode key
     ) {
 
-        /*
-         * 아직 후보 키 없음
-         */
-        if (pendingKeyCode == null) {
-
-            if (isFixedKey(key)) {
-
-                settingsView.showMessage(
-                    waitingForKeyAction.name()
-                    + " : 사용할 수 없는 키입니다."
-                );
-
-                return;
-            }
-
-            pendingKeyCode =
-                key;
-
-            settingsView.setKeyText(
-                waitingForKeyAction.name(),
-                key.getName()
-            );
-
-            return;
-        }
-
-        /*
-         * 후보가 있을 때
-         * ENTER = 최종 확인
-         */
-        if (key == KeyCode.ENTER) {
-
-            confirmPendingKey();
-            return;
-        }
-
-        /*
-         * 다른 키를 누르면
-         * 후보만 교체
-         */
-        if (isFixedKey(key)) {
-
-            settingsView.showMessage(
-                waitingForKeyAction.name()
-                + " : 사용할 수 없는 키입니다."
-            );
-
-            return;
-        }
-
         pendingKeyCode =
             key;
-
+        
         settingsView.setKeyText(
-            waitingForKeyAction.name(),
-            key.getName()
+        waitingForKeyAction.name(),
+        key.getName()
+        );
+
+        settingsView.showMessage(
+            waitingForKeyAction.name()
+            + " : 저장 버튼을 눌러 적용하세요."
         );
     }
 
@@ -523,18 +478,6 @@ public class SettingsController {
             null;
     }
 
-    /*
-     * 고정키
-     */
-    private boolean isFixedKey(
-        KeyCode key
-    ) {
-
-        return
-            key == KeyCode.SHIFT
-            || key == KeyCode.TAB
-            || key == KeyCode.ESCAPE;
-    }
 
     /*
      * FOCUS
@@ -838,10 +781,6 @@ public class SettingsController {
         KeyCode key
     ) {
 
-        if (isFixedKey(key)) {
-            return false;
-        }
-
         boolean changed =
             settings.setKey(
                 action,
@@ -937,6 +876,18 @@ public class SettingsController {
      * 여기서 파일에 저장
      */
     public void save() {
+        if (waitingForKeyAction != null) {
+        if (pendingKeyCode == null) {
+            settingsView.showMessage("새 키를 먼저 입력해주세요.");
+            return;
+        }
+
+        confirmPendingKey();
+
+        if (waitingForKeyAction != null) {
+            return;
+        }
+    }
 
         settingsService.save(
             settings

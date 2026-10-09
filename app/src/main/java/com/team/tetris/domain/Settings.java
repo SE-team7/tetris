@@ -1,9 +1,9 @@
 package com.team.tetris.domain;
 
-import javafx.scene.input.KeyCode;
-
 import java.util.EnumMap;
 import java.util.Map;
+
+import javafx.scene.input.KeyCode;
 
 /**
  * 사용자 설정 (화면 크기, 조작키, 색맹 모드).
@@ -40,10 +40,14 @@ public class Settings {
         SOFT_DROP(true, KeyCode.S),
         HARD_DROP(true, KeyCode.ENTER),
         ROTATE(true, KeyCode.P),
-        PAUSE(true, KeyCode.ESCAPE),
+        SKIP(true, KeyCode.K),
         MENU_UP(false, KeyCode.W),
         MENU_DOWN(false, KeyCode.S),
-        SELECT(false, KeyCode.ENTER);
+        SELECT(false, KeyCode.ENTER),
+
+        PAUSE(true, KeyCode.SHIFT),
+        QUIT(true, KeyCode.TAB),
+        EXIT(true, KeyCode.ESCAPE);
 
         private final boolean gameAction;
         private final KeyCode defaultKey;
@@ -59,6 +63,10 @@ public class Settings {
 
         public KeyCode getDefaultKey() {
             return defaultKey;
+        }
+
+        public boolean isFixed() {
+        return this == PAUSE || this == QUIT || this == EXIT;
         }
     }
 
@@ -100,6 +108,23 @@ public class Settings {
      */
     public boolean setKey(KeyAction action, KeyCode key) {
         if (action == null || key == null) {
+            return false;
+        }
+
+        // 고정 동작은 지정된 기본 키만 허용
+        if (action.isFixed()) {
+            if (key != action.getDefaultKey()) {
+                return false;
+            }
+
+            keys.put(action, key);
+            return true;
+        }
+
+        // 고정키는 다른 동작에 배정 불가
+        if (key == KeyCode.SHIFT
+                || key == KeyCode.TAB
+                || key == KeyCode.ESCAPE) {
             return false;
         }
         for (Map.Entry<KeyAction, KeyCode> entry : keys.entrySet()) {

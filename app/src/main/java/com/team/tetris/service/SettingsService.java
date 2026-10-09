@@ -1,17 +1,17 @@
 package com.team.tetris.service;
 
+import java.io.IOException;
+import java.io.StringReader;
+import java.io.StringWriter;
+import java.io.UncheckedIOException;
+import java.util.Properties;
+
 import com.team.tetris.domain.Settings;
 import com.team.tetris.domain.Settings.KeyAction;
 import com.team.tetris.domain.Settings.ScreenSize;
 import com.team.tetris.util.FileManager;
 
 import javafx.scene.input.KeyCode;
-
-import java.io.IOException;
-import java.io.StringReader;
-import java.io.StringWriter;
-import java.io.UncheckedIOException;
-import java.util.Properties;
 
 /**
  * 설정 파일 저장·불러오기 담당.
@@ -50,6 +50,10 @@ public class SettingsService {
         settings.setColorBlindMode(Boolean.parseBoolean(props.getProperty(COLOR_BLIND_MODE)));
 
         for (KeyAction action : KeyAction.values()) {
+            // 고정키는 저장 파일 값을 무시하고 기본값 유지
+            if (action.isFixed()) {
+                continue;
+            }
             String value = props.getProperty(KEY_PREFIX + action.name());
             if (value == null) {
                 continue;
@@ -69,6 +73,10 @@ public class SettingsService {
         props.setProperty(SCREEN_SIZE, settings.getScreenSize().name());
         props.setProperty(COLOR_BLIND_MODE, String.valueOf(settings.isColorBlindMode()));
         for (KeyAction action : KeyAction.values()) {
+            // 고정키는 저장 파일 값을 무시하고 기본값 유지
+            if (action.isFixed()) {
+                continue;
+            }
             props.setProperty(KEY_PREFIX + action.name(), settings.getKey(action).name());
         }
 

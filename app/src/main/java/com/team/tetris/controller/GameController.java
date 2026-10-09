@@ -17,6 +17,8 @@ public class GameController {
 
     private final AnimationTimer gameLoop;
     private long lastTickMillis;
+    private long pausedAtMillis;
+    private Runnable onQuit;
 
     public GameController(GameEngineService gameEngine,
                           GameView gameView,
@@ -34,6 +36,11 @@ public class GameController {
                 loop(nowNanos / 1_000_000);
             }
         };
+    }
+
+    // Main에서 메인메뉴 복귀 동작 연결
+    public void setOnQuit(Runnable onQuit) {
+        this.onQuit = onQuit;
     }
 
     //최초화면 표시
@@ -85,6 +92,14 @@ public class GameController {
     }
 
     public void togglePause() {
+        long nowMillis = System.nanoTime() / 1_000_000;
+
+        if (gameEngine.isPaused()) {
+            // 일시정지한 시간은 낙하 대기 시간에서 제외
+            lastTickMillis += nowMillis - pausedAtMillis;
+        } else {
+            pausedAtMillis = nowMillis;
+        }
         gameEngine.togglePause();
         render();
     }
@@ -109,6 +124,20 @@ public class GameController {
             return;
         }
 
+        if (action == Settings.KeyAction.EXIT) {
+            quitGame();
+            Platform.exit();
+            return;
+        }
+
+        if (action == Settings.KeyAction.QUIT) {
+            quitGame();
+            if (onQuit != null) {
+                onQuit.run();
+            }
+            return;
+        }
+
         if (gameEngine.isPaused()) {
             return;
         }
@@ -120,7 +149,6 @@ public class GameController {
             case ROTATE     -> gameEngine.rotate();
             case HARD_DROP  -> gameEngine.hardDrop();
             case SKIP       -> gameEngine.skipCurrentBlock();
-            case EXIT       -> Platform.exit();
             default         -> { }
         }
 

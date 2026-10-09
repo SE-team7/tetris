@@ -5,16 +5,12 @@ import com.team.tetris.controller.GameOverController;
 import com.team.tetris.controller.MainMenuController;
 import com.team.tetris.controller.ScoreboardController;
 import com.team.tetris.controller.SettingsController;
-
 import com.team.tetris.domain.Settings;
-
 import com.team.tetris.service.GameEngineService;
 import com.team.tetris.service.ScoreboardService;
 import com.team.tetris.service.SettingsService;
-
 import com.team.tetris.util.FileManager;
 import com.team.tetris.util.SceneManager;
-
 import com.team.tetris.view.GameOverView;
 import com.team.tetris.view.GameView;
 import com.team.tetris.view.MainMenuView;
@@ -131,6 +127,8 @@ public class Main extends Application {
                 gameController,
                 scoreboardController
             );
+
+        gameController.setOnQuit(mainMenuController::show);
 
         /*
          * Settings Controller
