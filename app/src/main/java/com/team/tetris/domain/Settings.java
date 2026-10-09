@@ -40,7 +40,9 @@ public class Settings {
         SOFT_DROP(true, KeyCode.S),
         HARD_DROP(true, KeyCode.ENTER),
         ROTATE(true, KeyCode.P),
-        PAUSE(true, KeyCode.ESCAPE),
+        SKIP(true, KeyCode.K),
+        EXIT(true, KeyCode.ESCAPE),
+        PAUSE(true, KeyCode.SHIFT),
         MENU_UP(false, KeyCode.W),
         MENU_DOWN(false, KeyCode.S),
         SELECT(false, KeyCode.ENTER);
