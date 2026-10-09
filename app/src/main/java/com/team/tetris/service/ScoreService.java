@@ -9,7 +9,7 @@ public class ScoreService {
     private static final int SPEED_BONUS_PER_LEVEL = 10;
 
     //스킵 1회당 감점
-    private static final int SKIP_PENALTY = 50;
+    private static final int SKIP_PENALTY = 5;
 
     private int lineScore;
     private int speedBonusScore;
