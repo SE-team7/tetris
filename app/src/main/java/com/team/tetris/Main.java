@@ -144,16 +144,6 @@ public class Main extends Application {
                 settings
             );
 
-        /*
-         * Game buttons
-         */
-        gameView.setGameActions(
-            gameController::togglePause,
-            () -> {
-                gameController.quitGame();
-                sceneManager.showMainMenu();
-            }
-        );
 
         /*
          * Keyboard input

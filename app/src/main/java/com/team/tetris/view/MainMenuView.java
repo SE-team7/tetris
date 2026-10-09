@@ -22,13 +22,24 @@ public class MainMenuView {
     private final Label keyGuideLabel;
 
     public MainMenuView() {
+
         root = new VBox(20);
         root.setAlignment(Pos.CENTER);
         root.getStyleClass().add("root");
 
+        /*
+         * GAME TITLE
+         */
         Label titleLabel = new Label("TETRIS");
-        titleLabel.getStyleClass().add("title");
 
+        titleLabel.setStyle(
+            "-fx-font-size: 52px;"
+            + "-fx-font-weight: bold;"
+        );
+
+        /*
+         * MENU
+         */
         menuLabels = new ArrayList<>();
 
         menuLabels.add(new Label("게임 시작"));
@@ -40,6 +51,9 @@ public class MainMenuView {
             label.getStyleClass().add("menu-item");
         }
 
+        /*
+         * KEY GUIDE
+         */
         keyGuideLabel = new Label();
         keyGuideLabel.getStyleClass().add("key-guide");
 
@@ -56,45 +70,56 @@ public class MainMenuView {
 
     public void render(MainMenuItem selectedMenu) {
 
-    String[] menuTexts = {
-        "게임 시작",
-        "설정",
-        "스코어보드",
-        "종료"
-    };
+        String[] menuTexts = {
+            "게임 시작",
+            "설정",
+            "스코어보드",
+            "종료"
+        };
 
-    for (int i = 0; i < menuLabels.size(); i++) {
+        for (int i = 0; i < menuLabels.size(); i++) {
 
-        Label label = menuLabels.get(i);
+            Label label = menuLabels.get(i);
 
-        if (i == selectedMenu.ordinal()) {
+            if (i == selectedMenu.ordinal()) {
 
-            label.setText("▶ " + menuTexts[i]);
+                label.setText(
+                    "▶ " + menuTexts[i]
+                );
 
-            label.setStyle(
-                "-fx-font-size: 22px;" +
-                "-fx-font-weight: bold;" +
-                "-fx-background-color: #dddddd;" +
-                "-fx-padding: 6 15 6 15;"
-            );
+                label.setStyle(
+                    "-fx-font-size: 22px;"
+                    + "-fx-font-weight: bold;"
+                    + "-fx-background-color: #dddddd;"
+                    + "-fx-padding: 6 15 6 15;"
+                );
 
-        } else {
+            } else {
 
-            label.setText("   " + menuTexts[i]);
+                label.setText(
+                    "   " + menuTexts[i]
+                );
 
-            label.setStyle(
-                "-fx-font-size: 20px;" +
-                "-fx-font-weight: normal;" +
-                "-fx-background-color: transparent;" +
-                "-fx-padding: 6 15 6 15;"
-            );
+                label.setStyle(
+                    "-fx-font-size: 20px;"
+                    + "-fx-font-weight: normal;"
+                    + "-fx-background-color: transparent;"
+                    + "-fx-padding: 6 15 6 15;"
+                );
+            }
         }
     }
-}
 
-    public void showKeyGuide(String moveKeys, String selectKey) {
+    public void showKeyGuide(
+        String moveKeys,
+        String selectKey
+    ) {
+
         keyGuideLabel.setText(
-            moveKeys + ": 이동   " + selectKey + ": 선택"
+            moveKeys
+            + ": 이동   "
+            + selectKey
+            + ": 선택"
         );
     }
 }

@@ -8,7 +8,6 @@ import com.team.tetris.domain.Position;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Parent;
-import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
@@ -19,6 +18,7 @@ public class GameView {
     private static final int VISIBLE_ROWS = 20;
     private static final int COLS = 10;
     private static final int NEXT_SIZE = 4;
+    private static final int MAX_SKIP_COUNT = 7;
 
     private final BorderPane root;
 
@@ -30,15 +30,15 @@ public class GameView {
 
     private final Label scoreLabel;
     private final Label statusLabel;
+    private final Label skipRemainingLabel;
 
-    private final Button pauseButton;
-    private final Button quitButton;
+    private final Label moveKeyLabel;
+    private final Label softDropKeyLabel;
+    private final Label rotateKeyLabel;
+    private final Label hardDropKeyLabel;
+    private final Label skipKeyLabel;
 
     private boolean colorBlindMode;
-    private boolean paused;
-
-    private Runnable pauseAction;
-    private Runnable quitAction;
 
     public GameView() {
 
@@ -51,96 +51,212 @@ public class GameView {
          */
         boardGrid = new GridPane();
         boardGrid.setAlignment(Pos.CENTER);
-        boardGrid.setHgap(2);
-        boardGrid.setVgap(1);
+        boardGrid.setHgap(1);
+        boardGrid.setVgap(0);
 
-        boardCells =
-            new Label[VISIBLE_ROWS][COLS];
+        boardCells = new Label[VISIBLE_ROWS][COLS];
 
         createTextBoard();
 
         /*
          * NEXT
          */
-        Label nextTitle = createTitle("NEXT");
+        Label nextTitle = createSectionTitle("NEXT");
 
         nextGrid = new GridPane();
         nextGrid.setAlignment(Pos.CENTER);
         nextGrid.setHgap(2);
         nextGrid.setVgap(1);
 
-        nextCells =
-            new Label[NEXT_SIZE][NEXT_SIZE];
+        nextCells = new Label[NEXT_SIZE][NEXT_SIZE];
 
         createNextArea();
 
         /*
          * SCORE
          */
-        Label scoreTitle = createTitle("SCORE");
+        Label scoreTitle = createSectionTitle("SCORE");
 
         scoreLabel = new Label("0");
         scoreLabel.setStyle(
-            "-fx-text-fill: white;" +
-            "-fx-font-family: 'Consolas';" +
-            "-fx-font-size: 24px;"
+            "-fx-text-fill: white;"
+            + "-fx-font-family: 'Consolas';"
+            + "-fx-font-size: 24px;"
+            + "-fx-font-weight: bold;"
         );
 
         /*
-         * STATUS
+         * PAUSE STATUS
          */
         statusLabel = new Label("");
         statusLabel.setStyle(
-            "-fx-text-fill: white;" +
-            "-fx-font-family: 'Consolas';" +
-            "-fx-font-size: 16px;" +
-            "-fx-font-weight: bold;"
+            "-fx-text-fill: #FFD54F;"
+            + "-fx-font-family: 'Consolas';"
+            + "-fx-font-size: 14px;"
+            + "-fx-font-weight: bold;"
         );
 
         /*
-         * PAUSE / QUIT
+         * SKIP
          */
-        pauseButton = new Button("일시정지");
-        quitButton = new Button("게임 나가기");
+        Label skipTitle = createSectionTitle("SKIP");
 
-        pauseButton.setPrefWidth(140);
-        quitButton.setPrefWidth(140);
+        skipRemainingLabel =
+            new Label(MAX_SKIP_COUNT + " / " + MAX_SKIP_COUNT);
 
-        pauseButton.setOnAction(event -> {
-            if (pauseAction != null) {
-                pauseAction.run();
-            }
-        });
+        skipRemainingLabel.setStyle(
+            "-fx-text-fill: white;"
+            + "-fx-font-family: 'Consolas';"
+            + "-fx-font-size: 18px;"
+            + "-fx-font-weight: bold;"
+        );
 
-        quitButton.setOnAction(event -> {
-            if (quitAction != null) {
-                quitAction.run();
-            }
-        });
+        VBox skipBox = new VBox(
+            2,
+            skipTitle,
+            skipRemainingLabel
+        );
 
-        VBox sidePanel = new VBox(
-            18,
+        skipBox.setAlignment(Pos.CENTER);
+
+        /*
+         * TOP RIGHT
+         */
+        VBox infoBox = new VBox(
+            8,
             nextTitle,
             nextGrid,
             scoreTitle,
             scoreLabel,
             statusLabel,
-            pauseButton,
-            quitButton
+            skipBox
         );
 
-        sidePanel.setAlignment(Pos.TOP_CENTER);
-        sidePanel.setPadding(new Insets(15));
-        sidePanel.setPrefWidth(200);
+        infoBox.setAlignment(Pos.TOP_CENTER);
+
+        /*
+         * CONTROLS
+         */
+        Label controlsTitle =
+            createSectionTitle("CONTROLS");
+
+        GridPane controlsGrid = new GridPane();
+
+        controlsGrid.setAlignment(Pos.CENTER);
+        controlsGrid.setHgap(10);
+        controlsGrid.setVgap(3);
+
+        moveKeyLabel =
+            createControlKeyLabel("A D");
+
+        softDropKeyLabel =
+            createControlKeyLabel("S");
+
+        rotateKeyLabel =
+            createControlKeyLabel("P");
+
+        hardDropKeyLabel =
+            createControlKeyLabel("ENTER");
+
+        skipKeyLabel =
+            createControlKeyLabel("-");
+
+        int row = 0;
+
+        addControlRow(
+            controlsGrid,
+            row++,
+            "이동",
+            moveKeyLabel
+        );
+
+        addControlRow(
+            controlsGrid,
+            row++,
+            "아래",
+            softDropKeyLabel
+        );
+
+        addControlRow(
+            controlsGrid,
+            row++,
+            "회전",
+            rotateKeyLabel
+        );
+
+        addControlRow(
+            controlsGrid,
+            row++,
+            "하드드랍",
+            hardDropKeyLabel
+        );
+
+        addControlRow(
+            controlsGrid,
+            row++,
+            "스킵",
+            skipKeyLabel
+        );
+
+        addControlRow(
+            controlsGrid,
+            row++,
+            "일시정지",
+            createControlKeyLabel("SHIFT")
+        );
+
+        addControlRow(
+            controlsGrid,
+            row++,
+            "메인메뉴",
+            createControlKeyLabel("TAB")
+        );
+
+        addControlRow(
+            controlsGrid,
+            row,
+            "게임종료",
+            createControlKeyLabel("ESC")
+        );
+
+        VBox controlsBox = new VBox(
+            4,
+            controlsTitle,
+            controlsGrid
+        );
+
+        controlsBox.setAlignment(Pos.CENTER);
+
+        /*
+         * RIGHT PANEL
+         */
+        BorderPane sidePanel = new BorderPane();
+
+        sidePanel.setTop(infoBox);
+        sidePanel.setBottom(controlsBox);
+
+        BorderPane.setAlignment(
+            infoBox,
+            Pos.TOP_CENTER
+        );
+
+        BorderPane.setAlignment(
+            controlsBox,
+            Pos.BOTTOM_CENTER
+        );
+
+        sidePanel.setPadding(
+            new Insets(8, 10, 8, 18)
+        );
+
+        sidePanel.setPrefWidth(225);
 
         root.setCenter(boardGrid);
         root.setRight(sidePanel);
     }
 
     /*
-     * Professor example:
-     * X = board border
-     * O / block letter = tetromino cell
+     * BOARD
      */
     private void createTextBoard() {
 
@@ -159,21 +275,35 @@ public class GameView {
                 Label cell = createTextCell();
 
                 if (border) {
+
                     cell.setText("X");
+
                     cell.setStyle(
                         baseCellStyle()
                         + "-fx-text-fill: white;"
                         + "-fx-font-weight: bold;"
                     );
+
                 } else {
-                    boardCells[row - 1][col - 1] = cell;
+
+                    resetBoardCell(cell);
+
+                    boardCells[row - 1][col - 1] =
+                        cell;
                 }
 
-                boardGrid.add(cell, col, row);
+                boardGrid.add(
+                    cell,
+                    col,
+                    row
+                );
             }
         }
     }
 
+    /*
+     * NEXT
+     */
     private void createNextArea() {
 
         nextGrid.getChildren().clear();
@@ -191,16 +321,25 @@ public class GameView {
                 Label cell = createTextCell();
 
                 if (border) {
+
                     cell.setText("X");
+
                     cell.setStyle(
                         baseCellStyle()
                         + "-fx-text-fill: #777777;"
                     );
+
                 } else {
-                    nextCells[row - 1][col - 1] = cell;
+
+                    nextCells[row - 1][col - 1] =
+                        cell;
                 }
 
-                nextGrid.add(cell, col, row);
+                nextGrid.add(
+                    cell,
+                    col,
+                    row
+                );
             }
         }
     }
@@ -210,11 +349,14 @@ public class GameView {
         Label label = new Label(" ");
 
         label.setAlignment(Pos.CENTER);
+
         label.setMinSize(22, 22);
         label.setPrefSize(22, 22);
         label.setMaxSize(22, 22);
 
-        label.setStyle(baseCellStyle());
+        label.setStyle(
+            baseCellStyle()
+        );
 
         return label;
     }
@@ -222,28 +364,81 @@ public class GameView {
     private String baseCellStyle() {
 
         return
-            "-fx-font-family: 'Consolas';" +
-            "-fx-font-size: 18px;" +
-            "-fx-background-color: #111111;" +
-            "-fx-text-fill: white;";
+            "-fx-font-family: 'Consolas';"
+            + "-fx-font-size: 18px;"
+            + "-fx-background-color: #111111;"
+            + "-fx-text-fill: white;";
     }
 
-    private Label createTitle(String text) {
+    private Label createSectionTitle(
+        String text
+    ) {
 
         Label label = new Label(text);
 
         label.setStyle(
-            "-fx-text-fill: white;" +
-            "-fx-font-family: 'Consolas';" +
-            "-fx-font-size: 20px;" +
-            "-fx-font-weight: bold;"
+            "-fx-text-fill: white;"
+            + "-fx-font-family: 'Consolas';"
+            + "-fx-font-size: 17px;"
+            + "-fx-font-weight: bold;"
         );
 
         return label;
     }
 
+    private Label createControlKeyLabel(
+        String text
+    ) {
+
+        Label label = new Label(text);
+
+        label.setAlignment(Pos.CENTER);
+        label.setMinWidth(68);
+
+        label.setStyle(
+            "-fx-text-fill: white;"
+            + "-fx-font-family: 'Consolas';"
+            + "-fx-font-size: 11px;"
+            + "-fx-font-weight: bold;"
+            + "-fx-border-color: #555555;"
+            + "-fx-border-width: 1px;"
+            + "-fx-padding: 1px 5px;"
+        );
+
+        return label;
+    }
+
+    private void addControlRow(
+        GridPane grid,
+        int row,
+        String actionText,
+        Label keyLabel
+    ) {
+
+        Label actionLabel =
+            new Label(actionText);
+
+        actionLabel.setStyle(
+            "-fx-text-fill: #BBBBBB;"
+            + "-fx-font-family: 'Consolas';"
+            + "-fx-font-size: 11px;"
+        );
+
+        grid.add(
+            actionLabel,
+            0,
+            row
+        );
+
+        grid.add(
+            keyLabel,
+            1,
+            row
+        );
+    }
+
     /*
-     * Main render API
+     * RENDER
      */
     public void render(
         BlockType[][] board,
@@ -269,16 +464,15 @@ public class GameView {
         }
 
         if (nextBlock != null) {
-            renderNextBlock(nextBlock);
+            renderNextBlock(
+                nextBlock
+            );
         }
 
         updateScore(score);
         setPaused(paused);
     }
 
-    /*
-     * Fixed blocks
-     */
     private void renderFixedBlocks(
         BlockType[][] board
     ) {
@@ -289,26 +483,32 @@ public class GameView {
                 board.length - VISIBLE_ROWS
             );
 
-        for (int visibleRow = 0;
-             visibleRow < VISIBLE_ROWS;
-             visibleRow++) {
+        for (
+            int visibleRow = 0;
+            visibleRow < VISIBLE_ROWS;
+            visibleRow++
+        ) {
 
             int boardRow =
-                firstVisibleRow + visibleRow;
+                firstVisibleRow
+                + visibleRow;
 
             if (boardRow >= board.length) {
                 break;
             }
 
-            for (int col = 0;
-                 col < COLS
-                     && col < board[boardRow].length;
-                 col++) {
+            for (
+                int col = 0;
+                col < COLS
+                    && col < board[boardRow].length;
+                col++
+            ) {
 
                 BlockType type =
                     board[boardRow][col];
 
                 if (type != null) {
+
                     drawBlockCell(
                         boardCells[visibleRow][col],
                         type
@@ -318,19 +518,15 @@ public class GameView {
         }
     }
 
-    /*
-     * Falling block
-     */
     private void renderCurrentBlock(
         BlockType[][] board,
         Block currentBlock
     ) {
-        
-        
+
         int boardRows =
-        board == null
-        ? Board.ROWS
-        : board.length;
+            board == null
+                ? Board.ROWS
+                : board.length;
 
         int firstVisibleRow =
             Math.max(
@@ -338,8 +534,10 @@ public class GameView {
                 boardRows - VISIBLE_ROWS
             );
 
-        for (Position position :
-             currentBlock.getCells()) {
+        for (
+            Position position :
+            currentBlock.getCells()
+        ) {
 
             int visibleRow =
                 position.getRow()
@@ -348,10 +546,12 @@ public class GameView {
             int col =
                 position.getCol();
 
-            if (visibleRow >= 0
+            if (
+                visibleRow >= 0
                 && visibleRow < VISIBLE_ROWS
                 && col >= 0
-                && col < COLS) {
+                && col < COLS
+            ) {
 
                 drawBlockCell(
                     boardCells[visibleRow][col],
@@ -361,11 +561,6 @@ public class GameView {
         }
     }
 
-    /*
-     * NEXT block:
-     * use coordinates given by Block.
-     * UI does not redefine block shapes.
-     */
     private void renderNextBlock(
         Block nextBlock
     ) {
@@ -373,16 +568,24 @@ public class GameView {
         Position[] cells =
             nextBlock.getCells();
 
-        if (cells == null
-            || cells.length == 0) {
+        if (
+            cells == null
+            || cells.length == 0
+        ) {
             return;
         }
 
-        int minRow = cells[0].getRow();
-        int maxRow = cells[0].getRow();
+        int minRow =
+            cells[0].getRow();
 
-        int minCol = cells[0].getCol();
-        int maxCol = cells[0].getCol();
+        int maxRow =
+            cells[0].getRow();
+
+        int minCol =
+            cells[0].getCol();
+
+        int maxCol =
+            cells[0].getCol();
 
         for (Position cell : cells) {
 
@@ -435,10 +638,12 @@ public class GameView {
                 + cell.getCol()
                 - minCol;
 
-            if (row >= 0
+            if (
+                row >= 0
                 && row < NEXT_SIZE
                 && col >= 0
-                && col < NEXT_SIZE) {
+                && col < NEXT_SIZE
+            ) {
 
                 drawBlockCell(
                     nextCells[row][col],
@@ -448,16 +653,31 @@ public class GameView {
         }
     }
 
+    /*
+     * BLOCK DRAW
+     */
     private void drawBlockCell(
         Label cell,
         BlockType type
     ) {
 
-        cell.setText(
-            colorBlindMode
-                ? type.name()
-                : "O"
-        );
+        if (colorBlindMode) {
+
+            if (type == BlockType.L) {
+
+                cell.setText("G");
+
+            } else {
+
+                cell.setText(
+                    type.name()
+                );
+            }
+
+        } else {
+
+            cell.setText("O");
+        }
 
         cell.setStyle(
             baseCellStyle()
@@ -474,12 +694,7 @@ public class GameView {
 
         if (colorBlindMode) {
 
-            /*
-             * Color-blind mode:
-             * color + block letter are both used.
-             */
             return switch (type) {
-
                 case I -> "#56B4E9";
                 case J -> "#0072B2";
                 case L -> "#E69F00";
@@ -490,11 +705,7 @@ public class GameView {
             };
         }
 
-        /*
-         * Team-agreed normal colors.
-         */
         return switch (type) {
-
             case I -> "#00FFFF";
             case J -> "#0000FF";
             case L -> "#FFA500";
@@ -505,97 +716,166 @@ public class GameView {
         };
     }
 
+    /*
+     * BOARD RESET
+     */
     private void clearBoard() {
 
-        for (int row = 0;
-             row < VISIBLE_ROWS;
-             row++) {
+        for (
+            int row = 0;
+            row < VISIBLE_ROWS;
+            row++
+        ) {
 
-            for (int col = 0;
-                 col < COLS;
-                 col++) {
+            for (
+                int col = 0;
+                col < COLS;
+                col++
+            ) {
 
-                resetCell(
+                resetBoardCell(
                     boardCells[row][col]
                 );
             }
         }
     }
 
-    private void clearNext() {
+    private void resetBoardCell(
+        Label cell
+    ) {
 
-        for (int row = 0;
-             row < NEXT_SIZE;
-             row++) {
+        cell.setText(".");
 
-            for (int col = 0;
-                 col < NEXT_SIZE;
-                 col++) {
-
-                resetCell(
-                    nextCells[row][col]
-                );
-            }
-        }
+        cell.setStyle(
+            baseCellStyle()
+            + "-fx-text-fill: #444444;"
+        );
     }
 
-    private void resetCell(Label cell) {
+    /*
+     * NEXT RESET
+     */
+    private void clearNext() {
 
-        cell.setText(" ");
-        cell.setStyle(baseCellStyle());
+        for (
+            int row = 0;
+            row < NEXT_SIZE;
+            row++
+        ) {
+
+            for (
+                int col = 0;
+                col < NEXT_SIZE;
+                col++
+            ) {
+
+                nextCells[row][col]
+                    .setText(" ");
+
+                nextCells[row][col]
+                    .setStyle(
+                        baseCellStyle()
+                    );
+            }
+        }
     }
 
     public Parent getRoot() {
         return root;
     }
 
-    public void updateScore(int score) {
+    public void updateScore(
+        int score
+    ) {
+
         scoreLabel.setText(
             String.valueOf(score)
         );
+    }
+
+    /*
+     * SKIP
+     */
+    public void updateSkipInfo(
+        String skipKey,
+        int remaining
+    ) {
+
+        skipKeyLabel.setText(
+            safeKey(skipKey)
+        );
+
+        skipRemainingLabel.setText(
+            remaining
+            + " / "
+            + MAX_SKIP_COUNT
+        );
+    }
+
+    /*
+     * CONTROL DISPLAY
+     */
+    public void setControlKeyGuide(
+        String moveLeft,
+        String moveRight,
+        String softDrop,
+        String rotate,
+        String hardDrop,
+        String skip
+    ) {
+
+        moveKeyLabel.setText(
+            safeKey(moveLeft)
+            + " "
+            + safeKey(moveRight)
+        );
+
+        softDropKeyLabel.setText(
+            safeKey(softDrop)
+        );
+
+        rotateKeyLabel.setText(
+            safeKey(rotate)
+        );
+
+        hardDropKeyLabel.setText(
+            safeKey(hardDrop)
+        );
+
+        skipKeyLabel.setText(
+            safeKey(skip)
+        );
+    }
+
+    private String safeKey(
+        String key
+    ) {
+
+        if (
+            key == null
+            || key.isBlank()
+        ) {
+            return "-";
+        }
+
+        return key;
     }
 
     public void applyColorBlindMode(
         boolean enabled
     ) {
 
-        this.colorBlindMode = enabled;
+        colorBlindMode = enabled;
     }
 
-    public boolean isColorBlindMode() {
-        return colorBlindMode;
-    }
-
-    public void setPaused(boolean paused) {
-
-        this.paused = paused;
-
-        pauseButton.setText(
-            paused
-                ? "계속하기"
-                : "일시정지"
-        );
+    public void setPaused(
+        boolean paused
+    ) {
 
         statusLabel.setText(
             paused
                 ? "PAUSED"
                 : ""
         );
-    }
-
-    public boolean isPaused() {
-        return paused;
-    }
-
-    /*
-     * GameController connection API
-     */
-    public void setGameActions(
-        Runnable pauseAction,
-        Runnable quitAction
-    ) {
-
-        this.pauseAction = pauseAction;
-        this.quitAction = quitAction;
     }
 }
