@@ -10,7 +10,7 @@ public class LevelService {
     private static final long BASE_DROP_INTERVAL_MILLIS = 1000;
 
     //속도 줄어드는 간격
-    private static final long DROP_INTERVAL_STEP_MILLIS = 40;
+    private static final long DROP_INTERVAL_STEP_MILLIS = 150;
 
     //최소 낙하 간격
     private static final long MIN_DROP_INTERVAL_MILLIS = 100;
