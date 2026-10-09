@@ -43,8 +43,21 @@ public class GameController {
         gameEngine.startGame();
         lastTickMillis = System.nanoTime() / 1_000_000;   // AnimationTimer 와 같은 기준 시각
 
+        gameView.setControlKeyGuide(
+                getKeyName(Settings.KeyAction.MOVE_LEFT),
+                getKeyName(Settings.KeyAction.MOVE_RIGHT),
+                getKeyName(Settings.KeyAction.SOFT_DROP),
+                getKeyName(Settings.KeyAction.ROTATE),
+                getKeyName(Settings.KeyAction.HARD_DROP),
+                getKeyName(Settings.KeyAction.SKIP)
+        );
+
         render();
         gameLoop.start();
+    }
+
+    private String getKeyName(Settings.KeyAction action) {
+        return settings.getKey(action).getName();
     }
 
     private void loop(long nowMillis) {
@@ -127,6 +140,10 @@ public class GameController {
                 gameEngine.getScore(),
                 gameEngine.getLevel(),
                 gameEngine.isPaused()
+        );
+        gameView.updateSkipInfo(
+                getKeyName(Settings.KeyAction.SKIP),
+                gameEngine.getSkipsRemaining()
         );
     }
 
