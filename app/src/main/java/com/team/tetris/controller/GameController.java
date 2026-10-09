@@ -5,6 +5,7 @@ import com.team.tetris.service.GameEngineService;
 import com.team.tetris.view.GameView;
 
 import javafx.animation.AnimationTimer;
+import javafx.application.Platform;
 import javafx.scene.input.KeyCode;
 
 public class GameController {
@@ -106,6 +107,7 @@ public class GameController {
             case ROTATE     -> gameEngine.rotate();
             case HARD_DROP  -> gameEngine.hardDrop();
             case SKIP       -> gameEngine.skipCurrentBlock();
+            case EXIT       -> Platform.exit();
             default         -> { }
         }
 
