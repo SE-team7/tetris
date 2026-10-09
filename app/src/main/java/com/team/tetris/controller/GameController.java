@@ -105,6 +105,7 @@ public class GameController {
             case SOFT_DROP  -> gameEngine.moveDown();
             case ROTATE     -> gameEngine.rotate();
             case HARD_DROP  -> gameEngine.hardDrop();
+            case SKIP       -> gameEngine.skipCurrentBlock();
             default         -> { }
         }
 

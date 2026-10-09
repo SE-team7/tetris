@@ -8,14 +8,23 @@ public class ScoreService {
     //단계당 보너스 점수
     private static final int SPEED_BONUS_PER_LEVEL = 10;
 
+    //스킵 1회당 감점
+    private static final int SKIP_PENALTY = 5;
+
     private int lineScore;
     private int speedBonusScore;
     private int dropScore;
+    private int skipPenalty;
 
     public void reset() {
         lineScore = 0;
         speedBonusScore = 0;
         dropScore = 0;
+        skipPenalty = 0;
+    }
+
+    public void applySkipPenalty() {
+        skipPenalty += SKIP_PENALTY;
     }
 
     public int calculateLineClearScore(int clearedLines) {
@@ -43,6 +52,6 @@ public class ScoreService {
     }
 
     public int getScore() {
-        return lineScore + speedBonusScore + dropScore;
+        return lineScore + speedBonusScore + dropScore - skipPenalty;
     }
 }

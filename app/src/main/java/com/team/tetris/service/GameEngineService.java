@@ -6,6 +6,9 @@ import com.team.tetris.domain.Board;
 
 public class GameEngineService {
 
+    //한 판 최대 스킵 횟수
+    private static final int MAX_SKIPS = 7;
+
     private final Board board;
     private final BlockFactory blockFactory;
     private final ScoreService scoreService;
@@ -15,6 +18,7 @@ public class GameEngineService {
     private Block nextBlock;
     private boolean blockLocked;
     private int clearedLines;
+    private int skipsUsed;
 
     private boolean paused;
     private boolean gameOver;
@@ -43,6 +47,7 @@ public class GameEngineService {
         nextBlock = blockFactory.createRandomBlock();
         blockLocked = false;
         clearedLines = 0;
+        skipsUsed = 0;
 
         paused = false;
         gameOver = false;
@@ -142,6 +147,23 @@ public class GameEngineService {
         return false;
     }
 
+    //현재 블럭 스킵. 성공 시 true, 못 쓰면 false
+    public boolean skipCurrentBlock() {
+        if (gameOver || paused) {
+            return false;
+        }
+        if (currentBlock == null || blockLocked) {
+            return false;
+        }
+        if (skipsUsed >= MAX_SKIPS) {
+            return false;
+        }
+        currentBlock = null;
+        skipsUsed++;
+        scoreService.applySkipPenalty();
+        return true;
+    }
+
     public void hardDrop() {
         if (!hasCurrentBlock()) {
             return;
@@ -195,6 +217,14 @@ public class GameEngineService {
 
     public int getClearedLines() {
         return clearedLines;
+    }
+
+    public int getSkipsUsed() {
+        return skipsUsed;
+    }
+
+    public int getSkipsRemaining() {
+        return MAX_SKIPS - skipsUsed;
     }
 
     public long getDropIntervalMillis() {
