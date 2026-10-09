@@ -5,6 +5,7 @@ import com.team.tetris.service.GameEngineService;
 import com.team.tetris.view.GameView;
 
 import javafx.animation.AnimationTimer;
+import javafx.application.Platform;
 import javafx.scene.input.KeyCode;
 
 public class GameController {
@@ -81,6 +82,12 @@ public class GameController {
     }
 
     public void handleKey(KeyCode key) {
+        // 고정키: ESC = 앱 종료 (상태 무관)
+        if (key == KeyCode.ESCAPE) {
+            Platform.exit();
+            return;
+        }
+
         if (gameEngine.isGameOver()) {
             return;
         }
