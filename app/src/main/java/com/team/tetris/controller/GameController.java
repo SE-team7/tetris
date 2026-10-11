@@ -1,5 +1,6 @@
 package com.team.tetris.controller;
 
+import com.team.tetris.domain.Difficulty;
 import com.team.tetris.domain.Settings;
 import com.team.tetris.service.GameEngineService;
 import com.team.tetris.view.GameView;
@@ -14,6 +15,8 @@ public class GameController {
     private final GameView gameView;
     private final Settings settings;
     private final GameOverController gameOverController;
+    private final Difficulty difficulty;
+    private final boolean itemMode;
 
     private final AnimationTimer gameLoop;
     private long lastTickMillis;
@@ -23,11 +26,15 @@ public class GameController {
     public GameController(GameEngineService gameEngine,
                           GameView gameView,
                           Settings settings,
-                          GameOverController gameOverController) {
+                          GameOverController gameOverController,
+                          Difficulty difficulty,
+                          boolean itemMode) {
         this.gameEngine = gameEngine;
         this.gameView = gameView;
         this.settings = settings;
         this.gameOverController = gameOverController;
+        this.difficulty = difficulty;
+        this.itemMode = itemMode;
 
         // 매 프레임 실행되는 게임 루프
         this.gameLoop = new AnimationTimer() {
@@ -47,7 +54,7 @@ public class GameController {
     public void startGame() {
         gameView.applyColorBlindMode(settings.isColorBlindMode());
 
-        gameEngine.startGame();
+        gameEngine.startGame(difficulty, itemMode);
         lastTickMillis = System.nanoTime() / 1_000_000;   // AnimationTimer 와 같은 기준 시각
 
         gameView.setControlKeyGuide(
