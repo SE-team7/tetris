@@ -40,7 +40,7 @@ public class ScoreboardService {
 
     /** 해당 모드의 상위 기록 (점수 내림차순, 동점자 포함 MAX_SCORES위까지). */
     public List<Score> getTopScores(GameMode gameMode) {
-        return Collections.unmodifiableList(filterByMode(scores, gameMode));
+        return Collections.unmodifiableList(filterByMode(scores, orNormal(gameMode)));
     }
 
     /** 일반 모드 기준으로 스코어보드에 들어갈 수 있는지 여부. */
@@ -50,6 +50,7 @@ public class ScoreboardService {
 
     /** 해당 모드에서 MAX_SCORES위 안에 드는지 여부 (MAX_SCORES위와 동점이면 포함). */
     public boolean isHighScore(int score, GameMode gameMode) {
+        gameMode = orNormal(gameMode);
         int higher = 0;
         for (Score s : scores) {
             if (s.getGameMode() == gameMode && s.getScore() > score) {
@@ -70,6 +71,7 @@ public class ScoreboardService {
      */
     public int addScore(String name, int score, int level, int clearedLines,
                         Difficulty difficulty, GameMode gameMode) {
+        gameMode = orNormal(gameMode);
         if (!isHighScore(score, gameMode)) {
             return -1;
         }
@@ -105,6 +107,10 @@ public class ScoreboardService {
             ranks[i] = tied ? ranks[i - 1] : i + 1;
         }
         return ranks;
+    }
+
+    private static GameMode orNormal(GameMode gameMode) {
+        return gameMode != null ? gameMode : GameMode.NORMAL;
     }
 
     private static List<Score> filterByMode(List<Score> list, GameMode gameMode) {

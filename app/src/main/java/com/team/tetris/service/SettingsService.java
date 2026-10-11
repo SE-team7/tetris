@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.UncheckedIOException;
+import java.util.EnumMap;
+import java.util.Map;
 import java.util.Properties;
 
 import com.team.tetris.domain.Difficulty;
@@ -56,6 +58,7 @@ public class SettingsService {
             // 기본값 유지
         }
 
+        Map<KeyAction, KeyCode> savedKeys = new EnumMap<>(KeyAction.class);
         for (KeyAction action : KeyAction.values()) {
             // 고정키는 저장 파일 값을 무시하고 기본값 유지
             if (action.isFixed()) {
@@ -66,9 +69,20 @@ public class SettingsService {
                 continue;
             }
             try {
-                settings.setKey(action, KeyCode.valueOf(value));
+                KeyCode key = KeyCode.valueOf(value);
+                // 고정키가 적혀 있으면 그 항목만 무시 (나머지 키는 그대로 적용되도록 미리 걸러냄)
+                if (!Settings.isFixedKey(key)) {
+                    savedKeys.put(action, key);
+                }
             } catch (IllegalArgumentException ignored) {
                 // 기본값 유지
+            }
+        }
+        // 키를 서로 바꾼 설정도 불러올 수 있게 한꺼번에 적용하고,
+        // 파일이 잘못돼 전체 적용이 안 되면 규칙에 맞는 키만 하나씩 적용
+        if (!settings.setKeys(savedKeys)) {
+            for (Map.Entry<KeyAction, KeyCode> entry : savedKeys.entrySet()) {
+                settings.setKey(entry.getKey(), entry.getValue());
             }
         }
         return settings;
