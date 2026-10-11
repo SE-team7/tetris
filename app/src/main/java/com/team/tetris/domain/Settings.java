@@ -6,7 +6,7 @@ import java.util.Map;
 import javafx.scene.input.KeyCode;
 
 /**
- * 사용자 설정 (화면 크기, 조작키, 색맹 모드).
+ * 사용자 설정 (화면 크기, 조작키, 색맹 모드, 난이도).
  * 저장·불러오기는 SettingsService가 담당한다.
  */
 public class Settings {
@@ -72,6 +72,7 @@ public class Settings {
 
     private ScreenSize screenSize = ScreenSize.MEDIUM;
     private boolean colorBlindMode = false;
+    private Difficulty difficulty = Difficulty.NORMAL;
     private final Map<KeyAction, KeyCode> keys = new EnumMap<>(KeyAction.class);
 
     public Settings() {
@@ -96,6 +97,16 @@ public class Settings {
 
     public void setColorBlindMode(boolean colorBlindMode) {
         this.colorBlindMode = colorBlindMode;
+    }
+
+    public Difficulty getDifficulty() {
+        return difficulty;
+    }
+
+    public void setDifficulty(Difficulty difficulty) {
+        if (difficulty != null) {
+            this.difficulty = difficulty;
+        }
     }
 
     public KeyCode getKey(KeyAction action) {

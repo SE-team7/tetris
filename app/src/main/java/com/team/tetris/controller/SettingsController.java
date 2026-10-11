@@ -964,6 +964,10 @@ public class SettingsController {
             source.isColorBlindMode()
         );
 
+        target.setDifficulty(
+            source.getDifficulty()
+        );
+
         for (
             KeyAction action :
             KeyAction.values()

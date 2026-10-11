@@ -1,5 +1,7 @@
 package com.team.tetris.controller;
 
+import com.team.tetris.domain.Difficulty;
+import com.team.tetris.domain.GameMode;
 import com.team.tetris.service.ScoreboardService;
 import com.team.tetris.view.GameOverView;
 
@@ -23,6 +25,8 @@ public class GameOverController {
     private int score;
     private int level;
     private int clearedLines;
+    private Difficulty difficulty = Difficulty.NORMAL;
+    private GameMode gameMode = GameMode.NORMAL;
     private final StringBuilder name = new StringBuilder();
     private boolean inputtingName;
 
@@ -36,13 +40,20 @@ public class GameOverController {
         this.showGameOverScene = showGameOverScene;
     }
 
-    /** GameController가 게임오버 시 최종 점수·레벨·삭제 줄 수를 전달한다. */
+    /** 난이도·모드 정보 없이 호출하면 NORMAL 난이도, 일반 모드 기록으로 처리한다. */
     public void show(int score, int level, int clearedLines) {
+        show(score, level, clearedLines, Difficulty.NORMAL, GameMode.NORMAL);
+    }
+
+    /** GameController가 게임오버 시 최종 점수·레벨·삭제 줄 수와 플레이한 난이도·모드를 전달한다. */
+    public void show(int score, int level, int clearedLines, Difficulty difficulty, GameMode gameMode) {
         this.score = score;
         this.level = level;
         this.clearedLines = clearedLines;
+        this.difficulty = difficulty != null ? difficulty : Difficulty.NORMAL;
+        this.gameMode = gameMode != null ? gameMode : GameMode.NORMAL;
         this.name.setLength(0);
-        this.inputtingName = scoreboardService.isHighScore(score);
+        this.inputtingName = scoreboardService.isHighScore(score, this.gameMode);
 
         gameOverView.showResult(score, level, clearedLines);
         if (inputtingName) {
@@ -57,7 +68,7 @@ public class GameOverController {
         }
         if (!inputtingName) {
             if (key == KeyCode.ENTER) {
-                scoreboardController.show();
+                scoreboardController.show(gameMode, -1);
             }
             return;
         }
@@ -75,14 +86,14 @@ public class GameOverController {
         }
     }
 
-    /** 이름과 함께 점수를 저장하고, 등록된 등수를 강조한 스코어보드로 이동한다. */
+    /** 이름과 함께 점수를 저장하고, 해당 모드 스코어보드에서 새 기록을 강조해서 보여준다. */
     public void submitName(String name) {
         if (!inputtingName || name == null || name.isBlank()) {
             return;
         }
         inputtingName = false;
-        int rank = scoreboardService.addScore(name.trim(), score, level, clearedLines);
-        scoreboardController.show(rank);
+        int position = scoreboardService.addScore(name.trim(), score, level, clearedLines, difficulty, gameMode);
+        scoreboardController.show(gameMode, position);
     }
 
     // 영문자, 숫자(키패드 제외)만 이름으로 입력 허용
