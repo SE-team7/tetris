@@ -49,8 +49,9 @@ public class GameEngineService {
         this.itemMode = itemMode;
 
         board.reset();
-        scoreService.reset();
-        levelService.reset();
+        scoreService.reset(difficulty);
+        levelService.reset(difficulty);
+        levelService.updateLevel(scoreService.getLineScore());
 
         currentBlock = null;
         nextBlock = blockFactory.createRandomBlock(difficulty);
