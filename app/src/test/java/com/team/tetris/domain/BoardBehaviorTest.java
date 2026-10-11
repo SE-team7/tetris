@@ -67,24 +67,30 @@ public class BoardBehaviorTest {
     }
 
     @Test
-    void allowsRotationInEmptySpace() {
+        void allowsRotationInEmptySpace() {
         Board board = new Board();
 
         for (BlockType type : BlockType.values()) {
-            Block block = new Block(type, new Position(10, 5));
+                Block block = new Block(type, new Position(10, 5));
 
-            for (int i = 0; i < 4; i++) {
-                // 1차에서는 O의 변화 없는 회전도 충돌 검사상 허용
-                assertTrue(
+                // 회전 금지 블록은 false, 나머지는 true가 나와야 함
+                boolean expected = switch (type) {
+                case O, WEIGHT, BOMB, CROSS, GAP_DESTROY -> false;
+                default -> true;
+                };
+
+                for (int i = 0; i < 4; i++) {
+                assertEquals(
+                        expected,
                         board.canRotate(block),
                         type + " rotation " + block.getRotation()
-                                + " should be allowed in empty space"
+                                + " 회전 가능 여부가 다릅니다."
                 );
 
                 block.rotate();
-            }
+                }
+         }
         }
-    }
 
     @Test
     void rejectsRotationOutsideRightWall() {
