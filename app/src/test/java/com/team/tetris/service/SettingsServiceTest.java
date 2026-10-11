@@ -1,5 +1,6 @@
 package com.team.tetris.service;
 
+import com.team.tetris.domain.Difficulty;
 import com.team.tetris.domain.Settings;
 import com.team.tetris.domain.Settings.KeyAction;
 import com.team.tetris.domain.Settings.ScreenSize;
@@ -28,6 +29,28 @@ class SettingsServiceTest {
         assertFalse(settings.isColorBlindMode());
         assertEquals(KeyCode.A, settings.getKey(KeyAction.MOVE_LEFT));
         assertEquals(KeyCode.ENTER, settings.getKey(KeyAction.SELECT));
+    }
+
+    @Test
+    void difficulty_defaultSaveLoadAndReset() {
+        SettingsService service = new SettingsService(new FileManager(tempDir));
+        assertEquals(Difficulty.NORMAL, service.load().getDifficulty());
+
+        Settings settings = new Settings();
+        settings.setDifficulty(Difficulty.HARD);
+        service.save(settings);
+        assertEquals(Difficulty.HARD, service.load().getDifficulty());
+
+        assertEquals(Difficulty.NORMAL, service.resetToDefault().getDifficulty());
+        assertEquals(Difficulty.NORMAL, service.load().getDifficulty());
+    }
+
+    @Test
+    void difficulty_invalidValueUsesDefault() {
+        FileManager fileManager = new FileManager(tempDir);
+        fileManager.writeFile("settings.properties", "difficulty=VERY_HARD\n");
+
+        assertEquals(Difficulty.NORMAL, new SettingsService(fileManager).load().getDifficulty());
     }
 
     @Test
