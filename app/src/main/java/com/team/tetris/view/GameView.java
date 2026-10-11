@@ -1,10 +1,20 @@
 package com.team.tetris.view;
 
+import java.util.IdentityHashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
+
 import com.team.tetris.domain.Block;
 import com.team.tetris.domain.BlockType;
 import com.team.tetris.domain.Board;
+import com.team.tetris.domain.ClearResult;
+import com.team.tetris.domain.Difficulty;
+import com.team.tetris.domain.GameMode;
+import com.team.tetris.domain.ItemType;
 import com.team.tetris.domain.Position;
 
+import javafx.animation.PauseTransition;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Parent;
@@ -12,6 +22,7 @@ import javafx.scene.control.Label;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
+import javafx.util.Duration;
 
 public class GameView {
 
@@ -32,6 +43,13 @@ public class GameView {
     private final Label statusLabel;
     private final Label skipRemainingLabel;
 
+    /*
+     * 2차:
+     * 현재 모드 / 난이도 표시
+     */
+    private final Label modeLabel;
+    private final Label difficultyLabel;
+
     private final Label moveKeyLabel;
     private final Label softDropKeyLabel;
     private final Label rotateKeyLabel;
@@ -44,7 +62,9 @@ public class GameView {
 
         root = new BorderPane();
         root.setPadding(new Insets(20));
-        root.setStyle("-fx-background-color: #111111;");
+        root.setStyle(
+            "-fx-background-color: #111111;"
+        );
 
         /*
          * BOARD
@@ -54,30 +74,36 @@ public class GameView {
         boardGrid.setHgap(1);
         boardGrid.setVgap(0);
 
-        boardCells = new Label[VISIBLE_ROWS][COLS];
+        boardCells =
+            new Label[VISIBLE_ROWS][COLS];
 
         createTextBoard();
 
         /*
          * NEXT
          */
-        Label nextTitle = createSectionTitle("NEXT");
+        Label nextTitle =
+            createSectionTitle("NEXT");
 
         nextGrid = new GridPane();
         nextGrid.setAlignment(Pos.CENTER);
         nextGrid.setHgap(2);
         nextGrid.setVgap(1);
 
-        nextCells = new Label[NEXT_SIZE][NEXT_SIZE];
+        nextCells =
+            new Label[NEXT_SIZE][NEXT_SIZE];
 
         createNextArea();
 
         /*
          * SCORE
          */
-        Label scoreTitle = createSectionTitle("SCORE");
+        Label scoreTitle =
+            createSectionTitle("SCORE");
 
-        scoreLabel = new Label("0");
+        scoreLabel =
+            new Label("0");
+
         scoreLabel.setStyle(
             "-fx-text-fill: white;"
             + "-fx-font-family: 'Consolas';"
@@ -88,7 +114,9 @@ public class GameView {
         /*
          * PAUSE STATUS
          */
-        statusLabel = new Label("");
+        statusLabel =
+            new Label("");
+
         statusLabel.setStyle(
             "-fx-text-fill: #FFD54F;"
             + "-fx-font-family: 'Consolas';"
@@ -99,10 +127,15 @@ public class GameView {
         /*
          * SKIP
          */
-        Label skipTitle = createSectionTitle("SKIP");
+        Label skipTitle =
+            createSectionTitle("SKIP");
 
         skipRemainingLabel =
-            new Label(MAX_SKIP_COUNT + " / " + MAX_SKIP_COUNT);
+            new Label(
+                MAX_SKIP_COUNT
+                + " / "
+                + MAX_SKIP_COUNT
+            );
 
         skipRemainingLabel.setStyle(
             "-fx-text-fill: white;"
@@ -111,55 +144,102 @@ public class GameView {
             + "-fx-font-weight: bold;"
         );
 
-        VBox skipBox = new VBox(
-            2,
-            skipTitle,
-            skipRemainingLabel
+        VBox skipBox =
+            new VBox(
+                2,
+                skipTitle,
+                skipRemainingLabel
+            );
+
+        skipBox.setAlignment(
+            Pos.CENTER
         );
 
-        skipBox.setAlignment(Pos.CENTER);
+        /*
+         * MODE / DIFFICULTY
+         */
+        modeLabel =
+            createGameInfoLabel(
+                "MODE: -"
+            );
+
+        difficultyLabel =
+            createGameInfoLabel(
+                "DIFFICULTY: -"
+            );
+
+        VBox gameInfoBox =
+            new VBox(
+                2,
+                modeLabel,
+                difficultyLabel
+            );
+
+        gameInfoBox.setAlignment(
+            Pos.CENTER
+        );
 
         /*
          * TOP RIGHT
          */
-        VBox infoBox = new VBox(
-            8,
-            nextTitle,
-            nextGrid,
-            scoreTitle,
-            scoreLabel,
-            statusLabel,
-            skipBox
-        );
+        VBox infoBox =
+            new VBox(
+                8,
+                nextTitle,
+                nextGrid,
+                scoreTitle,
+                scoreLabel,
+                statusLabel,
+                skipBox,
+                gameInfoBox
+            );
 
-        infoBox.setAlignment(Pos.TOP_CENTER);
+        infoBox.setAlignment(
+            Pos.TOP_CENTER
+        );
 
         /*
          * CONTROLS
          */
         Label controlsTitle =
-            createSectionTitle("CONTROLS");
+            createSectionTitle(
+                "CONTROLS"
+            );
 
-        GridPane controlsGrid = new GridPane();
+        GridPane controlsGrid =
+            new GridPane();
 
-        controlsGrid.setAlignment(Pos.CENTER);
+        controlsGrid.setAlignment(
+            Pos.CENTER
+        );
+
         controlsGrid.setHgap(10);
         controlsGrid.setVgap(3);
 
         moveKeyLabel =
-            createControlKeyLabel("A D");
+            createControlKeyLabel(
+                "A D"
+            );
 
         softDropKeyLabel =
-            createControlKeyLabel("S");
+            createControlKeyLabel(
+                "S"
+            );
 
         rotateKeyLabel =
-            createControlKeyLabel("P");
+            createControlKeyLabel(
+                "P"
+            );
 
         hardDropKeyLabel =
-            createControlKeyLabel("ENTER");
+            createControlKeyLabel(
+                "ENTER"
+            );
 
         skipKeyLabel =
-            createControlKeyLabel("-");
+            createControlKeyLabel(
+                "-"
+            );
 
         int row = 0;
 
@@ -202,35 +282,45 @@ public class GameView {
             controlsGrid,
             row++,
             "일시정지",
-            createControlKeyLabel("SHIFT")
+            createControlKeyLabel(
+                "SHIFT"
+            )
         );
 
         addControlRow(
             controlsGrid,
             row++,
             "메인메뉴",
-            createControlKeyLabel("TAB")
+            createControlKeyLabel(
+                "TAB"
+            )
         );
 
         addControlRow(
             controlsGrid,
             row,
             "게임종료",
-            createControlKeyLabel("ESC")
+            createControlKeyLabel(
+                "ESC"
+            )
         );
 
-        VBox controlsBox = new VBox(
-            4,
-            controlsTitle,
-            controlsGrid
-        );
+        VBox controlsBox =
+            new VBox(
+                4,
+                controlsTitle,
+                controlsGrid
+            );
 
-        controlsBox.setAlignment(Pos.CENTER);
+        controlsBox.setAlignment(
+            Pos.CENTER
+        );
 
         /*
          * RIGHT PANEL
          */
-        BorderPane sidePanel = new BorderPane();
+        BorderPane sidePanel =
+            new BorderPane();
 
         sidePanel.setTop(infoBox);
         sidePanel.setBottom(controlsBox);
@@ -246,7 +336,12 @@ public class GameView {
         );
 
         sidePanel.setPadding(
-            new Insets(8, 10, 8, 18)
+            new Insets(
+                8,
+                10,
+                8,
+                18
+            )
         );
 
         sidePanel.setPrefWidth(225);
@@ -260,11 +355,21 @@ public class GameView {
      */
     private void createTextBoard() {
 
-        boardGrid.getChildren().clear();
+        boardGrid
+            .getChildren()
+            .clear();
 
-        for (int row = 0; row < VISIBLE_ROWS + 2; row++) {
+        for (
+            int row = 0;
+            row < VISIBLE_ROWS + 2;
+            row++
+        ) {
 
-            for (int col = 0; col < COLS + 2; col++) {
+            for (
+                int col = 0;
+                col < COLS + 2;
+                col++
+            ) {
 
                 boolean border =
                     row == 0
@@ -272,7 +377,8 @@ public class GameView {
                     || col == 0
                     || col == COLS + 1;
 
-                Label cell = createTextCell();
+                Label cell =
+                    createTextCell();
 
                 if (border) {
 
@@ -288,8 +394,10 @@ public class GameView {
 
                     resetBoardCell(cell);
 
-                    boardCells[row - 1][col - 1] =
-                        cell;
+                    boardCells
+                        [row - 1]
+                        [col - 1] =
+                            cell;
                 }
 
                 boardGrid.add(
@@ -306,11 +414,21 @@ public class GameView {
      */
     private void createNextArea() {
 
-        nextGrid.getChildren().clear();
+        nextGrid
+            .getChildren()
+            .clear();
 
-        for (int row = 0; row < NEXT_SIZE + 2; row++) {
+        for (
+            int row = 0;
+            row < NEXT_SIZE + 2;
+            row++
+        ) {
 
-            for (int col = 0; col < NEXT_SIZE + 2; col++) {
+            for (
+                int col = 0;
+                col < NEXT_SIZE + 2;
+                col++
+            ) {
 
                 boolean border =
                     row == 0
@@ -318,7 +436,8 @@ public class GameView {
                     || col == 0
                     || col == NEXT_SIZE + 1;
 
-                Label cell = createTextCell();
+                Label cell =
+                    createTextCell();
 
                 if (border) {
 
@@ -331,8 +450,10 @@ public class GameView {
 
                 } else {
 
-                    nextCells[row - 1][col - 1] =
-                        cell;
+                    nextCells
+                        [row - 1]
+                        [col - 1] =
+                            cell;
                 }
 
                 nextGrid.add(
@@ -346,9 +467,12 @@ public class GameView {
 
     private Label createTextCell() {
 
-        Label label = new Label(" ");
+        Label label =
+            new Label(" ");
 
-        label.setAlignment(Pos.CENTER);
+        label.setAlignment(
+            Pos.CENTER
+        );
 
         label.setMinSize(22, 22);
         label.setPrefSize(22, 22);
@@ -374,7 +498,8 @@ public class GameView {
         String text
     ) {
 
-        Label label = new Label(text);
+        Label label =
+            new Label(text);
 
         label.setStyle(
             "-fx-text-fill: white;"
@@ -386,13 +511,34 @@ public class GameView {
         return label;
     }
 
+    private Label createGameInfoLabel(
+        String text
+    ) {
+
+        Label label =
+            new Label(text);
+
+        label.setStyle(
+            "-fx-text-fill: #BBBBBB;"
+            + "-fx-font-family: 'Consolas';"
+            + "-fx-font-size: 11px;"
+            + "-fx-font-weight: bold;"
+        );
+
+        return label;
+    }
+
     private Label createControlKeyLabel(
         String text
     ) {
 
-        Label label = new Label(text);
+        Label label =
+            new Label(text);
 
-        label.setAlignment(Pos.CENTER);
+        label.setAlignment(
+            Pos.CENTER
+        );
+
         label.setMinWidth(68);
 
         label.setStyle(
@@ -453,10 +599,14 @@ public class GameView {
         clearNext();
 
         if (board != null) {
-            renderFixedBlocks(board);
+
+            renderFixedBlocks(
+                board
+            );
         }
 
         if (currentBlock != null) {
+
             renderCurrentBlock(
                 board,
                 currentBlock
@@ -464,6 +614,7 @@ public class GameView {
         }
 
         if (nextBlock != null) {
+
             renderNextBlock(
                 nextBlock
             );
@@ -480,7 +631,8 @@ public class GameView {
         int firstVisibleRow =
             Math.max(
                 0,
-                board.length - VISIBLE_ROWS
+                board.length
+                - VISIBLE_ROWS
             );
 
         for (
@@ -493,24 +645,30 @@ public class GameView {
                 firstVisibleRow
                 + visibleRow;
 
-            if (boardRow >= board.length) {
+            if (
+                boardRow >= board.length
+            ) {
                 break;
             }
 
             for (
                 int col = 0;
                 col < COLS
-                    && col < board[boardRow].length;
+                && col < board[boardRow].length;
                 col++
             ) {
 
                 BlockType type =
-                    board[boardRow][col];
+                    board
+                        [boardRow]
+                        [col];
 
                 if (type != null) {
 
                     drawBlockCell(
-                        boardCells[visibleRow][col],
+                        boardCells
+                            [visibleRow]
+                            [col],
                         type
                     );
                 }
@@ -518,6 +676,9 @@ public class GameView {
         }
     }
 
+    /*
+     * CURRENT BLOCK
+     */
     private void renderCurrentBlock(
         BlockType[][] board,
         Block currentBlock
@@ -531,8 +692,17 @@ public class GameView {
         int firstVisibleRow =
             Math.max(
                 0,
-                boardRows - VISIBLE_ROWS
+                boardRows
+                - VISIBLE_ROWS
             );
+
+        ItemType itemType =
+            currentBlock
+                .getItemType();
+
+        Position itemPosition =
+            currentBlock
+                .getItemPosition();
 
         for (
             Position position :
@@ -553,14 +723,56 @@ public class GameView {
                 && col < COLS
             ) {
 
-                drawBlockCell(
-                    boardCells[visibleRow][col],
-                    currentBlock.getType()
-                );
+                Label cell =
+                    boardCells
+                        [visibleRow]
+                        [col];
+
+                /*
+                 * Line Clear:
+                 * 부착된 한 칸만 L 표시
+                 */
+                if (
+                    itemType
+                        == ItemType.LINE_CLEAR
+                    && samePosition(
+                        position,
+                        itemPosition
+                    )
+                ) {
+
+                    drawItemCell(
+                        cell,
+                        ItemType.LINE_CLEAR
+                    );
+
+                } else if (
+                    itemType != null
+                    && itemType != ItemType.NONE
+                    && itemType
+                        != ItemType.LINE_CLEAR
+                ) {
+
+                    drawItemCell(
+                        cell,
+                        itemType
+                    );
+
+                } else {
+
+                    drawBlockCell(
+                        cell,
+                        currentBlock
+                            .getType()
+                    );
+                }
             }
         }
     }
 
+    /*
+     * NEXT
+     */
     private void renderNextBlock(
         Block nextBlock
     ) {
@@ -587,7 +799,10 @@ public class GameView {
         int maxCol =
             cells[0].getCol();
 
-        for (Position cell : cells) {
+        for (
+            Position cell :
+            cells
+        ) {
 
             minRow =
                 Math.min(
@@ -615,18 +830,41 @@ public class GameView {
         }
 
         int height =
-            maxRow - minRow + 1;
+            maxRow
+            - minRow
+            + 1;
 
         int width =
-            maxCol - minCol + 1;
+            maxCol
+            - minCol
+            + 1;
 
         int startRow =
-            (NEXT_SIZE - height) / 2;
+            (
+                NEXT_SIZE
+                - height
+            )
+            / 2;
 
         int startCol =
-            (NEXT_SIZE - width) / 2;
+            (
+                NEXT_SIZE
+                - width
+            )
+            / 2;
 
-        for (Position cell : cells) {
+        ItemType itemType =
+            nextBlock
+                .getItemType();
+
+        Position itemPosition =
+            nextBlock
+                .getItemPosition();
+
+        for (
+            Position cell :
+            cells
+        ) {
 
             int row =
                 startRow
@@ -645,25 +883,129 @@ public class GameView {
                 && col < NEXT_SIZE
             ) {
 
-                drawBlockCell(
-                    nextCells[row][col],
-                    nextBlock.getType()
-                );
+                Label nextCell =
+                    nextCells[row][col];
+
+                if (
+                    itemType
+                        == ItemType.LINE_CLEAR
+                    && samePosition(
+                        cell,
+                        itemPosition
+                    )
+                ) {
+
+                    drawItemCell(
+                        nextCell,
+                        ItemType.LINE_CLEAR
+                    );
+
+                } else if (
+                    itemType != null
+                    && itemType != ItemType.NONE
+                    && itemType
+                        != ItemType.LINE_CLEAR
+                ) {
+
+                    drawItemCell(
+                        nextCell,
+                        itemType
+                    );
+
+                } else {
+
+                    drawBlockCell(
+                        nextCell,
+                        nextBlock
+                            .getType()
+                    );
+                }
             }
         }
     }
 
+    private boolean samePosition(
+        Position first,
+        Position second
+    ) {
+
+        if (
+            first == null
+            || second == null
+        ) {
+            return false;
+        }
+
+        return
+            first.getRow()
+                == second.getRow()
+            &&
+            first.getCol()
+                == second.getCol();
+    }
+
     /*
-     * BLOCK DRAW
+     * NORMAL / FIXED BLOCK
      */
     private void drawBlockCell(
         Label cell,
         BlockType type
     ) {
 
+        if (type == null) {
+            return;
+        }
+
+        /*
+         * 고정된 특수 아이템 블록
+         */
+        switch (type) {
+
+            case WEIGHT -> {
+                drawItemCell(
+                    cell,
+                    ItemType.WEIGHT
+                );
+                return;
+            }
+
+            case BOMB -> {
+                drawItemCell(
+                    cell,
+                    ItemType.BOMB
+                );
+                return;
+            }
+
+            case CROSS -> {
+                drawItemCell(
+                    cell,
+                    ItemType.CROSS
+                );
+                return;
+            }
+
+            case GAP_DESTROY -> {
+                drawItemCell(
+                    cell,
+                    ItemType.GAP_DESTROY
+                );
+                return;
+            }
+
+            default -> {
+            }
+        }
+
         if (colorBlindMode) {
 
-            if (type == BlockType.L) {
+            /*
+             * 일반 L 테트로미노는
+             * 아이템 L과 구분하기 위해 G
+             */
+            if (
+                type == BlockType.L
+            ) {
 
                 cell.setText("G");
 
@@ -688,32 +1030,515 @@ public class GameView {
         );
     }
 
+    /*
+     * ITEM DRAW
+     */
+    private void drawItemCell(
+        Label cell,
+        ItemType itemType
+    ) {
+
+        if (
+            itemType == null
+            || itemType
+                == ItemType.NONE
+        ) {
+            return;
+        }
+
+        cell.setText(
+            getItemText(
+                itemType
+            )
+        );
+
+        cell.setStyle(
+            baseCellStyle()
+            + "-fx-text-fill: "
+            + getItemColor(
+                itemType
+            )
+            + ";"
+            + "-fx-font-weight: bold;"
+        );
+    }
+
+    private String getItemText(
+        ItemType itemType
+    ) {
+
+        return switch (
+            itemType
+        ) {
+
+            case WEIGHT ->
+                "W";
+
+            case LINE_CLEAR ->
+                "L";
+
+            case BOMB ->
+                "B";
+
+            case CROSS ->
+                "+";
+
+            case GAP_DESTROY ->
+                "D";
+
+            case NONE ->
+                "O";
+        };
+    }
+
+    private String getItemColor(
+        ItemType itemType
+    ) {
+
+        if (colorBlindMode) {
+
+            return switch (
+                itemType
+            ) {
+
+                case WEIGHT ->
+                    "#FFFFFF";
+
+                case LINE_CLEAR ->
+                    "#F0E442";
+
+                case BOMB ->
+                    "#D55E00";
+
+                case CROSS ->
+                    "#CC79A7";
+
+                case GAP_DESTROY ->
+                    "#56B4E9";
+
+                case NONE ->
+                    "#FFFFFF";
+            };
+        }
+
+        return switch (
+            itemType
+        ) {
+
+            case WEIGHT ->
+                "#FFFFFF";
+
+            case LINE_CLEAR ->
+                "#FFFF00";
+
+            case BOMB ->
+                "#FF5555";
+
+            case CROSS ->
+                "#FF66CC";
+
+            case GAP_DESTROY ->
+                "#66CCFF";
+
+            case NONE ->
+                "#FFFFFF";
+        };
+    }
+
     private String getBlockColor(
         BlockType type
     ) {
 
         if (colorBlindMode) {
 
-            return switch (type) {
-                case I -> "#56B4E9";
-                case J -> "#0072B2";
-                case L -> "#E69F00";
-                case O -> "#F0E442";
-                case S -> "#009E73";
-                case T -> "#CC79A7";
-                case Z -> "#D55E00";
+            return switch (
+                type
+            ) {
+
+                case I ->
+                    "#56B4E9";
+
+                case J ->
+                    "#0072B2";
+
+                case L ->
+                    "#E69F00";
+
+                case O ->
+                    "#F0E442";
+
+                case S ->
+                    "#009E73";
+
+                case T ->
+                    "#CC79A7";
+
+                case Z ->
+                    "#D55E00";
+
+                case WEIGHT ->
+                    "#FFFFFF";
+
+                case BOMB ->
+                    "#D55E00";
+
+                case CROSS ->
+                    "#CC79A7";
+
+                case GAP_DESTROY ->
+                    "#56B4E9";
             };
         }
 
-        return switch (type) {
-            case I -> "#00FFFF";
-            case J -> "#0000FF";
-            case L -> "#FFA500";
-            case O -> "#FFFF00";
-            case S -> "#00FF00";
-            case T -> "#800080";
-            case Z -> "#FF0000";
+        return switch (
+            type
+        ) {
+
+            case I ->
+                "#00FFFF";
+
+            case J ->
+                "#0000FF";
+
+            case L ->
+                "#FFA500";
+
+            case O ->
+                "#FFFF00";
+
+            case S ->
+                "#00FF00";
+
+            case T ->
+                "#800080";
+
+            case Z ->
+                "#FF0000";
+
+            case WEIGHT ->
+                "#FFFFFF";
+
+            case BOMB ->
+                "#FF5555";
+
+            case CROSS ->
+                "#FF66CC";
+
+            case GAP_DESTROY ->
+                "#66CCFF";
         };
+    }
+
+    /*
+     * 2차:
+     * CLEAR / ITEM EFFECT ANIMATION
+     *
+     * Board 자체는 여기서 변경하지 않는다.
+     */
+    public void playClearAnimation(
+        ClearResult result,
+        Runnable onFinished
+    ) {
+
+        if (
+            result == null
+            || result.isEmpty()
+        ) {
+
+            if (
+                onFinished != null
+            ) {
+                onFinished.run();
+            }
+
+            return;
+        }
+
+        Set<Label> targets =
+            new LinkedHashSet<>();
+
+        /*
+         * 삭제 행
+         */
+        if (
+            result.getRowsToDelete()
+                != null
+        ) {
+
+            for (
+                Integer boardRow :
+                result.getRowsToDelete()
+            ) {
+
+                if (
+                    boardRow != null
+                ) {
+
+                    addAnimationRow(
+                        targets,
+                        boardRow
+                    );
+                }
+            }
+        }
+
+        /*
+         * 삭제 셀
+         */
+        if (
+            result.getCellsToDelete()
+                != null
+        ) {
+
+            for (
+                Position position :
+                result.getCellsToDelete()
+            ) {
+
+                addAnimationCell(
+                    targets,
+                    position
+                );
+            }
+        }
+
+        /*
+         * D 압축 열
+         */
+        if (
+            result.getColumnsToCompact()
+                != null
+        ) {
+
+            int startRow =
+                result
+                    .getCompactStartRow();
+
+            for (
+                Integer col :
+                result
+                    .getColumnsToCompact()
+            ) {
+
+                if (
+                    col != null
+                ) {
+
+                    addAnimationColumn(
+                        targets,
+                        col,
+                        startRow
+                    );
+                }
+            }
+        }
+
+        if (
+            targets.isEmpty()
+        ) {
+
+            if (
+                onFinished != null
+            ) {
+                onFinished.run();
+            }
+
+            return;
+        }
+
+        Map<Label, String>
+            originalStyles =
+                new IdentityHashMap<>();
+
+        for (
+            Label cell :
+            targets
+        ) {
+
+            originalStyles.put(
+                cell,
+                cell.getStyle()
+            );
+
+            cell.setStyle(
+                baseCellStyle()
+                + "-fx-background-color: white;"
+                + "-fx-text-fill: black;"
+                + "-fx-font-weight: bold;"
+            );
+        }
+
+        PauseTransition flash =
+            new PauseTransition(
+                Duration.millis(
+                    180
+                )
+            );
+
+        flash.setOnFinished(
+            event -> {
+
+                for (
+                    Map.Entry
+                        <Label, String>
+                        entry :
+                        originalStyles
+                            .entrySet()
+                ) {
+
+                    entry
+                        .getKey()
+                        .setStyle(
+                            entry
+                                .getValue()
+                        );
+                }
+
+                if (
+                    onFinished != null
+                ) {
+                    onFinished.run();
+                }
+            }
+        );
+
+        flash.play();
+    }
+
+    private void addAnimationRow(
+        Set<Label> targets,
+        int boardRow
+    ) {
+
+        int visibleRow =
+            toVisibleRow(
+                boardRow
+            );
+
+        if (
+            visibleRow < 0
+            || visibleRow
+                >= VISIBLE_ROWS
+        ) {
+            return;
+        }
+
+        for (
+            int col = 0;
+            col < COLS;
+            col++
+        ) {
+
+            targets.add(
+                boardCells
+                    [visibleRow]
+                    [col]
+            );
+        }
+    }
+
+    private void addAnimationCell(
+        Set<Label> targets,
+        Position position
+    ) {
+
+        if (
+            position == null
+        ) {
+            return;
+        }
+
+        int visibleRow =
+            toVisibleRow(
+                position.getRow()
+            );
+
+        int col =
+            position.getCol();
+
+        if (
+            visibleRow >= 0
+            && visibleRow < VISIBLE_ROWS
+            && col >= 0
+            && col < COLS
+        ) {
+
+            targets.add(
+                boardCells
+                    [visibleRow]
+                    [col]
+            );
+        }
+    }
+
+    private void addAnimationColumn(
+        Set<Label> targets,
+        int col,
+        int startBoardRow
+    ) {
+
+        if (
+            col < 0
+            || col >= COLS
+        ) {
+            return;
+        }
+
+        int firstVisibleBoardRow =
+            Math.max(
+                0,
+                Board.ROWS
+                - VISIBLE_ROWS
+            );
+
+        int start =
+            startBoardRow < 0
+                ? firstVisibleBoardRow
+                : Math.max(
+                    firstVisibleBoardRow,
+                    startBoardRow
+                );
+
+        for (
+            int boardRow = start;
+            boardRow < Board.ROWS;
+            boardRow++
+        ) {
+
+            int visibleRow =
+                toVisibleRow(
+                    boardRow
+                );
+
+            if (
+                visibleRow >= 0
+                && visibleRow
+                    < VISIBLE_ROWS
+            ) {
+
+                targets.add(
+                    boardCells
+                        [visibleRow]
+                        [col]
+                );
+            }
+        }
+    }
+
+    private int toVisibleRow(
+        int boardRow
+    ) {
+
+        int firstVisibleRow =
+            Math.max(
+                0,
+                Board.ROWS
+                - VISIBLE_ROWS
+            );
+
+        return
+            boardRow
+            - firstVisibleRow;
     }
 
     /*
@@ -734,7 +1559,9 @@ public class GameView {
             ) {
 
                 resetBoardCell(
-                    boardCells[row][col]
+                    boardCells
+                        [row]
+                        [col]
                 );
             }
         }
@@ -769,10 +1596,14 @@ public class GameView {
                 col++
             ) {
 
-                nextCells[row][col]
+                nextCells
+                    [row]
+                    [col]
                     .setText(" ");
 
-                nextCells[row][col]
+                nextCells
+                    [row]
+                    [col]
                     .setStyle(
                         baseCellStyle()
                     );
@@ -781,6 +1612,7 @@ public class GameView {
     }
 
     public Parent getRoot() {
+
         return root;
     }
 
@@ -789,7 +1621,37 @@ public class GameView {
     ) {
 
         scoreLabel.setText(
-            String.valueOf(score)
+            String.valueOf(
+                score
+            )
+        );
+    }
+
+    /*
+     * 2차:
+     * 게임 모드 / 난이도 표시
+     */
+    public void setGameInfo(
+        GameMode mode,
+        Difficulty difficulty
+    ) {
+
+        modeLabel.setText(
+            "MODE: "
+            + (
+                mode == null
+                    ? "-"
+                    : mode.name()
+            )
+        );
+
+        difficultyLabel.setText(
+            "DIFFICULTY: "
+            + (
+                difficulty == null
+                    ? "-"
+                    : difficulty.name()
+            )
         );
     }
 
@@ -802,7 +1664,9 @@ public class GameView {
     ) {
 
         skipKeyLabel.setText(
-            safeKey(skipKey)
+            safeKey(
+                skipKey
+            )
         );
 
         skipRemainingLabel.setText(
@@ -855,6 +1719,7 @@ public class GameView {
             key == null
             || key.isBlank()
         ) {
+
             return "-";
         }
 
@@ -865,7 +1730,8 @@ public class GameView {
         boolean enabled
     ) {
 
-        colorBlindMode = enabled;
+        colorBlindMode =
+            enabled;
     }
 
     public void setPaused(
