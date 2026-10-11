@@ -6,7 +6,6 @@ import java.util.function.Consumer;
 import com.team.tetris.controller.ScoreboardMenu;
 import com.team.tetris.domain.GameMode;
 import com.team.tetris.domain.Score;
-import com.team.tetris.service.ScoreboardService;
 
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -15,130 +14,213 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 
-/**
- * 스코어보드 화면.
- * SceneManager는 getRoot()로 화면을 가져가 표시한다.
- */
 public class ScoreboardView {
 
-    private static final String HIGHLIGHT_STYLE =
-        "-fx-text-fill: #f5c542;"
-        + "-fx-font-weight: bold;";
-
-    private static final String MODE_SELECTED_STYLE =
-        "-fx-font-weight: bold;"
-        + "-fx-border-color: #f5c542;"
-        + "-fx-border-width: 2px;";
-
-    private final VBox root =
-        new VBox(16);
-
-    private final GridPane table =
-        new GridPane();
-
-    private final VBox menuBox =
-        new VBox(6);
-
-    private final Label keyGuide =
-        new Label();
-
     /*
-     * 2차:
-     * 일반 / 아이템 스코어보드 선택
+     * 밝은 화면 디자인
      */
-    private final Button normalModeButton =
-        new Button("일반모드");
+    private static final String BACKGROUND_COLOR = "#F4F4F4";
+    private static final String TEXT_COLOR = "#222222";
+    private static final String HEADER_COLOR = "#333333";
+    private static final String DIM_TEXT_COLOR = "#AAAAAA";
+    private static final String HIGHLIGHT_COLOR = "#E89B00";
 
-    private final Button itemModeButton =
-        new Button("아이템모드");
+    private final VBox root;
 
-    private Consumer<GameMode>
-        modeSelectedHandler;
+    private final Button normalModeButton;
+    private final Button itemModeButton;
 
-    private GameMode selectedMode =
-        GameMode.NORMAL;
+    private final GridPane scoreGrid;
+    private final Label keyGuideLabel;
+
+    private Consumer<GameMode> onModeSelected;
+
+    private GameMode selectedMode = GameMode.NORMAL;
 
     public ScoreboardView() {
 
-        Label title =
-            new Label("SCOREBOARD");
+        root = new VBox(12);
 
-        title.setStyle(
-            "-fx-font-size: 28px;"
-            + "-fx-font-weight: bold;"
+        root.setAlignment(
+                Pos.TOP_CENTER
         );
 
         /*
-         * MODE SELECT
+         * 위쪽 여백을 충분히 둬서
+         * SCOREBOARD 제목이 잘리지 않도록 함
          */
-        normalModeButton.setPrefWidth(
-            120
+        root.setPadding(
+                new Insets(
+                        32,
+                        30,
+                        24,
+                        30
+                )
         );
 
-        itemModeButton.setPrefWidth(
-            120
+        /*
+         * Settings 화면과 맞춘 밝은 배경
+         */
+        root.setStyle(
+                "-fx-background-color: "
+                        + BACKGROUND_COLOR
+                        + ";"
         );
 
-        HBox modeBox =
-            new HBox(
-                10,
-                normalModeButton,
-                itemModeButton
-            );
+        /*
+         * TITLE
+         */
+        Label titleLabel =
+                new Label("SCOREBOARD");
 
-        modeBox.setAlignment(
-            Pos.CENTER
+        titleLabel.setStyle(
+                "-fx-font-size: 36px;"
+                        + "-fx-font-weight: bold;"
+                        + "-fx-text-fill: "
+                        + TEXT_COLOR
+                        + ";"
         );
+
+        /*
+         * 제목 아래 공간
+         */
+        VBox.setMargin(
+                titleLabel,
+                new Insets(
+                        0,
+                        0,
+                        20,
+                        0
+                )
+        );
+
+        /*
+         * MODE BUTTONS
+         */
+        normalModeButton =
+                new Button("일반 모드");
+
+        itemModeButton =
+                new Button("아이템 모드");
+
+        normalModeButton.setFocusTraversable(false);
+        itemModeButton.setFocusTraversable(false);
 
         normalModeButton.setOnAction(
-            event ->
-                selectMode(
-                    GameMode.NORMAL
-                )
+                event -> {
+
+                    setSelectedMode(
+                            GameMode.NORMAL
+                    );
+
+                    if (onModeSelected != null) {
+
+                        onModeSelected.accept(
+                                GameMode.NORMAL
+                        );
+                    }
+                }
         );
 
         itemModeButton.setOnAction(
-            event ->
-                selectMode(
-                    GameMode.ITEM
+                event -> {
+
+                    setSelectedMode(
+                            GameMode.ITEM
+                    );
+
+                    if (onModeSelected != null) {
+
+                        onModeSelected.accept(
+                                GameMode.ITEM
+                        );
+                    }
+                }
+        );
+
+        HBox modeButtons =
+                new HBox(
+                        10,
+                        normalModeButton,
+                        itemModeButton
+                );
+
+        modeButtons.setAlignment(
+                Pos.CENTER
+        );
+
+        /*
+         * 버튼과 스코어 표 사이 공간
+         */
+        VBox.setMargin(
+                modeButtons,
+                new Insets(
+                        0,
+                        0,
+                        22,
+                        0
                 )
         );
 
-        updateModeButtonStyle();
+        /*
+         * SCORE TABLE
+         */
+        scoreGrid =
+                new GridPane();
+
+        scoreGrid.setAlignment(
+                Pos.TOP_CENTER
+        );
+
+        scoreGrid.setHgap(22);
+        scoreGrid.setVgap(9);
+
+        scoreGrid.setPadding(
+                new Insets(
+                        4,
+                        0,
+                        10,
+                        0
+                )
+        );
 
         /*
-         * TABLE
+         * KEY GUIDE
          */
-        table.setHgap(24);
-        table.setVgap(4);
+        keyGuideLabel =
+                new Label();
 
-        table.setAlignment(
-            Pos.CENTER
+        keyGuideLabel.setStyle(
+                "-fx-font-size: 13px;"
+                        + "-fx-text-fill: "
+                        + DIM_TEXT_COLOR
+                        + ";"
         );
 
-        menuBox.setAlignment(
-            Pos.CENTER
+        VBox.setVgrow(
+                scoreGrid,
+                Priority.ALWAYS
         );
-
-        root.setAlignment(
-            Pos.CENTER
-        );
-
-        root.setPadding(
-            new Insets(24)
-        );
-
-        root.getStyleClass()
-            .add("scoreboard");
 
         root.getChildren().addAll(
-            title,
-            modeBox,
-            table,
-            menuBox,
-            keyGuide
+                titleLabel,
+                modeButtons,
+                scoreGrid,
+                keyGuideLabel
+        );
+
+        setSelectedMode(
+                GameMode.NORMAL
+        );
+
+        render(
+                List.of(),
+                -1,
+                null,
+                GameMode.NORMAL
         );
     }
 
@@ -148,282 +230,452 @@ public class ScoreboardView {
     }
 
     /*
-     * 2차 API
-     *
-     * 일반모드 / 아이템모드 버튼을
-     * ScoreboardController와 연결한다.
+     * 모드 선택 이벤트
      */
     public void setOnModeSelected(
-        Consumer<GameMode> handler
-    ) {
+            Consumer<GameMode> handler) {
 
-        this.modeSelectedHandler =
-            handler;
+        this.onModeSelected =
+                handler;
     }
 
     /*
-     * Controller에서 현재 선택 모드를
-     * 화면에 맞춰줄 때 사용할 수 있다.
+     * 현재 선택된 모드 표시
      */
     public void setSelectedMode(
-        GameMode mode
-    ) {
+            GameMode mode) {
 
         if (mode == null) {
-            return;
+
+            mode =
+                    GameMode.NORMAL;
         }
 
         selectedMode =
-            mode;
-
-        updateModeButtonStyle();
-    }
-
-    private void selectMode(
-        GameMode mode
-    ) {
-
-        selectedMode =
-            mode;
-
-        updateModeButtonStyle();
+                mode;
 
         if (
-            modeSelectedHandler
-                != null
-        ) {
-
-            modeSelectedHandler.accept(
-                mode
-            );
-        }
-    }
-
-    private void updateModeButtonStyle() {
-
-        if (
-            selectedMode
+                selectedMode
                 == GameMode.NORMAL
         ) {
 
             normalModeButton.setStyle(
-                MODE_SELECTED_STYLE
+                    selectedButtonStyle()
             );
 
             itemModeButton.setStyle(
-                ""
+                    normalButtonStyle()
             );
 
         } else {
 
             normalModeButton.setStyle(
-                ""
+                    normalButtonStyle()
             );
 
             itemModeButton.setStyle(
-                MODE_SELECTED_STYLE
+                    selectedButtonStyle()
             );
         }
     }
 
-    /**
-     * @param scores
-     *     상위 기록 목록
-     *
-     * @param highlightRank
-     *     강조할 등수(1부터).
-     *     없으면 -1
-     *
-     * @param selected
-     *     현재 선택된 메뉴
+    public GameMode getSelectedMode() {
+
+        return selectedMode;
+    }
+
+    /*
+     * 현재 ScoreboardController가 사용하는 render
      */
     public void render(
-        List<Score> scores,
-        int highlightRank,
-        ScoreboardMenu selected
-    ) {
+            List<Score> scores,
+            int highlightIndex,
+            ScoreboardMenu selectedMenu,
+            GameMode currentMode) {
 
-        table
-            .getChildren()
-            .clear();
+        setSelectedMode(
+                currentMode
+        );
+
+        renderTable(
+                scores,
+                highlightIndex
+        );
+    }
+
+    /*
+     * 기존 코드 호환용
+     */
+    public void render(
+            List<Score> scores,
+            int highlightIndex,
+            ScoreboardMenu selectedMenu) {
+
+        renderTable(
+                scores,
+                highlightIndex
+        );
+    }
+
+    public void render(
+            List<Score> scores,
+            int highlightIndex) {
+
+        renderTable(
+                scores,
+                highlightIndex
+        );
+    }
+
+    public void render(
+            List<Score> scores) {
+
+        renderTable(
+                scores,
+                -1
+        );
+    }
+
+    /*
+     * 실제 스코어 표
+     */
+    private void renderTable(
+            List<Score> scores,
+            int highlightIndex) {
+
+        scoreGrid
+                .getChildren()
+                .clear();
 
         /*
-         * 2차:
-         * 난이도 열 추가
+         * HEADER
          */
-        String[] headers = {
-            "순위",
-            "이름",
-            "점수",
-            "레벨",
-            "줄",
-            "난이도"
-        };
-
-        for (
-            int col = 0;
-            col < headers.length;
-            col++
-        ) {
-
-            Label header =
-                new Label(
-                    headers[col]
-                );
-
-            header.setStyle(
-                "-fx-font-weight: bold;"
-            );
-
-            table.add(
-                header,
-                col,
+        addHeader(
+                "순위",
                 0
-            );
-        }
+        );
 
+        addHeader(
+                "이름",
+                1
+        );
+
+        addHeader(
+                "점수",
+                2
+        );
+
+        addHeader(
+                "난이도",
+                3
+        );
+
+        addHeader(
+                "레벨",
+                4
+        );
+
+        addHeader(
+                "줄",
+                5
+        );
+
+        /*
+         * SCORE ROWS
+         */
         for (
-            int i = 0;
-            i < ScoreboardService.MAX_SCORES;
-            i++
+                int row = 0;
+                row < 10;
+                row++
         ) {
 
-            int rank =
-                i + 1;
+            int gridRow =
+                    row + 1;
 
-            String[] cells;
+            boolean hasScore =
+                    scores != null
+                            && row
+                            < scores.size();
 
-            if (
-                scores != null
-                && i < scores.size()
-            ) {
+            boolean highlighted =
+                    hasScore
+                            && row
+                            == highlightIndex;
+
+            if (hasScore) {
 
                 Score score =
-                    scores.get(i);
+                        scores.get(row);
 
-                String difficulty =
-                    score.getDifficulty()
-                        == null
-                        ? "-"
-                        : score
-                            .getDifficulty()
-                            .name();
+                String color =
+                        highlighted
+                                ? HIGHLIGHT_COLOR
+                                : TEXT_COLOR;
 
-                cells =
-                    new String[] {
+                addCell(
                         String.valueOf(
-                            rank
+                                row + 1
                         ),
-                        score.getName(),
+                        0,
+                        gridRow,
+                        color
+                );
+
+                addCell(
+                        safeText(
+                                score.getName()
+                        ),
+                        1,
+                        gridRow,
+                        color
+                );
+
+                addCell(
                         String.valueOf(
-                            score.getScore()
+                                score.getScore()
                         ),
+                        2,
+                        gridRow,
+                        color
+                );
+
+                addCell(
+                        score.getDifficulty()
+                                == null
+                                ? "-"
+                                : score
+                                .getDifficulty()
+                                .name(),
+                        3,
+                        gridRow,
+                        color
+                );
+
+                addCell(
                         String.valueOf(
-                            score.getLevel()
+                                score.getLevel()
                         ),
+                        4,
+                        gridRow,
+                        color
+                );
+
+                addCell(
                         String.valueOf(
-                            score.getClearedLines()
+                                score.getClearedLines()
                         ),
-                        difficulty
-                    };
+                        5,
+                        gridRow,
+                        color
+                );
 
             } else {
 
-                cells =
-                    new String[] {
+                addCell(
                         String.valueOf(
-                            rank
+                                row + 1
                         ),
+                        0,
+                        gridRow,
+                        DIM_TEXT_COLOR
+                );
+
+                addCell(
                         "-",
+                        1,
+                        gridRow,
+                        DIM_TEXT_COLOR
+                );
+
+                addCell(
                         "-",
+                        2,
+                        gridRow,
+                        DIM_TEXT_COLOR
+                );
+
+                addCell(
                         "-",
+                        3,
+                        gridRow,
+                        DIM_TEXT_COLOR
+                );
+
+                addCell(
                         "-",
-                        "-"
-                    };
-            }
+                        4,
+                        gridRow,
+                        DIM_TEXT_COLOR
+                );
 
-            for (
-                int col = 0;
-                col < cells.length;
-                col++
-            ) {
-
-                Label cell =
-                    new Label(
-                        cells[col]
-                    );
-
-                if (
-                    rank
-                        == highlightRank
-                ) {
-
-                    cell.setStyle(
-                        HIGHLIGHT_STYLE
-                    );
-                }
-
-                table.add(
-                    cell,
-                    col,
-                    rank
+                addCell(
+                        "-",
+                        5,
+                        gridRow,
+                        DIM_TEXT_COLOR
                 );
             }
-        }
-
-        /*
-         * 기존 메뉴
-         */
-        menuBox
-            .getChildren()
-            .clear();
-
-        for (
-            ScoreboardMenu menu :
-            ScoreboardMenu.values()
-        ) {
-
-            boolean isSelected =
-                menu == selected;
-
-            Label item =
-                new Label(
-                    (
-                        isSelected
-                            ? "> "
-                            : "  "
-                    )
-                    + menu.getLabel()
-                );
-
-            if (isSelected) {
-
-                item.setStyle(
-                    HIGHLIGHT_STYLE
-                );
-            }
-
-            menuBox
-                .getChildren()
-                .add(
-                    item
-                );
         }
     }
 
     /*
-     * 하단 조작키 안내
+     * KEY GUIDE
      */
     public void showKeyGuide(
-        String moveKeys,
-        String selectKey
-    ) {
+            String moveKeys,
+            String selectKey) {
 
-        keyGuide.setText(
-            "이동: "
-            + moveKeys
-            + "   선택: "
-            + selectKey
+        keyGuideLabel.setText(
+                moveKeys
+                        + ": 이동   "
+                        + selectKey
+                        + ": 선택"
         );
+    }
+
+    /*
+     * HEADER
+     */
+    private void addHeader(
+            String text,
+            int column) {
+
+        Label label =
+                new Label(text);
+
+        label.setAlignment(
+                Pos.CENTER
+        );
+
+        label.setMinWidth(
+                getColumnWidth(
+                        column
+                )
+        );
+
+        label.setStyle(
+                "-fx-font-size: 14px;"
+                        + "-fx-font-weight: bold;"
+                        + "-fx-text-fill: "
+                        + HEADER_COLOR
+                        + ";"
+        );
+
+        scoreGrid.add(
+                label,
+                column,
+                0
+        );
+    }
+
+    /*
+     * SCORE CELL
+     */
+    private void addCell(
+            String text,
+            int column,
+            int row,
+            String color) {
+
+        Label label =
+                new Label(text);
+
+        label.setAlignment(
+                Pos.CENTER
+        );
+
+        label.setMinWidth(
+                getColumnWidth(
+                        column
+                )
+        );
+
+        boolean highlighted =
+                HIGHLIGHT_COLOR
+                        .equals(color);
+
+        label.setStyle(
+                "-fx-font-size: 14px;"
+                        + "-fx-text-fill: "
+                        + color
+                        + ";"
+                        + "-fx-font-weight: "
+                        + (
+                        highlighted
+                                ? "bold"
+                                : "normal"
+                )
+                        + ";"
+        );
+
+        scoreGrid.add(
+                label,
+                column,
+                row
+        );
+    }
+
+    /*
+     * COLUMN WIDTH
+     */
+    private double getColumnWidth(
+            int column) {
+
+        return switch (column) {
+
+            case 0 -> 45;
+            case 1 -> 95;
+            case 2 -> 75;
+            case 3 -> 95;
+            case 4 -> 65;
+            case 5 -> 55;
+
+            default -> 70;
+        };
+    }
+
+    private String safeText(
+            String text) {
+
+        if (
+                text == null
+                        || text.isBlank()
+        ) {
+
+            return "-";
+        }
+
+        return text;
+    }
+
+    /*
+     * 선택된 모드 버튼
+     */
+    private String selectedButtonStyle() {
+
+        return
+                "-fx-background-color: #444444;"
+                        + "-fx-text-fill: white;"
+                        + "-fx-font-size: 14px;"
+                        + "-fx-font-weight: bold;"
+                        + "-fx-padding: 7 14 7 14;"
+                        + "-fx-background-radius: 3;"
+                        + "-fx-border-color: #444444;"
+                        + "-fx-border-radius: 3;";
+    }
+
+    /*
+     * 선택되지 않은 모드 버튼
+     */
+    private String normalButtonStyle() {
+
+        return
+                "-fx-background-color: #E8E8E8;"
+                        + "-fx-text-fill: #222222;"
+                        + "-fx-font-size: 14px;"
+                        + "-fx-padding: 7 14 7 14;"
+                        + "-fx-background-radius: 3;"
+                        + "-fx-border-color: #BBBBBB;"
+                        + "-fx-border-radius: 3;";
     }
 }
