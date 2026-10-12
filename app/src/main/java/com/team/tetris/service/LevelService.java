@@ -11,10 +11,10 @@ public class LevelService {
     private static final long BASE_DROP_INTERVAL_MILLIS = 1000;
 
     //속도 줄어드는 간격 (NORMAL 기준)
-    private static final long DROP_INTERVAL_STEP_MILLIS = 150;
+    private static final long DROP_INTERVAL_STEP_MILLIS = 80;
 
     //최소 낙하 간격
-    private static final long MIN_DROP_INTERVAL_MILLIS = 100;
+    private static final long MIN_DROP_INTERVAL_MILLIS = 200;
 
     private int level;
     private long dropIntervalStepMillis = DROP_INTERVAL_STEP_MILLIS;
