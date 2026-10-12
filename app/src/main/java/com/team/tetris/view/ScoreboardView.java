@@ -530,7 +530,7 @@ public class ScoreboardView {
                 moveKeys
                         + ": 이동   "
                         + selectKey
-                        + ": 메인 메뉴   LEFT / RIGHT: 모드 전환   ESC: 메인 메뉴"
+                        + ": 메인 메뉴   <- / -> : 모드 전환   ESC: 메인 메뉴"
         );
     }
 
