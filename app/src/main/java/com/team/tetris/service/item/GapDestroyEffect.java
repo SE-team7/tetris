@@ -23,7 +23,7 @@ public class GapDestroyEffect implements ItemEffect {
                 List.of(),
                 List.of(),
                 columns,
-                cells[0].getRow() + 1,
+                cells[0].getRow(),
                 0,
                 0
         );
