@@ -1,5 +1,7 @@
 package com.team.tetris.service;
 
+import com.team.tetris.domain.Difficulty;
+
 public class ScoreService {
 
     //줄 한번에 여러개 지울때의 점수
@@ -17,7 +19,16 @@ public class ScoreService {
     private int skipPenalty;
 
     public void reset() {
-        lineScore = 0;
+        reset(Difficulty.NORMAL);
+    }
+
+    //난이도별 시작 점수: EASY 0, NORMAL 150, HARD 300
+    public void reset(Difficulty difficulty) {
+        lineScore = switch (difficulty) {
+            case EASY -> 0;
+            case NORMAL -> 150;
+            case HARD -> 300;
+        };
         speedBonusScore = 0;
         dropScore = 0;
         skipPenalty = 0;
