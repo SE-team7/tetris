@@ -125,10 +125,13 @@ public class Main extends Application {
                 mainMenuView,
                 sceneManager,
                 gameController,
-                scoreboardController
+                scoreboardController,
+                settingsService
             );
 
-        gameController.setOnQuit(mainMenuController::show);
+        gameController.setOnQuit(
+            mainMenuController::show
+        );
 
         /*
          * Settings Controller
@@ -141,7 +144,6 @@ public class Main extends Application {
                 sceneManager,
                 settings
             );
-
 
         /*
          * Keyboard input

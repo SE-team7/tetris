@@ -3,6 +3,9 @@ package com.team.tetris.view;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
+
+import com.team.tetris.domain.Difficulty;
 
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -23,6 +26,12 @@ public class SettingsView {
     private final VBox root;
 
     private final ComboBox<String> screenSizeComboBox;
+
+    /*
+     * 2차 추가:
+     * 일반 모드 난이도 선택
+     */
+    private final ComboBox<Difficulty> difficultyComboBox;
 
     private final Map<String, Button> keyButtons;
 
@@ -85,6 +94,44 @@ public class SettingsView {
             );
 
         screenSizeRow.setAlignment(
+            Pos.CENTER
+        );
+
+        /*
+         * DIFFICULTY
+         *
+         * 일반 모드에서 사용할 난이도
+         */
+        Label difficultyTitle =
+            createSettingLabel("난이도");
+
+        difficultyComboBox =
+            new ComboBox<>();
+
+        difficultyComboBox
+            .getItems()
+            .addAll(
+                Difficulty.EASY,
+                Difficulty.NORMAL,
+                Difficulty.HARD
+            );
+
+        difficultyComboBox.setValue(
+            Difficulty.NORMAL
+        );
+
+        difficultyComboBox.setPrefWidth(
+            150
+        );
+
+        HBox difficultyRow =
+            new HBox(
+                COLUMN_GAP,
+                difficultyTitle,
+                difficultyComboBox
+            );
+
+        difficultyRow.setAlignment(
             Pos.CENTER
         );
 
@@ -260,6 +307,7 @@ public class SettingsView {
         root.getChildren().addAll(
             titleLabel,
             screenSizeRow,
+            difficultyRow,
             keySettingsTitle,
             keyGrid,
             colorBlindGrid,
@@ -358,6 +406,53 @@ public class SettingsView {
         getScreenSizeComboBox() {
 
         return screenSizeComboBox;
+    }
+    
+    public ComboBox<Difficulty> 
+    getDifficultyComboBox() {
+        
+        return difficultyComboBox;
+    }
+
+    /*
+     * 2차 API:
+     * 난이도 선택 이벤트 연결
+     */
+    public void setOnDifficultyChanged(
+        Consumer<Difficulty> handler
+    ) {
+
+        difficultyComboBox.setOnAction(
+            event -> {
+
+                Difficulty difficulty =
+                    difficultyComboBox.getValue();
+
+                if (
+                    handler != null
+                    && difficulty != null
+                ) {
+                    handler.accept(
+                        difficulty
+                    );
+                }
+            }
+        );
+    }
+
+    /*
+     * 2차 API:
+     * 현재 난이도를 화면에 표시
+     */
+    public void setDifficulty(
+        Difficulty difficulty
+    ) {
+
+        if (difficulty != null) {
+            difficultyComboBox.setValue(
+                difficulty
+            );
+        }
     }
 
     public Button getColorBlindButton() {

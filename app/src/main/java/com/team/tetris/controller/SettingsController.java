@@ -3,6 +3,7 @@ package com.team.tetris.controller;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.team.tetris.domain.Difficulty;
 import com.team.tetris.domain.Settings;
 import com.team.tetris.domain.Settings.KeyAction;
 import com.team.tetris.domain.Settings.ScreenSize;
@@ -20,6 +21,7 @@ public class SettingsController {
 
     private enum NavigationType {
         SCREEN_SIZE,
+        DIFFICULTY,
         KEY,
         COLOR_BLIND,
         SAVE,
@@ -43,10 +45,8 @@ public class SettingsController {
             NavigationType type,
             String keyActionName
         ) {
-
             this.type = type;
-            this.keyActionName =
-                keyActionName;
+            this.keyActionName = keyActionName;
         }
     }
 
@@ -71,6 +71,12 @@ public class SettingsController {
     private KeyCode pendingKeyCode;
 
     private int selectedIndex;
+
+    /*
+     * 저장된 난이도를 View에 표시할 때
+     * changeDifficulty가 다시 호출되는 것을 방지
+     */
+    private boolean updatingDifficultyView;
 
     public SettingsController(
         SettingsView settingsView,
@@ -120,6 +126,16 @@ public class SettingsController {
             )
         );
 
+        /*
+         * 2차:
+         * 화면 크기 다음에 난이도
+         */
+        navigationItems.add(
+            new NavigationItem(
+                NavigationType.DIFFICULTY
+            )
+        );
+
         for (
             String actionName :
             settingsView.getKeyActionNames()
@@ -165,10 +181,13 @@ public class SettingsController {
     }
 
     /*
-     * MOUSE
+     * MOUSE / COMBOBOX
      */
     private void connectActions() {
 
+        /*
+         * SCREEN SIZE
+         */
         settingsView
             .getScreenSizeComboBox()
             .setOnAction(event -> {
@@ -189,9 +208,26 @@ public class SettingsController {
             });
 
         /*
-         * 색맹 모드:
-         * 버튼 하나를 누를 때마다
-         * ON / OFF 전환
+         * 2차:
+         * DIFFICULTY
+         */
+        settingsView
+            .setOnDifficultyChanged(
+                difficulty -> {
+
+                    if (
+                        !updatingDifficultyView
+                    ) {
+
+                        changeDifficulty(
+                            difficulty
+                        );
+                    }
+                }
+            );
+
+        /*
+         * COLOR BLIND
          */
         settingsView
             .getColorBlindButton()
@@ -249,10 +285,6 @@ public class SettingsController {
                     actionName
                 );
 
-            /*
-             * SKIP이 아직 Settings enum에
-             * 없는 경우에도 compile 가능.
-             */
             if (action == null) {
 
                 button.setOnAction(
@@ -299,7 +331,8 @@ public class SettingsController {
     /*
      * 키 변경 시작
      *
-     * Enter를 누르면 기존 글자 삭제.
+     * 기존 키 문자를 비우고
+     * 새 키 입력을 기다린다.
      */
     private void beginKeyCapture(
         KeyAction action
@@ -350,13 +383,16 @@ public class SettingsController {
                     }
 
                     /*
-                     * Screen Size 목록이
-                     * 열려 있을 때는
-                     * ComboBox가 직접 처리
+                     * ComboBox 목록이 열려 있으면
+                     * ComboBox 자체가 ↑ / ↓ / Enter 처리
                      */
                     if (
                         settingsView
                             .getScreenSizeComboBox()
+                            .isShowing()
+                        ||
+                        settingsView
+                            .getDifficultyComboBox()
                             .isShowing()
                     ) {
 
@@ -394,30 +430,42 @@ public class SettingsController {
     /*
      * 키 변경 과정
      *
-     * ENTER
-     * -> 빈 칸
-     *
-     * H
-     * -> H 표시
-     *
-     * ENTER
-     * -> 확정
+     * Enter -> 편집 시작
+     * 새 키 -> 후보 표시
+     * Enter -> 후보 확정
      */
     private void handleKeyCapture(
         KeyCode key
     ) {
 
+        /*
+         * 이미 후보 키가 선택된 상태에서
+         * Enter를 누르면 확정
+         */
+        if (
+            key == KeyCode.ENTER
+            && pendingKeyCode != null
+        ) {
+
+            confirmPendingKey();
+            return;
+        }
+
+        /*
+         * 첫 번째 입력은 후보 키로 표시
+         * Enter 자체도 후보 키로 지정 가능
+         */
         pendingKeyCode =
             key;
-        
+
         settingsView.setKeyText(
-        waitingForKeyAction.name(),
-        key.getName()
+            waitingForKeyAction.name(),
+            key.getName()
         );
 
         settingsView.showMessage(
             waitingForKeyAction.name()
-            + " : 저장 버튼을 눌러 적용하세요."
+            + " : ENTER를 눌러 확정"
         );
     }
 
@@ -453,8 +501,7 @@ public class SettingsController {
             );
 
             settingsView.showMessage(
-                action.name()
-                + " : 이미 사용 중인 키입니다."
+                "이미 사용 중인 키입니다."
             );
 
             return;
@@ -478,7 +525,6 @@ public class SettingsController {
             null;
     }
 
-
     /*
      * FOCUS
      */
@@ -489,6 +535,16 @@ public class SettingsController {
         addFocusTracking(
             settingsView
                 .getScreenSizeComboBox(),
+            index++
+        );
+
+        /*
+         * 2차:
+         * 난이도도 ↑ / ↓ 이동 대상
+         */
+        addFocusTracking(
+            settingsView
+                .getDifficultyComboBox(),
             index++
         );
 
@@ -576,7 +632,9 @@ public class SettingsController {
         selectedIndex +=
             direction;
 
-        if (selectedIndex < 0) {
+        if (
+            selectedIndex < 0
+        ) {
 
             selectedIndex =
                 navigationItems.size()
@@ -607,6 +665,12 @@ public class SettingsController {
 
                 settingsView
                     .getScreenSizeComboBox()
+                    .requestFocus();
+
+            case DIFFICULTY ->
+
+                settingsView
+                    .getDifficultyComboBox()
                     .requestFocus();
 
             case KEY -> {
@@ -669,6 +733,12 @@ public class SettingsController {
 
                 settingsView
                     .getScreenSizeComboBox()
+                    .show();
+
+            case DIFFICULTY ->
+
+                settingsView
+                    .getDifficultyComboBox()
                     .show();
 
             case KEY -> {
@@ -769,10 +839,13 @@ public class SettingsController {
     ) {
 
         if (
-            waitingForKeyAction != null
+            waitingForKeyAction
+                != null
         ) {
 
-            handleKeyCapture(key);
+            handleKeyCapture(
+                key
+            );
         }
     }
 
@@ -790,8 +863,7 @@ public class SettingsController {
         if (!changed) {
 
             settingsView.showMessage(
-                action.name()
-                + " : 이미 사용 중인 키입니다."
+                "이미 사용 중인 키입니다."
             );
 
             return false;
@@ -823,6 +895,34 @@ public class SettingsController {
         settingsView.showMessage(
             "화면 크기: "
             + screenSize.name()
+        );
+    }
+
+    /*
+     * 2차:
+     * DIFFICULTY
+     */
+    public void changeDifficulty(
+        Difficulty difficulty
+    ) {
+
+        if (
+            difficulty == null
+        ) {
+            return;
+        }
+
+        settings.setDifficulty(
+            difficulty
+        );
+
+        settingsService.setDifficulty(
+            difficulty
+        );
+
+        settingsView.showMessage(
+            "난이도: "
+            + difficulty.name()
         );
     }
 
@@ -872,22 +972,35 @@ public class SettingsController {
 
     /*
      * SAVE
-     *
-     * 여기서 파일에 저장
      */
     public void save() {
-        if (waitingForKeyAction != null) {
-        if (pendingKeyCode == null) {
-            settingsView.showMessage("새 키를 먼저 입력해주세요.");
-            return;
-        }
 
-        confirmPendingKey();
+        if (
+            waitingForKeyAction
+                != null
+        ) {
 
-        if (waitingForKeyAction != null) {
-            return;
+            if (
+                pendingKeyCode
+                    == null
+            ) {
+
+                settingsView.showMessage(
+                    "새 키를 먼저 입력해주세요."
+                );
+
+                return;
+            }
+
+            confirmPendingKey();
+
+            if (
+                waitingForKeyAction
+                    != null
+            ) {
+                return;
+            }
         }
-    }
 
         settingsService.save(
             settings
@@ -925,11 +1038,46 @@ public class SettingsController {
                     .name()
             );
 
-        settingsView
-            .setColorBlindMode(
+        /*
+         * 2차:
+         * 저장된 난이도 표시
+         */
+        Difficulty difficulty =
+            settingsService
+                .getDifficulty();
+
+        if (
+            difficulty == null
+        ) {
+
+            difficulty =
                 settings
-                    .isColorBlindMode()
+                    .getDifficulty();
+        }
+
+        if (
+            difficulty != null
+        ) {
+
+            settings.setDifficulty(
+                difficulty
             );
+
+            updatingDifficultyView =
+                true;
+
+            settingsView.setDifficulty(
+                difficulty
+            );
+
+            updatingDifficultyView =
+                false;
+        }
+
+        settingsView.setColorBlindMode(
+            settings
+                .isColorBlindMode()
+        );
 
         for (
             KeyAction action :
@@ -941,7 +1089,9 @@ public class SettingsController {
                     action
                 );
 
-            if (key != null) {
+            if (
+                key != null
+            ) {
 
                 settingsView.setKeyText(
                     action.name(),
@@ -960,6 +1110,10 @@ public class SettingsController {
             source.getScreenSize()
         );
 
+        target.setDifficulty(
+            source.getDifficulty()
+        );
+
         target.setColorBlindMode(
             source.isColorBlindMode()
         );
@@ -975,7 +1129,9 @@ public class SettingsController {
 
             target.setKey(
                 action,
-                source.getKey(action)
+                source.getKey(
+                    action
+                )
             );
         }
     }
