@@ -49,7 +49,7 @@ public class MainMenuController {
         );
 
         mainMenuView.showKeyGuide(
-            "W/S 또는 ↑/↓",
+            "↑/↓",
             "ENTER"
         );
 
@@ -61,8 +61,7 @@ public class MainMenuController {
     ) {
 
         if (
-            key == KeyCode.W
-            || key == KeyCode.UP
+            key == KeyCode.UP
         ) {
 
             moveSelection(-1);
@@ -70,8 +69,7 @@ public class MainMenuController {
         }
 
         if (
-            key == KeyCode.S
-            || key == KeyCode.DOWN
+            key == KeyCode.DOWN
         ) {
 
             moveSelection(1);
