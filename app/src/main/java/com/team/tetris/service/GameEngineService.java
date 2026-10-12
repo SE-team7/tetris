@@ -3,6 +3,8 @@ package com.team.tetris.service;
 import com.team.tetris.domain.Block;
 import com.team.tetris.domain.BlockType;
 import com.team.tetris.domain.Board;
+import com.team.tetris.domain.ClearResult;
+import com.team.tetris.domain.Difficulty;
 
 public class GameEngineService {
 
@@ -23,6 +25,10 @@ public class GameEngineService {
     private boolean paused;
     private boolean gameOver;
 
+    private Difficulty difficulty;
+    private boolean itemMode;
+    private boolean isItemBlockTurn;
+
     public GameEngineService() {
         this(new Board(), new BlockFactory(), new ScoreService(), new LevelService());
     }
@@ -38,16 +44,21 @@ public class GameEngineService {
     }
 
     //변수 초기화
-    public void startGame() {
+    public void startGame(Difficulty difficulty, boolean itemMode) {
+        this.difficulty = difficulty;
+        this.itemMode = itemMode;
+
         board.reset();
-        scoreService.reset();
-        levelService.reset();
+        scoreService.reset(difficulty);
+        levelService.reset(difficulty);
+        levelService.updateLevel(scoreService.getLineScore());
 
         currentBlock = null;
-        nextBlock = blockFactory.createRandomBlock();
+        nextBlock = blockFactory.createRandomBlock(difficulty);
         blockLocked = false;
         clearedLines = 0;
         skipsUsed = 0;
+        isItemBlockTurn = false;
 
         paused = false;
         gameOver = false;
@@ -55,10 +66,16 @@ public class GameEngineService {
 
     //틱당 실행할 메소드
     public void tick() {
+        //isItemBlockTurn = Math.random() < 0.5; // 테스트용 라인입니당 ^_^
         // 현재 블럭이 없으면 다음 블럭을 올리고, 다음 블럭 새로 생성
         if (currentBlock == null) {
-            currentBlock = nextBlock;
-            nextBlock = blockFactory.createRandomBlock();
+            if (isItemBlockTurn && itemMode) {
+                currentBlock = blockFactory.createItemBlock();
+                isItemBlockTurn = false;
+            } else {
+                currentBlock = nextBlock;
+                nextBlock = blockFactory.createRandomBlock(difficulty);
+            }
 
             // 생성 위치에 놓을 수 없으면 게임오버
             if (!board.canPlace(currentBlock)) {
@@ -72,13 +89,30 @@ public class GameEngineService {
             moveDown();
         }
 
-        // 블럭이 고정됐으면 줄 지우기, 현재 블럭 null
+        // 블럭이 고정됐으면 아이템 효과 적용, 줄 지우기, 현재 블럭 null
         if (blockLocked) {
-            int lines = board.clearLines();
-            if (lines > 0) {
-                clearedLines += lines;
+            int itemScoreLines = 0;
+            int itemCounterLines = 0;
+            if (currentBlock != null && currentBlock.hasItem()) {
+                ClearResult itemResult = board.findItemEffect(currentBlock);
+                board.applyClear(itemResult);
+                itemScoreLines = itemResult.getScoreLineCount();
+                itemCounterLines = itemResult.getItemCounterLineCount();
+            }
 
-                int lineScore = scoreService.calculateLineClearScore(lines);
+            int normalLines = board.clearLines();
+            int totalScoreLines = itemScoreLines + normalLines;
+            int totalCounterLines = itemCounterLines + normalLines;
+
+            if (totalCounterLines > 0) {
+                clearedLines += totalCounterLines;
+                if (clearedLines % 10 == 0) {
+                    isItemBlockTurn = true;
+                }
+            }
+
+            if (totalScoreLines > 0) {
+                int lineScore = scoreService.calculateLineClearScore(totalScoreLines);
                 scoreService.addLineScore(lineScore);
 
                 int levelBefore = levelService.getLevel();
