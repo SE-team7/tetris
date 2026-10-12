@@ -12,6 +12,7 @@ public class MainMenuView {
 
     public enum MainMenuItem {
         START_GAME,
+        START_ITEM_GAME,
         SETTINGS,
         SCOREBOARD,
         EXIT
@@ -27,61 +28,94 @@ public class MainMenuView {
         root.setAlignment(Pos.CENTER);
         root.getStyleClass().add("root");
 
-        /*
-         * GAME TITLE
-         */
-        Label titleLabel = new Label("TETRIS");
+        Label titleLabel =
+            new Label("TETRIS");
 
         titleLabel.setStyle(
             "-fx-font-size: 52px;"
             + "-fx-font-weight: bold;"
         );
 
-        /*
-         * MENU
-         */
-        menuLabels = new ArrayList<>();
+        menuLabels =
+            new ArrayList<>();
 
-        menuLabels.add(new Label("게임 시작"));
-        menuLabels.add(new Label("설정"));
-        menuLabels.add(new Label("스코어보드"));
-        menuLabels.add(new Label("종료"));
+        menuLabels.add(
+            new Label("일반 모드 시작")
+        );
+
+        menuLabels.add(
+            new Label("아이템 모드 시작")
+        );
+
+        menuLabels.add(
+            new Label("설정")
+        );
+
+        menuLabels.add(
+            new Label("스코어보드")
+        );
+
+        menuLabels.add(
+            new Label("종료")
+        );
 
         for (Label label : menuLabels) {
-            label.getStyleClass().add("menu-item");
+            label.getStyleClass()
+                .add("menu-item");
         }
 
-        /*
-         * KEY GUIDE
-         */
-        keyGuideLabel = new Label();
-        keyGuideLabel.getStyleClass().add("key-guide");
+        keyGuideLabel =
+            new Label();
 
-        root.getChildren().add(titleLabel);
-        root.getChildren().addAll(menuLabels);
-        root.getChildren().add(keyGuideLabel);
+        keyGuideLabel
+            .getStyleClass()
+            .add("key-guide");
 
-        render(MainMenuItem.START_GAME);
+        root.getChildren().add(
+            titleLabel
+        );
+
+        root.getChildren().addAll(
+            menuLabels
+        );
+
+        root.getChildren().add(
+            keyGuideLabel
+        );
+
+        render(
+            MainMenuItem.START_GAME
+        );
     }
 
     public Parent getRoot() {
         return root;
     }
 
-    public void render(MainMenuItem selectedMenu) {
+    public void render(
+        MainMenuItem selectedMenu
+    ) {
 
         String[] menuTexts = {
-            "게임 시작",
+            "일반 모드 시작",
+            "아이템 모드 시작",
             "설정",
             "스코어보드",
             "종료"
         };
 
-        for (int i = 0; i < menuLabels.size(); i++) {
+        for (
+            int i = 0;
+            i < menuLabels.size();
+            i++
+        ) {
 
-            Label label = menuLabels.get(i);
+            Label label =
+                menuLabels.get(i);
 
-            if (i == selectedMenu.ordinal()) {
+            if (
+                i == selectedMenu.ordinal()
+            ) {
 
                 label.setText(
                     "▶ " + menuTexts[i]

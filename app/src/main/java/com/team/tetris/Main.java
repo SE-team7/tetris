@@ -114,7 +114,9 @@ public class Main extends Application {
                 gameEngine,
                 gameView,
                 settings,
-                gameOverController
+                gameOverController,
+                settings.getDifficulty(),
+                false
             );
 
         /*
@@ -125,10 +127,13 @@ public class Main extends Application {
                 mainMenuView,
                 sceneManager,
                 gameController,
-                scoreboardController
+                scoreboardController,
+                settings
             );
 
-        gameController.setOnQuit(mainMenuController::show);
+        gameController.setOnQuit(
+            mainMenuController::show
+        );
 
         /*
          * Settings Controller
@@ -141,7 +146,6 @@ public class Main extends Application {
                 sceneManager,
                 settings
             );
-
 
         /*
          * Keyboard input

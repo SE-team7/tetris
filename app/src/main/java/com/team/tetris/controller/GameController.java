@@ -1,6 +1,7 @@
 package com.team.tetris.controller;
 
 import com.team.tetris.domain.Difficulty;
+import com.team.tetris.domain.GameMode;
 import com.team.tetris.domain.Settings;
 import com.team.tetris.service.GameEngineService;
 import com.team.tetris.view.GameView;
@@ -15,8 +16,8 @@ public class GameController {
     private final GameView gameView;
     private final Settings settings;
     private final GameOverController gameOverController;
-    private final Difficulty difficulty;
-    private final boolean itemMode;
+    private Difficulty difficulty;
+    private boolean itemMode;
 
     private final AnimationTimer gameLoop;
     private long lastTickMillis;
@@ -68,6 +69,13 @@ public class GameController {
 
         render();
         gameLoop.start();
+    }
+
+    public void startGame(GameMode mode, Difficulty difficulty) {
+        gameLoop.stop();
+        this.difficulty = difficulty;
+        this.itemMode = mode == GameMode.ITEM;
+        startGame();
     }
 
     private String getKeyName(Settings.KeyAction action) {
