@@ -1,14 +1,13 @@
 package com.team.tetris.service;
 
-import com.team.tetris.domain.BlockType;
-import com.team.tetris.domain.Difficulty;
-
-import org.junit.jupiter.api.Test;
-
 import java.util.EnumMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.Test;
+
+import com.team.tetris.domain.BlockType;
+import com.team.tetris.domain.Difficulty;
 
 class BlockFactoryTest {
 
@@ -61,6 +60,17 @@ class BlockFactoryTest {
                 // 예상 확률 대비 상대 오차 5% 이내
                 double relativeError =
                         Math.abs(actual - expected) / expected;
+
+                System.out.printf(
+                    "%s / %s: count=%d/%d, expected=%.4f%%, actual=%.4f%%, relativeError=%.4f%%%n",
+                    difficulty,
+                    type,
+                    counts.getOrDefault(type, 0),
+                    trials,
+                    expected * 100,
+                    actual * 100,
+                    relativeError * 100
+                );
 
                 assertTrue(
                         relativeError <= 0.05,

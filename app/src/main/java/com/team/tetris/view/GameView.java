@@ -3,51 +3,28 @@ package com.team.tetris.view;
 
 
 import java.util.IdentityHashMap;
-
 import java.util.LinkedHashSet;
-
 import java.util.Map;
-
 import java.util.Set;
 
-
-
 import com.team.tetris.domain.Block;
-
 import com.team.tetris.domain.BlockType;
-
 import com.team.tetris.domain.Board;
-
 import com.team.tetris.domain.ClearResult;
-
 import com.team.tetris.domain.Difficulty;
-
 import com.team.tetris.domain.GameMode;
-
 import com.team.tetris.domain.ItemType;
-
 import com.team.tetris.domain.Position;
 
-
-
 import javafx.animation.KeyFrame;
-
 import javafx.animation.Timeline;
-
 import javafx.geometry.Insets;
-
 import javafx.geometry.Pos;
-
 import javafx.scene.Parent;
-
 import javafx.scene.control.Label;
-
 import javafx.scene.layout.BorderPane;
-
 import javafx.scene.layout.GridPane;
-
 import javafx.scene.layout.VBox;
-
 import javafx.util.Duration;
 
 

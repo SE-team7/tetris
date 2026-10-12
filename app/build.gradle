@@ -1,6 +1,7 @@
 plugins {
     id 'application' // 실행 가능한 Java 앱 
     id 'org.openjfx.javafxplugin' version '0.1.0' // JavaFX 사용
+    id 'jacoco' //linecoverage 테스트용
 }
 
 repositories {
@@ -29,4 +30,14 @@ application {
 
 tasks.named('test') {
     useJUnitPlatform()
+}
+
+jacocoTestReport {
+    dependsOn test
+
+    reports {
+        html.required = true
+        xml.required = true
+        csv.required = true
+    }
 }
