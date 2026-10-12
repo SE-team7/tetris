@@ -956,27 +956,12 @@ public class SettingsController {
         Settings target
     ) {
 
-        target.setScreenSize(
-            source.getScreenSize()
+        /*
+         * 키를 하나씩 setKey로 복사하면
+         * 서로 바꾼 키가 중복 검사에 걸려 복구되지 않으므로 한 번에 복사
+         */
+        target.copyFrom(
+            source
         );
-
-        target.setColorBlindMode(
-            source.isColorBlindMode()
-        );
-
-        target.setDifficulty(
-            source.getDifficulty()
-        );
-
-        for (
-            KeyAction action :
-            KeyAction.values()
-        ) {
-
-            target.setKey(
-                action,
-                source.getKey(action)
-            );
-        }
     }
 }

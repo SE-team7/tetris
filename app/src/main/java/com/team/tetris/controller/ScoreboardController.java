@@ -60,7 +60,7 @@ public class ScoreboardController {
         showScoreboardScene.run();
     }
 
-    // TODO: Settings.findMenuAction(KeyCode)가 만들어지면 사용자 설정 메뉴 키로 판정하도록 변경
+    // 메뉴 조작키는 설정 대상이 아니므로 방향키·ENTER·ESC 고정
     public void handleKey(KeyCode key) {
         if (key == null) {
             return;
