@@ -27,9 +27,10 @@ class BlockFactoryTest {
                     new EnumMap<>(BlockType.class);
 
             double expectedI = switch (difficulty) {
-                case EASY -> (1.0 / 7) * 1.2;
-                case NORMAL -> 1.0 / 7;
-                case HARD -> (1.0 / 7) * 0.8;
+                //다른 블럭에 비해 I의 등장 비율 조정
+                case EASY -> 1.2 / (6 + 1.2);
+                case NORMAL -> 1.0 / (6 + 1.0);
+                case HARD -> 0.8 / (6 + 0.8);
             };
 
             double expectedOther = (1.0 - expectedI) / 6;

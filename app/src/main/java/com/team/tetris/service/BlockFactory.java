@@ -4,9 +4,9 @@ import java.util.Random;
 
 import com.team.tetris.domain.Block;
 import com.team.tetris.domain.BlockType;
-import com.team.tetris.domain.Position;
 import com.team.tetris.domain.Difficulty;
 import com.team.tetris.domain.ItemType;
+import com.team.tetris.domain.Position;
 
 public class BlockFactory {
     //보드 바로 위에 생성됨
@@ -32,9 +32,9 @@ public class BlockFactory {
 }
 
         double iProbability = switch (difficulty) {
-            case EASY -> (1.0 / 7) * 1.2;
-            case NORMAL -> 1.0 / 7;
-            case HARD -> (1.0 / 7) * 0.8;
+            case EASY -> 1.2 / (6 + 1.2);
+            case NORMAL -> 1.0 / (6 + 1.0);
+            case HARD -> 0.8 / (6 + 0.8);
         };
 
         if (random.nextDouble() < iProbability) {
