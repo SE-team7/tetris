@@ -77,7 +77,7 @@ public class GameEngineService {
 
     //틱당 실행할 메소드
     public void tick() {
-        isItemBlockTurn = Math.random() < 0.5; // 테스트용 라인입니당 ^_^
+        //isItemBlockTurn = Math.random() < 0.5; // 테스트용 라인입니당 ^_^
 
         // 지난 틱에서 미뤄진 라인 삭제가 있으면 이번 틱에 처리만 하고 끝
         if (pendingLineClear != null) {
