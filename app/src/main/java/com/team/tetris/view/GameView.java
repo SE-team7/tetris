@@ -579,7 +579,7 @@ public class GameView {
 
             row,
 
-            "게임종료",
+            "전체종료",
 
             createControlKeyLabel(
 
