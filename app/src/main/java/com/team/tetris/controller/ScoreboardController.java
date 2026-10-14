@@ -4,6 +4,7 @@ import com.team.tetris.domain.GameMode;
 import com.team.tetris.service.ScoreboardService;
 import com.team.tetris.view.ScoreboardView;
 
+import javafx.application.Platform;
 import javafx.scene.input.KeyCode;
 
 /**
@@ -65,13 +66,18 @@ public class ScoreboardController {
         if (key == null) {
             return;
         }
+
+        if (key == KeyCode.ESCAPE) {
+            Platform.exit();
+            return;
+        }
+
         switch (key) {
             case UP -> moveSelection(-1);
             case DOWN -> moveSelection(1);
             case LEFT -> moveMode(-1);
             case RIGHT -> moveMode(1);
-            case ENTER -> selectMenu(selectedMenu);
-            case ESCAPE -> selectMenu(ScoreboardMenu.MAIN_MENU);
+            case TAB -> selectMenu(selectedMenu);
             default -> { }
         }
     }

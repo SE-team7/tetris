@@ -526,12 +526,7 @@ public class ScoreboardView {
             String moveKeys,
             String selectKey) {
 
-        keyGuideLabel.setText(
-                moveKeys
-                        + ": 이동   "
-                        + selectKey
-                        + ": 메인 메뉴   <- / -> : 모드 전환   ESC: 메인 메뉴"
-        );
+        keyGuideLabel.setText("← / →: 모드 전환   TAB: 메인메뉴   ESC: 전체 종료");
     }
 
     /*

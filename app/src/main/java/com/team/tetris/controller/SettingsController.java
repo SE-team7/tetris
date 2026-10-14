@@ -334,27 +334,32 @@ public class SettingsController {
      * 기존 키 문자를 비우고
      * 새 키 입력을 기다린다.
      */
-    private void beginKeyCapture(
-        KeyAction action
-    ) {
+    private void beginKeyCapture(KeyAction action) {
+        if (waitingForKeyAction != null) {
+            if (pendingKeyCode != null) {
+                confirmPendingKey();
 
-        waitingForKeyAction =
-            action;
+                // 중복키 등으로 확정에 실패하면 기존 편집 유지
+                if (waitingForKeyAction != null) {
+                    return;
+                }
+            } else {
+                // 입력 없이 다른 버튼을 누르면 이전 표시 복구
+                settingsView.setKeyText(
+                    waitingForKeyAction.name(),
+                    settings.getKey(waitingForKeyAction).getName()
+                );
+            }
+        }
 
-        pendingKeyCode =
-            null;
+        waitingForKeyAction = action;
+        pendingKeyCode = null;
 
-        settingsView.setKeyText(
-            action.name(),
-            ""
-        );
-
+        settingsView.setKeyText(action.name(), "");
         settingsView.showMessage(
-            action.name()
-            + " : 새 키를 누르세요"
+            action.name() + " : 새 키를 누른 뒤 저장해주세요."
         );
     }
-
     /*
      * SETTINGS KEYBOARD CONTROL
      */
@@ -1002,9 +1007,12 @@ public class SettingsController {
             settings
         );
 
-        settingsView.showMessage(
-            "설정을 저장했습니다."
-        );
+        if (settingsService.save(settings)) {
+            renderSettings(); // 실제 설정값으로 화면 갱신
+            settingsView.showMessage("설정을 저장했습니다.");
+        } else {
+            settingsView.showMessage("설정 저장에 실패했습니다.");
+        }
     }
 
     /*

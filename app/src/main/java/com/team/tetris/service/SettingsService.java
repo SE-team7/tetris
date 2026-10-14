@@ -89,7 +89,7 @@ public class SettingsService {
     }
 
     /** 설정을 파일에 저장한다. 저장에 실패해도 예외를 던지지 않는다. (현재 실행 중에는 설정이 유지됨) */
-    public void save(Settings settings) {
+    public boolean save(Settings settings) {
         Properties props = new Properties();
         props.setProperty(SCREEN_SIZE, settings.getScreenSize().name());
         props.setProperty(COLOR_BLIND_MODE, String.valueOf(settings.isColorBlindMode()));
@@ -106,8 +106,10 @@ public class SettingsService {
         try {
             props.store(writer, "Tetris settings");
             fileManager.writeFile(FILE_NAME, writer.toString());
+            return true;
         } catch (IOException | UncheckedIOException e) {
             System.err.println("설정 저장 실패: " + e.getMessage());
+            return false;
         }
     }
 
