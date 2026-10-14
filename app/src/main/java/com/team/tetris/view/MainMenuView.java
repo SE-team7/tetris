@@ -29,7 +29,7 @@ public class MainMenuView {
         root.getStyleClass().add("root");
 
         Label titleLabel =
-            new Label("TETRIS");
+            new Label("tetris_noname");
 
         titleLabel.setStyle(
             "-fx-font-size: 52px;"

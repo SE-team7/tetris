@@ -116,4 +116,45 @@ app/src/test/java/com/team/tetris/
 
 ## 배포
 
-실행 파일 패키징 및 배포 설정은 추후 추가합니다. 배포 단계에서는 JAR 및 `jpackage`를 이용한 OS별 실행 파일 생성을 구성할 예정입니다.
+`jpackage`로 Java 런타임이 포함된 실행 파일을 만듭니다. 받는 사람은 Java를 설치하지 않아도 실행할 수 있습니다.
+
+> `jpackage`는 **빌드하는 OS용 파일만** 만듭니다. Windows용은 Windows에서, macOS용은 macOS에서 빌드해야 합니다.
+
+| 명령 | 결과 | 위치 |
+|---|---|---|
+| `packageApp` | 설치 없이 실행하는 앱 폴더 | `app/build/jpackage/` |
+| `packageZip` | 위 앱 폴더를 묶은 zip (배포용) | `app/build/distributions/` |
+| `packageInstaller` | 설치 파일 (Windows `exe`, macOS `dmg`) | `app/build/jpackage/` |
+
+### Windows
+
+```powershell
+.\gradlew.bat packageZip
+```
+
+`app/build/distributions/tetris_noname-1.0.0-windows.zip`을 배포합니다. 압축을 풀고 `tetris_noname/tetris_noname.exe`를 실행하면 됩니다.
+
+설치 파일(`exe`)이 필요하면 [WiX Toolset 3](https://github.com/wixtoolset/wix3/releases)을 설치하고 PATH에 추가한 뒤 실행합니다.
+
+```powershell
+.\gradlew.bat packageInstaller
+```
+
+### macOS
+
+```bash
+./gradlew packageZip        # tetris_noname-1.0.0-mac.zip (tetris_noname.app)
+./gradlew packageInstaller  # tetris_noname-1.0.0.dmg
+```
+
+서명되지 않은 앱이라 처음 실행할 때 경고가 뜨면, 앱을 우클릭 → **열기**로 실행합니다.
+
+### 이름·아이콘·버전 변경
+
+- 이름·버전: `app/build.gradle`의 `appName`, `appVersion`
+- 아이콘: `app/src/main/resources/icon/`의 `tetris_noname.png`(게임 창), `.ico`(Windows), `.icns`(macOS)
+- 창 제목·메인 메뉴 제목: `Main.java`의 `setTitle`, `MainMenuView.java`의 제목 `Label`
+
+이름을 바꾸면 아이콘 파일 이름과 `Main.java`의 아이콘 경로도 같이 바꿔야 합니다.
+
+> 게임 기록과 설정은 `{사용자 홈}/.tetris/`에 저장되므로, 새 버전을 배포해도 유지됩니다.

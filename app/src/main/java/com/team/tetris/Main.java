@@ -25,7 +25,12 @@ public class Main extends Application {
     @Override
     public void start(Stage stage) {
 
-        stage.setTitle("Tetris");
+        stage.setTitle("tetris_noname");
+        stage.getIcons().add(
+            new javafx.scene.image.Image(
+                Main.class.getResourceAsStream("/icon/tetris_noname.png")
+            )
+        );
 
         /*
          * Views
