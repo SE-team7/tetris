@@ -52,7 +52,7 @@ jacocoTestReport {
 //  ./gradlew packageZip        위 앱 폴더를 zip으로 묶은 배포 파일 → app/build/distributions/
 //  ./gradlew packageInstaller  설치 파일 (Windows: exe, WiX 3 필요 / macOS: dmg / Linux: deb)
 // =====================================================================
-def appName = 'tetris_noname'
+def appName = 'DP7'
 def appVersion = '1.0.0'
 def appVendor = 'SE-team7'
 def launcherClass = 'com.team.tetris.Launcher'

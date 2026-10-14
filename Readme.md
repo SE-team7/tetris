@@ -132,7 +132,7 @@ app/src/test/java/com/team/tetris/
 .\gradlew.bat packageZip
 ```
 
-`app/build/distributions/tetris_noname-1.0.0-windows.zip`을 배포합니다. 압축을 풀고 `tetris_noname/tetris_noname.exe`를 실행하면 됩니다.
+`app/build/distributions/DP7-1.0.0-windows.zip`을 배포합니다. 압축을 풀고 `DP7/DP7.exe`를 실행하면 됩니다.
 
 설치 파일(`exe`)이 필요하면 [WiX Toolset 3](https://github.com/wixtoolset/wix3/releases)을 설치하고 PATH에 추가한 뒤 실행합니다.
 
@@ -143,8 +143,8 @@ app/src/test/java/com/team/tetris/
 ### macOS
 
 ```bash
-./gradlew packageZip        # tetris_noname-1.0.0-mac.zip (tetris_noname.app)
-./gradlew packageInstaller  # tetris_noname-1.0.0.dmg
+./gradlew packageZip        # DP7-1.0.0-mac.zip (DP7.app)
+./gradlew packageInstaller  # DP7-1.0.0.dmg
 ```
 
 서명되지 않은 앱이라 처음 실행할 때 경고가 뜨면, 앱을 우클릭 → **열기**로 실행합니다.
@@ -152,7 +152,7 @@ app/src/test/java/com/team/tetris/
 ### 이름·아이콘·버전 변경
 
 - 이름·버전: `app/build.gradle`의 `appName`, `appVersion`
-- 아이콘: `app/src/main/resources/icon/`의 `tetris_noname.png`(게임 창), `.ico`(Windows), `.icns`(macOS)
+- 아이콘: `app/src/main/resources/icon/`의 `DP7.png`(게임 창), `.ico`(Windows), `.icns`(macOS)
 - 창 제목·메인 메뉴 제목: `Main.java`의 `setTitle`, `MainMenuView.java`의 제목 `Label`
 
 이름을 바꾸면 아이콘 파일 이름과 `Main.java`의 아이콘 경로도 같이 바꿔야 합니다.
