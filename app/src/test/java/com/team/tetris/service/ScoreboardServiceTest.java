@@ -153,4 +153,70 @@ class ScoreboardServiceTest {
         assertEquals(1, service.getTopScores().size()); // 이번 실행 동안은 기록 유지
         assertDoesNotThrow(service::resetScoreboard);
     }
+
+    @Test
+    void unreadableFile_startsEmptyAndKeepsRunning() throws IOException {
+        // 스코어보드 파일 자리에 폴더가 있어 읽기·쓰기 모두 실패하는 상황
+        Files.createDirectory(tempDir.resolve("scoreboard.csv"));
+        ScoreboardService service = assertDoesNotThrow(() -> new ScoreboardService(new FileManager(tempDir)));
+
+        assertTrue(service.getTopScores().isEmpty());
+        assertEquals(1, assertDoesNotThrow(() -> service.addScore("A", 100, 1, 1)));
+    }
+
+    @Test
+    void corruptedLines_areSkipped() {
+        FileManager fileManager = new FileManager(tempDir);
+        fileManager.writeFile("scoreboard.csv",
+                "GOOD,300,2,5,HARD,ITEM\n"
+                + "SHORT,100\n"                    // 칸 수가 맞지 않음
+                + "BADNUM,abc,1,1\n"               // 숫자가 아님
+                + "BADENUM,200,1,1,VERY_HARD,ITEM\n" // 없는 난이도
+                + "BADMODE,200,1,1,EASY,PUZZLE\n"   // 없는 모드
+                + "\n");
+
+        ScoreboardService service = new ScoreboardService(fileManager);
+        assertTrue(service.getTopScores(GameMode.NORMAL).isEmpty());
+        List<Score> item = service.getTopScores(GameMode.ITEM);
+        assertEquals(1, item.size());
+        assertEquals("GOOD", item.get(0).getName());
+    }
+
+    @Test
+    void loadedFile_isSortedAndTrimmedToTopTen() {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 1; i <= 12; i++) {
+            sb.append("P").append(i).append(',').append(i * 10).append(",1,0,NORMAL,NORMAL\n");
+        }
+        FileManager fileManager = new FileManager(tempDir);
+        fileManager.writeFile("scoreboard.csv", sb.toString());
+
+        List<Score> top = new ScoreboardService(fileManager).getTopScores();
+        assertEquals(ScoreboardService.MAX_SCORES, top.size());
+        assertEquals(120, top.get(0).getScore());
+        assertEquals(30, top.get(top.size() - 1).getScore());
+    }
+
+    @Test
+    void nullModeAndName_areHandled() {
+        ScoreboardService service = new ScoreboardService(new FileManager(tempDir));
+
+        assertTrue(service.isHighScore(1, null));
+        assertEquals(1, service.addScore(null, 100, 1, 1, null, null));
+
+        Score s = service.getTopScores(null).get(0);
+        assertEquals("", s.getName());
+        assertEquals(GameMode.NORMAL, s.getGameMode());
+        assertEquals(Difficulty.NORMAL, s.getDifficulty());
+    }
+
+    @Test
+    void topScores_cannotBeModifiedFromOutside() {
+        ScoreboardService service = new ScoreboardService(new FileManager(tempDir));
+        service.addScore("A", 100, 1, 1);
+
+        List<Score> top = service.getTopScores();
+        org.junit.jupiter.api.Assertions.assertThrows(UnsupportedOperationException.class, top::clear);
+        assertEquals(1, service.getTopScores().size());
+    }
 }
