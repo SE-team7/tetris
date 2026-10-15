@@ -1,6 +1,8 @@
 package com.team.tetris.service;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -37,6 +39,7 @@ public class GameEngineService {
     private boolean isItemBlockTurn;
     private ClearResult pendingLineClear;
     private boolean weightCollided;
+    private final Deque<ClearResult> clearEvents = new ArrayDeque<>();
 
     public GameEngineService() {
         this(new Board(), new BlockFactory(), new ScoreService(), new LevelService());
@@ -70,6 +73,7 @@ public class GameEngineService {
         isItemBlockTurn = false;
         pendingLineClear = null;
         weightCollided = false;
+        clearEvents.clear();
 
         paused = false;
         gameOver = false;
@@ -123,16 +127,24 @@ public class GameEngineService {
                         itemResult.getScoreLineCount(),
                         itemResult.getItemCounterLineCount()
                 );
+                if (!itemResult.isEmpty() || itemResult.getItemType() == ItemType.WEIGHT) {
+                    clearEvents.add(itemResult);
+                }
             }
 
             ClearResult pending = board.findFullLines();
             if (!pending.isEmpty()) {
                 pendingLineClear = pending;
+                clearEvents.add(pending);
             }
 
             currentBlock = null;
             blockLocked = false;
         }
+    }
+
+    public ClearResult pollClearEvent() {
+        return clearEvents.pollFirst();
     }
 
     //점수/카운터/레벨 반영 (아이템 효과·라인 삭제 공통)

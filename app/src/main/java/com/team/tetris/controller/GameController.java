@@ -1,5 +1,6 @@
 package com.team.tetris.controller;
 
+import com.team.tetris.domain.ClearResult;
 import com.team.tetris.domain.Difficulty;
 import com.team.tetris.domain.GameMode;
 import com.team.tetris.domain.Settings;
@@ -67,6 +68,11 @@ public class GameController {
                 getKeyName(Settings.KeyAction.SKIP)
         );
 
+        gameView.setGameInfo(
+                itemMode ? GameMode.ITEM : GameMode.NORMAL,
+                difficulty
+        );
+
         render();
         gameLoop.start();
     }
@@ -104,6 +110,11 @@ public class GameController {
         }
 
         render();
+
+        ClearResult event;
+        while ((event = gameEngine.pollClearEvent()) != null) {
+            gameView.playClearAnimation(event, null);
+        }
     }
 
     public void togglePause() {
@@ -196,7 +207,9 @@ public class GameController {
         gameOverController.show(
                 gameEngine.getScore(),
                 gameEngine.getLevel(),
-                gameEngine.getClearedLines()
+                gameEngine.getClearedLines(),
+                difficulty,
+                itemMode ? GameMode.ITEM : GameMode.NORMAL
         );
     }
 }
