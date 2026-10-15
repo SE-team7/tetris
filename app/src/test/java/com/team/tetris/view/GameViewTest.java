@@ -173,7 +173,7 @@ class GameViewTest {
             );
 
             assertEquals(
-                390.0,
+                330.0,
                 sidePanel.getPrefWidth(),
                 0.001
             );
