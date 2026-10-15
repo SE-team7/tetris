@@ -208,4 +208,44 @@ class SettingsServiceTest {
         assertEquals(KeyAction.QUIT, settings.findGameAction(KeyCode.TAB));
         assertNull(settings.findGameAction(KeyCode.Z));
     }
+
+    @Test
+    void save_returnsTrueOnSuccessAndFalseOnFailure() throws IOException {
+        assertTrue(new SettingsService(new FileManager(tempDir)).save(new Settings()));
+
+        Path blocker = Files.writeString(tempDir.resolve("blocker"), "");
+        assertFalse(new SettingsService(new FileManager(blocker)).save(new Settings()));
+    }
+
+    @Test
+    void unreadableFile_usesDefaults() throws IOException {
+        // 설정 파일 자리에 폴더가 있어 읽을 수 없는 상황
+        Files.createDirectory(tempDir.resolve("settings.properties"));
+
+        Settings loaded = assertDoesNotThrow(() -> new SettingsService(new FileManager(tempDir)).load());
+        assertEquals(ScreenSize.MEDIUM, loaded.getScreenSize());
+        assertEquals(KeyCode.K, loaded.getKey(KeyAction.SKIP));
+    }
+
+    @Test
+    void brokenFileFormat_usesDefaults() {
+        FileManager fileManager = new FileManager(tempDir);
+        // Properties 형식으로 읽을 수 없는 잘못된 유니코드 이스케이프
+        fileManager.writeFile("settings.properties", "screenSize=\\uZZZZ\n");
+
+        Settings loaded = assertDoesNotThrow(() -> new SettingsService(fileManager).load());
+        assertEquals(ScreenSize.MEDIUM, loaded.getScreenSize());
+    }
+
+    @Test
+    void duplicateKeysInFile_applyOnlyValidKeys() {
+        FileManager fileManager = new FileManager(tempDir);
+        // ROTATE=A는 MOVE_LEFT(A)와 겹쳐서 한 번에 적용 실패 → 하나씩 적용, 규칙에 맞는 SKIP만 반영
+        fileManager.writeFile("settings.properties", "key.ROTATE=A\nkey.SKIP=Q\n");
+
+        Settings loaded = new SettingsService(fileManager).load();
+        assertEquals(KeyCode.P, loaded.getKey(KeyAction.ROTATE));
+        assertEquals(KeyCode.Q, loaded.getKey(KeyAction.SKIP));
+        assertEquals(KeyCode.A, loaded.getKey(KeyAction.MOVE_LEFT));
+    }
 }
