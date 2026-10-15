@@ -980,21 +980,21 @@ public class SettingsController {
             waitingForKeyAction
                 != null
         ) {
-
+    
             if (
                 pendingKeyCode
                     == null
             ) {
-
+    
                 settingsView.showMessage(
                     "새 키를 먼저 입력해주세요."
                 );
-
+    
                 return;
             }
-
+    
             confirmPendingKey();
-
+    
             if (
                 waitingForKeyAction
                     != null
@@ -1002,16 +1002,24 @@ public class SettingsController {
                 return;
             }
         }
-
-        settingsService.save(
-            settings
-        );
-
-        if (settingsService.save(settings)) {
-            renderSettings(); // 실제 설정값으로 화면 갱신
-            settingsView.showMessage("설정을 저장했습니다.");
+    
+        if (
+            settingsService.save(
+                settings
+            )
+        ) {
+    
+            renderSettings();
+    
+            settingsView.showMessage(
+                "설정을 저장했습니다."
+            );
+    
         } else {
-            settingsView.showMessage("설정 저장에 실패했습니다.");
+    
+            settingsView.showMessage(
+                "설정 저장에 실패했습니다."
+            );
         }
     }
 

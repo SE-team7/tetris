@@ -91,8 +91,14 @@ public class GameView {
 
     private final Label skipKeyLabel;
 
+    /*
+     * 모드별 UI
+     */
+    private final GridPane controlsGrid;
+    private final VBox itemInfoBox;
+    private final BorderPane sidePanel;
 
-
+    private GameMode currentMode = GameMode.NORMAL;
     private boolean colorBlindMode;
 
 
@@ -393,7 +399,7 @@ public class GameView {
 
 
 
-        GridPane controlsGrid =
+        controlsGrid =
 
             new GridPane();
 
@@ -463,131 +469,17 @@ public class GameView {
 
 
 
-        int row = 0;
+        /*
+         * ITEM MODE 전용 안내 영역
+         * NORMAL 모드에서는 숨김
+         */
+        itemInfoBox =
 
+            createItemInfoBox();
 
 
-        addControlRow(
 
-            controlsGrid,
-
-            row++,
-
-            "이동",
-
-            moveKeyLabel
-
-        );
-
-
-
-        addControlRow(
-
-            controlsGrid,
-
-            row++,
-
-            "아래",
-
-            softDropKeyLabel
-
-        );
-
-
-
-        addControlRow(
-
-            controlsGrid,
-
-            row++,
-
-            "회전",
-
-            rotateKeyLabel
-
-        );
-
-
-
-        addControlRow(
-
-            controlsGrid,
-
-            row++,
-
-            "하드드랍",
-
-            hardDropKeyLabel
-
-        );
-
-
-
-        addControlRow(
-
-            controlsGrid,
-
-            row++,
-
-            "스킵",
-
-            skipKeyLabel
-
-        );
-
-
-
-        addControlRow(
-
-            controlsGrid,
-
-            row++,
-
-            "일시정지",
-
-            createControlKeyLabel(
-
-                "SHIFT"
-
-            )
-
-        );
-
-
-
-        addControlRow(
-
-            controlsGrid,
-
-            row++,
-
-            "메인메뉴",
-
-            createControlKeyLabel(
-
-                "TAB"
-
-            )
-
-        );
-
-
-
-        addControlRow(
-
-            controlsGrid,
-
-            row,
-
-            "게임종료",
-
-            createControlKeyLabel(
-
-                "ESC"
-
-            )
-
-        );
+        configureControls(false);
 
 
 
@@ -595,7 +487,9 @@ public class GameView {
 
             new VBox(
 
-                4,
+                14,
+
+                itemInfoBox,
 
                 controlsTitle,
 
@@ -619,7 +513,7 @@ public class GameView {
 
          */
 
-        BorderPane sidePanel =
+        sidePanel =
 
             new BorderPane();
 
@@ -751,11 +645,7 @@ public class GameView {
 
                     cell.setStyle(
 
-                        baseCellStyle()
-
-                        + "-fx-text-fill: white;"
-
-                        + "-fx-font-weight: bold;"
+                        getFrameStyle(false)
 
                     );
 
@@ -869,9 +759,7 @@ public class GameView {
 
                     cell.setStyle(
 
-                        baseCellStyle()
-
-                        + "-fx-text-fill: #777777;"
+                        getFrameStyle(true)
 
                     );
 
@@ -1103,6 +991,40 @@ public class GameView {
 
 
 
+        addControlRowAt(
+
+            grid,
+
+            row,
+
+            0,
+
+            actionText,
+
+            keyLabel
+
+        );
+
+    }
+
+
+
+    private void addControlRowAt(
+
+        GridPane grid,
+
+        int row,
+
+        int column,
+
+        String actionText,
+
+        Label keyLabel
+
+    ) {
+
+
+
         Label actionLabel =
 
             new Label(actionText);
@@ -1125,7 +1047,7 @@ public class GameView {
 
             actionLabel,
 
-            0,
+            column,
 
             row
 
@@ -1137,11 +1059,417 @@ public class GameView {
 
             keyLabel,
 
-            1,
+            column + 1,
 
             row
 
         );
+
+    }
+
+
+
+    private VBox createItemInfoBox() {
+
+
+
+        Label title =
+
+            new Label("ITEM INFO");
+
+
+
+        title.setStyle(
+
+            "-fx-text-fill: #D6C2FF;"
+
+            + "-fx-font-family: 'Consolas';"
+
+            + "-fx-font-size: 17px;"
+
+            + "-fx-font-weight: bold;"
+
+            + "-fx-effect: dropshadow(gaussian, #7C4DFF, 6, 0.35, 0, 0);"
+
+        );
+
+
+
+        GridPane infoGrid =
+
+            new GridPane();
+
+
+
+        infoGrid.setAlignment(Pos.CENTER);
+
+        infoGrid.setHgap(10);
+
+        infoGrid.setVgap(3);
+
+
+
+        addItemInfoRow(
+
+            infoGrid, 0, "W",
+
+            "아래 블록 제거",
+
+            "#FFFFFF"
+
+        );
+
+
+
+        addItemInfoRow(
+
+            infoGrid, 1, "L",
+
+            "해당 줄 삭제",
+
+            "#F0E442"
+
+        );
+
+
+
+        addItemInfoRow(
+
+            infoGrid, 2, "B",
+
+            "중심 3×3 제거",
+
+            "#D55E00"
+
+        );
+
+
+
+        addItemInfoRow(
+
+            infoGrid, 3, "+",
+
+            "행·열 제거",
+
+            "#CC79A7"
+
+        );
+
+
+
+        addItemInfoRow(
+
+            infoGrid, 4, "D",
+
+            "아래 두 열 압축",
+
+            "#56B4E9"
+
+        );
+
+
+
+        VBox box =
+
+            new VBox(
+
+                7,
+
+                title,
+
+                infoGrid
+
+            );
+
+
+
+        box.setAlignment(Pos.CENTER);
+
+        box.setPadding(new Insets(9, 14, 9, 14));
+
+        box.setStyle(
+
+            "-fx-background-color: rgba(124, 77, 255, 0.10);"
+
+            + "-fx-border-color: #7C4DFF;"
+
+            + "-fx-border-width: 1.5px;"
+
+            + "-fx-border-radius: 8px;"
+
+            + "-fx-background-radius: 8px;"
+
+            + "-fx-effect: dropshadow(gaussian, #7C4DFF, 8, 0.18, 0, 0);"
+
+        );
+
+
+
+        box.setVisible(false);
+
+        box.setManaged(false);
+
+
+
+        return box;
+
+    }
+
+
+
+    private void addItemInfoRow(
+
+        GridPane grid,
+
+        int row,
+
+        String itemText,
+
+        String description,
+
+        String color
+
+    ) {
+
+
+
+        Label itemLabel =
+
+            new Label(itemText);
+
+
+
+        itemLabel.setMinWidth(20);
+
+        itemLabel.setAlignment(Pos.CENTER);
+
+        itemLabel.setStyle(
+
+            "-fx-text-fill: " + color + ";"
+
+            + "-fx-font-family: 'Consolas';"
+
+            + "-fx-font-size: 12px;"
+
+            + "-fx-font-weight: bold;"
+
+        );
+
+
+
+        Label descriptionLabel =
+
+            new Label(description);
+
+
+
+        descriptionLabel.setStyle(
+
+            "-fx-text-fill: #E7E0FF;"
+
+            + "-fx-font-family: 'Consolas';"
+
+            + "-fx-font-size: 11px;"
+
+        );
+
+
+
+        grid.add(itemLabel, 0, row);
+
+        grid.add(descriptionLabel, 1, row);
+
+    }
+
+
+
+    private void configureControls(
+
+        boolean itemMode
+
+    ) {
+
+
+
+        controlsGrid
+
+            .getChildren()
+
+            .clear();
+
+
+
+        if (!itemMode) {
+
+
+
+            int row = 0;
+
+
+
+            addControlRow(controlsGrid, row++, "이동", moveKeyLabel);
+
+            addControlRow(controlsGrid, row++, "아래", softDropKeyLabel);
+
+            addControlRow(controlsGrid, row++, "회전", rotateKeyLabel);
+
+            addControlRow(controlsGrid, row++, "하드드랍", hardDropKeyLabel);
+
+            addControlRow(controlsGrid, row++, "스킵", skipKeyLabel);
+
+            addControlRow(controlsGrid, row++, "일시정지", createControlKeyLabel("SHIFT"));
+
+            addControlRow(controlsGrid, row++, "메인메뉴", createControlKeyLabel("TAB"));
+
+            addControlRow(controlsGrid, row, "전체 게임 종료", createControlKeyLabel("ESC"));
+
+
+
+            controlsGrid.setHgap(10);
+
+
+
+            return;
+
+        }
+
+
+
+        /*
+         * ITEM MODE: 세로 공간을 확보하기 위해 2열 배치
+         */
+        addControlRowAt(controlsGrid, 0, 0, "이동", moveKeyLabel);
+
+        addControlRowAt(controlsGrid, 1, 0, "아래", softDropKeyLabel);
+
+        addControlRowAt(controlsGrid, 2, 0, "회전", rotateKeyLabel);
+
+        addControlRowAt(controlsGrid, 3, 0, "하드드랍", hardDropKeyLabel);
+
+
+
+        addControlRowAt(controlsGrid, 0, 2, "스킵", skipKeyLabel);
+
+        addControlRowAt(controlsGrid, 1, 2, "일시정지", createControlKeyLabel("SHIFT"));
+
+        addControlRowAt(controlsGrid, 2, 2, "메인메뉴", createControlKeyLabel("TAB"));
+
+        addControlRowAt(controlsGrid, 3, 2, "전체 게임 종료", createControlKeyLabel("ESC"));
+
+
+
+        controlsGrid.setHgap(9);
+
+    }
+
+
+
+    private void applyGameModeUI(
+
+        GameMode mode
+
+    ) {
+
+
+
+        currentMode =
+
+            mode == null
+
+                ? GameMode.NORMAL
+
+                : mode;
+
+
+
+        boolean itemMode =
+
+            currentMode == GameMode.ITEM;
+
+
+
+        itemInfoBox.setVisible(itemMode);
+
+        itemInfoBox.setManaged(itemMode);
+
+
+
+        configureControls(itemMode);
+
+
+
+        sidePanel.setPrefWidth(
+
+            itemMode
+
+                ? 390
+
+                : 225
+
+        );
+
+
+
+        /*
+         * 모드에 따라 게임 보드 / NEXT 테두리 스타일 갱신
+         */
+        createTextBoard();
+
+        createNextArea();
+
+    }
+
+
+
+    private String getFrameStyle(
+
+        boolean nextArea
+
+    ) {
+
+
+
+        if (
+
+            currentMode == GameMode.ITEM
+
+        ) {
+
+
+
+            return
+
+                baseCellStyle()
+
+                + "-fx-text-fill: #D6C2FF;"
+
+                + "-fx-font-weight: bold;"
+
+                + "-fx-effect: dropshadow(gaussian, #7C4DFF, 5, 0.30, 0, 0);";
+
+        }
+
+
+
+        return
+
+            baseCellStyle()
+
+            + "-fx-text-fill: "
+
+            + (
+
+                nextArea
+
+                    ? "#777777"
+
+                    : "white"
+
+            )
+
+            + ";"
+
+            + "-fx-font-weight: bold;";
 
     }
 
@@ -5032,6 +5360,10 @@ public class GameView {
             )
 
         );
+
+
+
+        applyGameModeUI(mode);
 
     }
 
