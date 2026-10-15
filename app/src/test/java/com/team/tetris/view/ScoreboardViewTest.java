@@ -1,825 +1,234 @@
 package com.team.tetris.view;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static com.team.tetris.FxTestSupport.onFx;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.FutureTask;
-import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import com.team.tetris.FxTestSupport;
+import com.team.tetris.controller.ScoreboardMenu;
+import com.team.tetris.domain.Difficulty;
 import com.team.tetris.domain.GameMode;
+import com.team.tetris.domain.Score;
 
-import javafx.application.Platform;
-import javafx.scene.Parent;
+import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
 
 class ScoreboardViewTest {
 
+    private static final String HIGHLIGHT_COLOR = "#E89B00";
+
     @BeforeAll
-    static void startJavaFx() throws Exception {
-        try {
-            Platform.startup(() -> {
-            });
-        } catch (IllegalStateException ignored) {
-            // JavaFX가 이미 시작된 경우
-        }
+    static void startJavaFx() {
+        FxTestSupport.startJavaFx();
     }
 
-    @Test
-    void rootExistsAndDefaultModeIsNormal() throws Exception {
-        runFx(() -> {
-
-            ScoreboardView view =
-                new ScoreboardView();
-
-            Parent root =
-                view.getRoot();
-
-            assertNotNull(root);
-
-            assertEquals(
-                GameMode.NORMAL,
-                view.getSelectedMode()
-            );
-
-            return null;
-        });
+    // 화면 구성: [제목, 모드 버튼(일반, 아이템), 점수 표, 키 안내]
+    private static Button modeButton(ScoreboardView view, int index) {
+        HBox buttons = (HBox) ((VBox) view.getRoot()).getChildren().get(1);
+        return (Button) buttons.getChildren().get(index);
     }
 
-    @Test
-    void selectedModeCanChangeToItem() throws Exception {
-        runFx(() -> {
-
-            ScoreboardView view =
-                new ScoreboardView();
-
-            view.setSelectedMode(
-                GameMode.ITEM
-            );
-
-            assertEquals(
-                GameMode.ITEM,
-                view.getSelectedMode()
-            );
-
-            Button normalButton =
-                getField(
-                    view,
-                    "normalModeButton",
-                    Button.class
-                );
-
-            Button itemButton =
-                getField(
-                    view,
-                    "itemModeButton",
-                    Button.class
-                );
-
-            assertTrue(
-                itemButton
-                    .getStyle()
-                    .contains(
-                        "#444444"
-                    )
-            );
-
-            assertTrue(
-                normalButton
-                    .getStyle()
-                    .contains(
-                        "#E8E8E8"
-                    )
-            );
-
-            return null;
-        });
+    private static GridPane grid(ScoreboardView view) {
+        return (GridPane) ((VBox) view.getRoot()).getChildren().get(2);
     }
 
-    @Test
-    void selectedModeCanChangeBackToNormal() throws Exception {
-        runFx(() -> {
-
-            ScoreboardView view =
-                new ScoreboardView();
-
-            view.setSelectedMode(
-                GameMode.ITEM
-            );
-
-            view.setSelectedMode(
-                GameMode.NORMAL
-            );
-
-            assertEquals(
-                GameMode.NORMAL,
-                view.getSelectedMode()
-            );
-
-            Button normalButton =
-                getField(
-                    view,
-                    "normalModeButton",
-                    Button.class
-                );
-
-            Button itemButton =
-                getField(
-                    view,
-                    "itemModeButton",
-                    Button.class
-                );
-
-            assertTrue(
-                normalButton
-                    .getStyle()
-                    .contains(
-                        "#444444"
-                    )
-            );
-
-            assertTrue(
-                itemButton
-                    .getStyle()
-                    .contains(
-                        "#E8E8E8"
-                    )
-            );
-
-            return null;
-        });
+    private static Label keyGuide(ScoreboardView view) {
+        return (Label) ((VBox) view.getRoot()).getChildren().get(3);
     }
 
-    @Test
-    void nullModeFallsBackToNormal() throws Exception {
-        runFx(() -> {
-
-            ScoreboardView view =
-                new ScoreboardView();
-
-            view.setSelectedMode(
-                GameMode.ITEM
-            );
-
-            view.setSelectedMode(
-                null
-            );
-
-            assertEquals(
-                GameMode.NORMAL,
-                view.getSelectedMode()
-            );
-
-            return null;
-        });
-    }
-
-    @Test
-    void itemModeButtonCallsHandler() throws Exception {
-        runFx(() -> {
-
-            ScoreboardView view =
-                new ScoreboardView();
-
-            AtomicReference<GameMode>
-                receivedMode =
-                    new AtomicReference<>();
-
-            view.setOnModeSelected(
-                receivedMode::set
-            );
-
-            Button itemButton =
-                getField(
-                    view,
-                    "itemModeButton",
-                    Button.class
-                );
-
-            itemButton.fire();
-
-            assertEquals(
-                GameMode.ITEM,
-                receivedMode.get()
-            );
-
-            assertEquals(
-                GameMode.ITEM,
-                view.getSelectedMode()
-            );
-
-            return null;
-        });
-    }
-
-    @Test
-    void normalModeButtonCallsHandler() throws Exception {
-        runFx(() -> {
-
-            ScoreboardView view =
-                new ScoreboardView();
-
-            view.setSelectedMode(
-                GameMode.ITEM
-            );
-
-            AtomicReference<GameMode>
-                receivedMode =
-                    new AtomicReference<>();
-
-            view.setOnModeSelected(
-                receivedMode::set
-            );
-
-            Button normalButton =
-                getField(
-                    view,
-                    "normalModeButton",
-                    Button.class
-                );
-
-            normalButton.fire();
-
-            assertEquals(
-                GameMode.NORMAL,
-                receivedMode.get()
-            );
-
-            assertEquals(
-                GameMode.NORMAL,
-                view.getSelectedMode()
-            );
-
-            return null;
-        });
-    }
-
-    @Test
-    void buttonsWorkEvenWithoutHandler() throws Exception {
-        runFx(() -> {
-
-            ScoreboardView view =
-                new ScoreboardView();
-
-            Button itemButton =
-                getField(
-                    view,
-                    "itemModeButton",
-                    Button.class
-                );
-
-            Button normalButton =
-                getField(
-                    view,
-                    "normalModeButton",
-                    Button.class
-                );
-
-            itemButton.fire();
-
-            assertEquals(
-                GameMode.ITEM,
-                view.getSelectedMode()
-            );
-
-            normalButton.fire();
-
-            assertEquals(
-                GameMode.NORMAL,
-                view.getSelectedMode()
-            );
-
-            return null;
-        });
-    }
-
-    @Test
-    void emptyScoreboardCreatesHeaderAndTenRows()
-        throws Exception {
-
-        runFx(() -> {
-
-            ScoreboardView view =
-                new ScoreboardView();
-
-            view.render(
-                List.of()
-            );
-
-            GridPane scoreGrid =
-                getField(
-                    view,
-                    "scoreGrid",
-                    GridPane.class
-                );
-
-            /*
-             * HEADER 6개
-             * +
-             * 10줄 × 6칸
-             * =
-             * 66개
-             */
-            assertEquals(
-                66,
-                scoreGrid
-                    .getChildren()
-                    .size()
-            );
-
-            assertEquals(
-                "순위",
-                getGridLabel(
-                    scoreGrid,
-                    0,
-                    0
-                ).getText()
-            );
-
-            assertEquals(
-                "이름",
-                getGridLabel(
-                    scoreGrid,
-                    1,
-                    0
-                ).getText()
-            );
-
-            assertEquals(
-                "점수",
-                getGridLabel(
-                    scoreGrid,
-                    2,
-                    0
-                ).getText()
-            );
-
-            assertEquals(
-                "난이도",
-                getGridLabel(
-                    scoreGrid,
-                    3,
-                    0
-                ).getText()
-            );
-
-            assertEquals(
-                "레벨",
-                getGridLabel(
-                    scoreGrid,
-                    4,
-                    0
-                ).getText()
-            );
-
-            assertEquals(
-                "줄",
-                getGridLabel(
-                    scoreGrid,
-                    5,
-                    0
-                ).getText()
-            );
-
-            return null;
-        });
-    }
-
-    @Test
-    void emptyRowsContainRanksAndDashValues()
-        throws Exception {
-
-        runFx(() -> {
-
-            ScoreboardView view =
-                new ScoreboardView();
-
-            view.render(
-                List.of()
-            );
-
-            GridPane scoreGrid =
-                getField(
-                    view,
-                    "scoreGrid",
-                    GridPane.class
-                );
-
-            assertEquals(
-                "1",
-                getGridLabel(
-                    scoreGrid,
-                    0,
-                    1
-                ).getText()
-            );
-
-            assertEquals(
-                "-",
-                getGridLabel(
-                    scoreGrid,
-                    1,
-                    1
-                ).getText()
-            );
-
-            assertEquals(
-                "10",
-                getGridLabel(
-                    scoreGrid,
-                    0,
-                    10
-                ).getText()
-            );
-
-            assertEquals(
-                "-",
-                getGridLabel(
-                    scoreGrid,
-                    5,
-                    10
-                ).getText()
-            );
-
-            return null;
-        });
-    }
-
-    @Test
-    void nullScoreListDoesNotCrash()
-        throws Exception {
-
-        runFx(() -> {
-
-            ScoreboardView view =
-                new ScoreboardView();
-
-            view.render(
-                null,
-                -1
-            );
-
-            GridPane scoreGrid =
-                getField(
-                    view,
-                    "scoreGrid",
-                    GridPane.class
-                );
-
-            assertEquals(
-                66,
-                scoreGrid
-                    .getChildren()
-                    .size()
-            );
-
-            return null;
-        });
-    }
-
-    @Test
-    void renderWithModeChangesSelectedMode()
-        throws Exception {
-
-        runFx(() -> {
-
-            ScoreboardView view =
-                new ScoreboardView();
-
-            view.render(
-                List.of(),
-                -1,
-                null,
-                GameMode.ITEM
-            );
-
-            assertEquals(
-                GameMode.ITEM,
-                view.getSelectedMode()
-            );
-
-            view.render(
-                List.of(),
-                -1,
-                null,
-                GameMode.NORMAL
-            );
-
-            assertEquals(
-                GameMode.NORMAL,
-                view.getSelectedMode()
-            );
-
-            return null;
-        });
-    }
-
-    @Test
-    void allRenderOverloadsCanBeCalled()
-        throws Exception {
-
-        runFx(() -> {
-
-            ScoreboardView view =
-                new ScoreboardView();
-
-            assertDoesNotThrow(
-                () -> view.render(
-                    List.of()
-                )
-            );
-
-            assertDoesNotThrow(
-                () -> view.render(
-                    List.of(),
-                    -1
-                )
-            );
-
-            assertDoesNotThrow(
-                () -> view.render(
-                    List.of(),
-                    -1,
-                    null
-                )
-            );
-
-            assertDoesNotThrow(
-                () -> view.render(
-                    List.of(),
-                    -1,
-                    null,
-                    GameMode.ITEM
-                )
-            );
-
-            return null;
-        });
-    }
-
-    @Test
-    void keyGuideShowsFixedControls()
-        throws Exception {
-
-        runFx(() -> {
-
-            ScoreboardView view =
-                new ScoreboardView();
-
-            view.showKeyGuide(
-                "TEST",
-                "TEST"
-            );
-
-            Label keyGuideLabel =
-                getField(
-                    view,
-                    "keyGuideLabel",
-                    Label.class
-                );
-
-            assertEquals(
-                "← / →: 모드 전환   TAB: 메인메뉴   ESC: 전체 종료",
-                keyGuideLabel.getText()
-            );
-
-            return null;
-        });
-    }
-
-    @Test
-    void safeTextHandlesNullBlankAndNormalText()
-        throws Exception {
-
-        ScoreboardView view =
-            runFx(
-                ScoreboardView::new
-            );
-
-        Method safeText =
-            ScoreboardView.class
-                .getDeclaredMethod(
-                    "safeText",
-                    String.class
-                );
-
-        safeText.setAccessible(true);
-
-        assertEquals(
-            "-",
-            safeText.invoke(
-                view,
-                new Object[] { null }
-            )
-        );
-
-        assertEquals(
-            "-",
-            safeText.invoke(
-                view,
-                ""
-            )
-        );
-
-        assertEquals(
-            "-",
-            safeText.invoke(
-                view,
-                "   "
-            )
-        );
-
-        assertEquals(
-            "PLAYER",
-            safeText.invoke(
-                view,
-                "PLAYER"
-            )
-        );
-    }
-
-    @Test
-    void allColumnWidthsAreCorrect()
-        throws Exception {
-
-        ScoreboardView view =
-            runFx(
-                ScoreboardView::new
-            );
-
-        Method method =
-            ScoreboardView.class
-                .getDeclaredMethod(
-                    "getColumnWidth",
-                    int.class
-                );
-
-        method.setAccessible(true);
-
-        assertEquals(
-            45.0,
-            (double) method.invoke(
-                view,
-                0
-            )
-        );
-
-        assertEquals(
-            95.0,
-            (double) method.invoke(
-                view,
-                1
-            )
-        );
-
-        assertEquals(
-            75.0,
-            (double) method.invoke(
-                view,
-                2
-            )
-        );
-
-        assertEquals(
-            95.0,
-            (double) method.invoke(
-                view,
-                3
-            )
-        );
-
-        assertEquals(
-            65.0,
-            (double) method.invoke(
-                view,
-                4
-            )
-        );
-
-        assertEquals(
-            55.0,
-            (double) method.invoke(
-                view,
-                5
-            )
-        );
-
-        /*
-         * default branch
-         */
-        assertEquals(
-            70.0,
-            (double) method.invoke(
-                view,
-                99
-            )
-        );
-    }
-
-    private static Label getGridLabel(
-        GridPane grid,
-        int column,
-        int row
-    ) {
-
-        for (
-            javafx.scene.Node node :
-                grid.getChildren()
-        ) {
-
-            int nodeColumn =
-                GridPane
-                    .getColumnIndex(node)
-                    == null
-                        ? 0
-                        : GridPane
-                            .getColumnIndex(
-                                node
-                            );
-
-            int nodeRow =
-                GridPane
-                    .getRowIndex(node)
-                    == null
-                        ? 0
-                        : GridPane
-                            .getRowIndex(
-                                node
-                            );
-
-            if (
-                nodeColumn == column
-                && nodeRow == row
-                && node
-                    instanceof Label
-            ) {
-
+    /** 표에서 (열, 행) 칸의 Label. 0행은 머리글. */
+    private static Label cell(ScoreboardView view, int column, int row) {
+        for (Node node : grid(view).getChildren()) {
+            Integer c = GridPane.getColumnIndex(node);
+            Integer r = GridPane.getRowIndex(node);
+            if (c != null && r != null && c == column && r == row) {
                 return (Label) node;
             }
         }
-
-        fail(
-            "Label not found: column="
-            + column
-            + ", row="
-            + row
-        );
-
         return null;
     }
 
-    private static <T> T getField(
-        Object target,
-        String fieldName,
-        Class<T> type
-    ) throws Exception {
-
-        Field field =
-            target
-                .getClass()
-                .getDeclaredField(
-                    fieldName
-                );
-
-        field.setAccessible(
-            true
-        );
-
-        return type.cast(
-            field.get(
-                target
-            )
-        );
+    private static int rowCount(ScoreboardView view) {
+        int max = -1;
+        for (Node node : grid(view).getChildren()) {
+            max = Math.max(max, GridPane.getRowIndex(node));
+        }
+        return max; // 머리글(0행) 제외한 줄 수
     }
 
-    private static <T> T runFx(
-        Callable<T> action
-    ) throws Exception {
-
-        if (
-            Platform
-                .isFxApplicationThread()
-        ) {
-
-            return action.call();
+    private static List<Score> scores(int... values) {
+        List<Score> list = new ArrayList<>();
+        for (int i = 0; i < values.length; i++) {
+            list.add(new Score("P" + i, values[i], 1, 0, Difficulty.NORMAL, GameMode.NORMAL));
         }
+        return list;
+    }
 
-        FutureTask<T> task =
-            new FutureTask<>(
-                action
-            );
+    @Test
+    void emptyScoreboard_showsHeaderAndTenEmptyRows() throws Exception {
+        onFx(() -> {
+            ScoreboardView view = new ScoreboardView();
+            view.render(List.of(), -1, ScoreboardMenu.MAIN_MENU, GameMode.NORMAL);
 
-        Platform.runLater(
-            task
-        );
+            assertEquals("순위", cell(view, 0, 0).getText());
+            assertEquals("난이도", cell(view, 3, 0).getText());
+            assertEquals(10, rowCount(view));
+            assertEquals("1", cell(view, 0, 1).getText());
+            assertEquals("-", cell(view, 1, 1).getText());
+            assertEquals("10", cell(view, 0, 10).getText());
+        });
+    }
 
-        return task.get();
+    @Test
+    void scoreRow_showsAllColumnsIncludingDifficulty() throws Exception {
+        onFx(() -> {
+            ScoreboardView view = new ScoreboardView();
+            view.render(List.of(new Score("KIM", 500, 3, 7, Difficulty.HARD, GameMode.NORMAL)),
+                    -1, ScoreboardMenu.MAIN_MENU, GameMode.NORMAL);
+
+            assertEquals("1", cell(view, 0, 1).getText());
+            assertEquals("KIM", cell(view, 1, 1).getText());
+            assertEquals("500", cell(view, 2, 1).getText());
+            assertEquals("HARD", cell(view, 3, 1).getText());
+            assertEquals("3", cell(view, 4, 1).getText());
+            assertEquals("7", cell(view, 5, 1).getText());
+            assertEquals("-", cell(view, 1, 2).getText()); // 다음 줄은 빈 줄
+        });
+    }
+
+    @Test
+    void tiedScores_shareSameRank() throws Exception {
+        onFx(() -> {
+            ScoreboardView view = new ScoreboardView();
+            view.render(scores(300, 200, 200, 100), -1, ScoreboardMenu.MAIN_MENU, GameMode.NORMAL);
+
+            assertEquals("1", cell(view, 0, 1).getText());
+            assertEquals("2", cell(view, 0, 2).getText());
+            assertEquals("2", cell(view, 0, 3).getText());
+            assertEquals("4", cell(view, 0, 4).getText());
+        });
+    }
+
+    @Test
+    void highlightedRow_isStyledOnlyThatRow() throws Exception {
+        onFx(() -> {
+            ScoreboardView view = new ScoreboardView();
+            view.render(scores(300, 200, 100), 2, ScoreboardMenu.MAIN_MENU, GameMode.NORMAL);
+
+            assertTrue(cell(view, 1, 2).getStyle().contains(HIGHLIGHT_COLOR));
+            assertTrue(cell(view, 1, 2).getStyle().contains("bold"));
+            assertFalse(cell(view, 1, 1).getStyle().contains(HIGHLIGHT_COLOR));
+            assertFalse(cell(view, 1, 3).getStyle().contains(HIGHLIGHT_COLOR));
+        });
+    }
+
+    @Test
+    void highlightOnEmptyRow_isIgnored() throws Exception {
+        onFx(() -> {
+            ScoreboardView view = new ScoreboardView();
+            view.render(scores(300), 5, ScoreboardMenu.MAIN_MENU, GameMode.NORMAL);
+
+            assertFalse(cell(view, 1, 5).getStyle().contains(HIGHLIGHT_COLOR));
+        });
+    }
+
+    @Test
+    void blankOrNullName_isShownAsDash() throws Exception {
+        onFx(() -> {
+            ScoreboardView view = new ScoreboardView();
+            view.render(List.of(new Score(" ", 100, 1, 0), new Score(null, 90, 1, 0)));
+
+            assertEquals("-", cell(view, 1, 1).getText());
+            assertEquals("-", cell(view, 1, 2).getText());
+        });
+    }
+
+    @Test
+    void nullScoreList_showsEmptyRows() throws Exception {
+        onFx(() -> {
+            ScoreboardView view = new ScoreboardView();
+            view.render(null, -1);
+
+            assertEquals(10, rowCount(view));
+            assertEquals("-", cell(view, 2, 1).getText());
+        });
+    }
+
+    @Test
+    void render_withMode_updatesSelectedModeButton() throws Exception {
+        onFx(() -> {
+            ScoreboardView view = new ScoreboardView();
+            assertEquals(GameMode.NORMAL, view.getSelectedMode());
+
+            view.render(List.of(), -1, ScoreboardMenu.MAIN_MENU, GameMode.ITEM);
+            assertEquals(GameMode.ITEM, view.getSelectedMode());
+            assertTrue(modeButton(view, 1).getStyle().contains("#444444")); // 선택된 버튼 색
+            assertFalse(modeButton(view, 0).getStyle().contains("#444444"));
+
+            // 모드 없는 render는 선택된 모드를 바꾸지 않음
+            view.render(List.of(), -1, ScoreboardMenu.MAIN_MENU);
+            assertEquals(GameMode.ITEM, view.getSelectedMode());
+        });
+    }
+
+    @Test
+    void setSelectedMode_null_meansNormal() throws Exception {
+        onFx(() -> {
+            ScoreboardView view = new ScoreboardView();
+            view.setSelectedMode(GameMode.ITEM);
+            view.setSelectedMode(null);
+
+            assertEquals(GameMode.NORMAL, view.getSelectedMode());
+        });
+    }
+
+    @Test
+    void clickingModeButtons_notifiesHandler() throws Exception {
+        onFx(() -> {
+            ScoreboardView view = new ScoreboardView();
+            List<GameMode> selected = new ArrayList<>();
+            view.setOnModeSelected(selected::add);
+
+            modeButton(view, 1).fire();
+            assertEquals(GameMode.ITEM, view.getSelectedMode());
+            modeButton(view, 0).fire();
+            assertEquals(GameMode.NORMAL, view.getSelectedMode());
+
+            assertEquals(List.of(GameMode.ITEM, GameMode.NORMAL), selected);
+        });
+    }
+
+    @Test
+    void clickingModeButtons_withoutHandler_doesNotFail() throws Exception {
+        onFx(() -> {
+            ScoreboardView view = new ScoreboardView();
+            modeButton(view, 1).fire();
+
+            assertEquals(GameMode.ITEM, view.getSelectedMode());
+        });
+    }
+
+    @Test
+    void showKeyGuide_showsModeAndMenuKeys() throws Exception {
+        onFx(() -> {
+            ScoreboardView view = new ScoreboardView();
+            view.showKeyGuide("UP / DOWN", "ENTER");
+
+            assertNotNull(keyGuide(view).getText());
+            assertTrue(keyGuide(view).getText().contains("TAB"));
+            assertTrue(keyGuide(view).getText().contains("모드 전환"));
+        });
     }
 }

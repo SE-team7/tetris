@@ -41,3 +41,102 @@ jacocoTestReport {
         csv.required = true
     }
 }
+
+// =====================================================================
+// 배포 (jpackage)
+//  - 게임 이름·버전·아이콘은 아래 값과 src/main/resources/icon/ 의 파일만 바꾸면 된다.
+//  - jpackage는 지금 빌드하는 OS용 패키지만 만든다.
+//    (Windows에서 빌드 → Windows용, macOS에서 빌드 → macOS용)
+//
+//  ./gradlew packageApp        설치 없이 바로 실행하는 앱 폴더  → app/build/jpackage/
+//  ./gradlew packageZip        위 앱 폴더를 zip으로 묶은 배포 파일 → app/build/distributions/
+//  ./gradlew packageInstaller  설치 파일 (Windows: exe, WiX 3 필요 / macOS: dmg / Linux: deb)
+// =====================================================================
+def appName = 'DP7'
+def appVersion = '1.0.0'
+def appVendor = 'SE-team7'
+def launcherClass = 'com.team.tetris.Launcher'
+// Windows 설치 파일 업그레이드 식별용 (값을 바꾸지 말 것)
+def winUpgradeUuid = 'b5d6c0a2-6f2e-4c1d-9a7e-3f1c2d8e4a61'
+
+def osName = System.getProperty('os.name').toLowerCase()
+def isWindows = osName.contains('windows')
+def isMac = osName.contains('mac')
+def osLabel = isWindows ? 'windows' : (isMac ? 'mac' : 'linux')
+def iconFile = file("src/main/resources/icon/${appName}." + (isWindows ? 'ico' : (isMac ? 'icns' : 'png')))
+def appImageName = isMac ? "${appName}.app" : appName
+
+// 팀 공통 JDK(21)의 jpackage 사용
+def jpackageExe = javaToolchains.launcherFor {
+    languageVersion = JavaLanguageVersion.of(21)
+}.map { it.metadata.installationPath.file(isWindows ? 'bin/jpackage.exe' : 'bin/jpackage').asFile.absolutePath }
+
+def jpackageInput = layout.buildDirectory.dir('install/app/lib')   // installDist 결과 (app.jar + JavaFX 등 의존 jar)
+def jpackageOutput = layout.buildDirectory.dir('jpackage')
+
+def commonJpackageArgs = {
+    [
+        '--input', jpackageInput.get().asFile.absolutePath,
+        '--main-jar', 'app.jar',
+        '--main-class', launcherClass,
+        '--name', appName,
+        '--app-version', appVersion,
+        '--vendor', appVendor,
+        '--icon', iconFile.absolutePath,
+        '--java-options', '-Dfile.encoding=UTF-8',
+        // 게임에 필요한 JDK 모듈만 넣어 용량을 줄임 (jdeps로 확인한 목록)
+        '--add-modules', 'java.base,java.desktop,java.logging,java.scripting,java.xml,jdk.jfr,jdk.unsupported',
+        '--jlink-options', '--strip-debug --no-header-files --no-man-pages --strip-native-commands',
+        '--dest', jpackageOutput.get().asFile.absolutePath,
+    ]
+}
+
+tasks.register('packageApp', Exec) {
+    group = 'distribution'
+    description = "설치 없이 실행할 수 있는 ${appName} 앱 폴더를 만든다."
+    dependsOn tasks.named('installDist')
+    doFirst {
+        // jpackage는 결과 폴더가 이미 있으면 실패하므로 지우고 시작
+        def oldImage = jpackageOutput.get().dir(appImageName).asFile
+        if (oldImage.exists()) {
+            // jpackage가 만든 exe는 읽기 전용이라 먼저 해제해야 지워짐
+            oldImage.eachFileRecurse { it.setWritable(true) }
+        }
+        if (oldImage.exists() && !oldImage.deleteDir()) {
+            throw new GradleException("${oldImage} 를 지울 수 없습니다. 실행 중인 ${appName}을 종료하고 다시 시도하세요.")
+        }
+        executable jpackageExe.get()
+        args(['--type', 'app-image'] + commonJpackageArgs())
+    }
+}
+
+tasks.register('packageZip', Zip) {
+    group = 'distribution'
+    description = "${appName} 앱 폴더를 zip으로 묶는다. (받는 사람은 압축을 풀고 바로 실행)"
+    dependsOn tasks.named('packageApp')
+    from(jpackageOutput.map { it.dir(appImageName) }) {
+        into appImageName
+    }
+    archiveFileName = "${appName}-${appVersion}-${osLabel}.zip"
+    destinationDirectory = layout.buildDirectory.dir('distributions')
+}
+
+tasks.register('packageInstaller', Exec) {
+    group = 'distribution'
+    description = "${appName} 설치 파일을 만든다. (Windows는 WiX Toolset 3 필요)"
+    dependsOn tasks.named('installDist')
+    doFirst {
+        def installerArgs
+        if (isWindows) {
+            installerArgs = ['--type', 'exe',
+                             '--win-shortcut', '--win-menu', '--win-dir-chooser',
+                             '--win-per-user-install', '--win-upgrade-uuid', winUpgradeUuid]
+        } else if (isMac) {
+            installerArgs = ['--type', 'dmg', '--mac-package-name', appName]
+        } else {
+            installerArgs = ['--type', 'deb', '--linux-shortcut']
+        }
+        executable jpackageExe.get()
+        args(installerArgs + commonJpackageArgs())
+    }
+}

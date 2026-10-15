@@ -65,4 +65,12 @@ class FileManagerTest {
 
         assertThrows(UncheckedIOException.class, () -> fileManager.readFile("folder"));
     }
+
+    @Test
+    void defaultConstructor_usesHomeFolder() {
+        // 실제 사용자 폴더에는 쓰지 않고, 없는 파일 읽기만 확인
+        FileManager fileManager = new FileManager();
+
+        assertEquals("", fileManager.readFile("no-such-file-" + System.nanoTime() + ".txt"));
+    }
 }

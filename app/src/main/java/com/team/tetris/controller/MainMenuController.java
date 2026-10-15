@@ -132,7 +132,7 @@ public class MainMenuController {
 
             /*
              * 아이템 모드
-             * 난이도 NORMAL 고정
+             * 난이도 EASY 고정
              */
             case START_ITEM_GAME:
 
@@ -140,7 +140,7 @@ public class MainMenuController {
 
                 gameController.startGame(
                     GameMode.ITEM,
-                    Difficulty.NORMAL
+                    Difficulty.EASY
                 );
 
                 break;
