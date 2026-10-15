@@ -66,11 +66,11 @@ public class GameEngineService {
         levelService.updateLevel(scoreService.getLineScore());
 
         currentBlock = null;
-        nextBlock = blockFactory.createRandomBlock(difficulty);
         blockLocked = false;
         clearedLines = 0;
         skipsUsed = 0;
         isItemBlockTurn = false;
+        nextBlock = createNextBlock();
         pendingLineClear = null;
         weightCollided = false;
         clearEvents.clear();
@@ -97,13 +97,8 @@ public class GameEngineService {
 
         // 현재 블럭이 없으면 다음 블럭을 올리고, 다음 블럭 새로 생성
         if (currentBlock == null) {
-            if (isItemBlockTurn && itemMode) {
-                currentBlock = blockFactory.createItemBlock();
-                isItemBlockTurn = false;
-            } else {
-                currentBlock = nextBlock;
-                nextBlock = blockFactory.createRandomBlock(difficulty);
-            }
+            currentBlock = nextBlock;
+            nextBlock = createNextBlock();
             weightCollided = false;
 
             // 생성 위치에 놓을 수 없으면 게임오버
@@ -160,6 +155,14 @@ public class GameEngineService {
                 pending.getItemCounterLineCount()
         );
         return true;
+    }
+
+    private Block createNextBlock() {
+        if (isItemBlockTurn && itemMode) {
+            isItemBlockTurn = false;
+            return blockFactory.createItemBlock();
+        }
+        return blockFactory.createRandomBlock(difficulty);
     }
 
     //점수/카운터/레벨 반영 (아이템 효과·라인 삭제 공통)
