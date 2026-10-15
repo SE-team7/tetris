@@ -113,7 +113,11 @@ public class GameController {
 
         ClearResult event;
         while ((event = gameEngine.pollClearEvent()) != null) {
-            gameView.playClearAnimation(event, null);
+            gameView.playClearAnimation(event, () -> {
+                if (gameEngine.applyPendingLineClear()) {
+                    render();
+                }
+            });
         }
     }
 

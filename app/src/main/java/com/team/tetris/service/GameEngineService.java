@@ -147,6 +147,21 @@ public class GameEngineService {
         return clearEvents.pollFirst();
     }
 
+    //애니메이션 종료 시점에 호출: 미뤄둔 라인 클리어를 즉시 반영한다.
+    public boolean applyPendingLineClear() {
+        if (pendingLineClear == null) {
+            return false;
+        }
+        ClearResult pending = pendingLineClear;
+        pendingLineClear = null;
+        board.applyClear(pending);
+        applyScoreAndCounter(
+                pending.getScoreLineCount(),
+                pending.getItemCounterLineCount()
+        );
+        return true;
+    }
+
     //점수/카운터/레벨 반영 (아이템 효과·라인 삭제 공통)
     private void applyScoreAndCounter(int scoreLines, int counterLines) {
         if (counterLines > 0) {
