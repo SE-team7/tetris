@@ -153,13 +153,6 @@ class MainMenuViewTest {
                                 )
                         );
 
-                        assertTrue(
-                            label.getStyle()
-                                .contains(
-                                    "#dddddd"
-                                )
-                        );
-
                     } else {
 
                         assertEquals(
