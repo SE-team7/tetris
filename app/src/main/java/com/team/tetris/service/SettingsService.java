@@ -4,8 +4,11 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.UncheckedIOException;
+import java.util.EnumMap;
+import java.util.Map;
 import java.util.Properties;
 
+import com.team.tetris.domain.Difficulty;
 import com.team.tetris.domain.Settings;
 import com.team.tetris.domain.Settings.KeyAction;
 import com.team.tetris.domain.Settings.ScreenSize;
@@ -15,13 +18,14 @@ import javafx.scene.input.KeyCode;
 
 /**
  * 설정 파일 저장·불러오기 담당.
- * 파일 형식: Properties (screenSize=MEDIUM, colorBlindMode=false, key.MOVE_LEFT=A ...)
+ * 파일 형식: Properties (screenSize=MEDIUM, colorBlindMode=false, difficulty=NORMAL, key.MOVE_LEFT=A ...)
  */
 public class SettingsService {
 
     private static final String FILE_NAME = "settings.properties";
     private static final String SCREEN_SIZE = "screenSize";
     private static final String COLOR_BLIND_MODE = "colorBlindMode";
+    private static final String DIFFICULTY = "difficulty";
     private static final String KEY_PREFIX = "key.";
 
     private final FileManager fileManager;
@@ -48,7 +52,13 @@ public class SettingsService {
             // 기본값 유지
         }
         settings.setColorBlindMode(Boolean.parseBoolean(props.getProperty(COLOR_BLIND_MODE)));
+        try {
+            settings.setDifficulty(Difficulty.valueOf(props.getProperty(DIFFICULTY, "")));
+        } catch (IllegalArgumentException ignored) {
+            // 기본값 유지
+        }
 
+        Map<KeyAction, KeyCode> savedKeys = new EnumMap<>(KeyAction.class);
         for (KeyAction action : KeyAction.values()) {
             // 고정키는 저장 파일 값을 무시하고 기본값 유지
             if (action.isFixed()) {
@@ -59,19 +69,31 @@ public class SettingsService {
                 continue;
             }
             try {
-                settings.setKey(action, KeyCode.valueOf(value));
+                KeyCode key = KeyCode.valueOf(value);
+                // 고정키가 적혀 있으면 그 항목만 무시 (나머지 키는 그대로 적용되도록 미리 걸러냄)
+                if (!Settings.isFixedKey(key)) {
+                    savedKeys.put(action, key);
+                }
             } catch (IllegalArgumentException ignored) {
                 // 기본값 유지
+            }
+        }
+        // 키를 서로 바꾼 설정도 불러올 수 있게 한꺼번에 적용하고,
+        // 파일이 잘못돼 전체 적용이 안 되면 규칙에 맞는 키만 하나씩 적용
+        if (!settings.setKeys(savedKeys)) {
+            for (Map.Entry<KeyAction, KeyCode> entry : savedKeys.entrySet()) {
+                settings.setKey(entry.getKey(), entry.getValue());
             }
         }
         return settings;
     }
 
     /** 설정을 파일에 저장한다. 저장에 실패해도 예외를 던지지 않는다. (현재 실행 중에는 설정이 유지됨) */
-    public void save(Settings settings) {
+    public boolean save(Settings settings) {
         Properties props = new Properties();
         props.setProperty(SCREEN_SIZE, settings.getScreenSize().name());
         props.setProperty(COLOR_BLIND_MODE, String.valueOf(settings.isColorBlindMode()));
+        props.setProperty(DIFFICULTY, settings.getDifficulty().name());
         for (KeyAction action : KeyAction.values()) {
             // 고정키는 저장 파일 값을 무시하고 기본값 유지
             if (action.isFixed()) {
@@ -84,8 +106,10 @@ public class SettingsService {
         try {
             props.store(writer, "Tetris settings");
             fileManager.writeFile(FILE_NAME, writer.toString());
+            return true;
         } catch (IOException | UncheckedIOException e) {
             System.err.println("설정 저장 실패: " + e.getMessage());
+            return false;
         }
     }
 

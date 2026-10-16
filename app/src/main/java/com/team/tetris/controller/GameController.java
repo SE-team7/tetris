@@ -1,5 +1,8 @@
 package com.team.tetris.controller;
 
+import com.team.tetris.domain.ClearResult;
+import com.team.tetris.domain.Difficulty;
+import com.team.tetris.domain.GameMode;
 import com.team.tetris.domain.Settings;
 import com.team.tetris.service.GameEngineService;
 import com.team.tetris.view.GameView;
@@ -14,6 +17,8 @@ public class GameController {
     private final GameView gameView;
     private final Settings settings;
     private final GameOverController gameOverController;
+    private Difficulty difficulty;
+    private boolean itemMode;
 
     private final AnimationTimer gameLoop;
     private long lastTickMillis;
@@ -23,11 +28,15 @@ public class GameController {
     public GameController(GameEngineService gameEngine,
                           GameView gameView,
                           Settings settings,
-                          GameOverController gameOverController) {
+                          GameOverController gameOverController,
+                          Difficulty difficulty,
+                          boolean itemMode) {
         this.gameEngine = gameEngine;
         this.gameView = gameView;
         this.settings = settings;
         this.gameOverController = gameOverController;
+        this.difficulty = difficulty;
+        this.itemMode = itemMode;
 
         // 매 프레임 실행되는 게임 루프
         this.gameLoop = new AnimationTimer() {
@@ -47,7 +56,7 @@ public class GameController {
     public void startGame() {
         gameView.applyColorBlindMode(settings.isColorBlindMode());
 
-        gameEngine.startGame();
+        gameEngine.startGame(difficulty, itemMode);
         lastTickMillis = System.nanoTime() / 1_000_000;   // AnimationTimer 와 같은 기준 시각
 
         gameView.setControlKeyGuide(
@@ -59,8 +68,20 @@ public class GameController {
                 getKeyName(Settings.KeyAction.SKIP)
         );
 
+        gameView.setGameInfo(
+                itemMode ? GameMode.ITEM : GameMode.NORMAL,
+                difficulty
+        );
+
         render();
         gameLoop.start();
+    }
+
+    public void startGame(GameMode mode, Difficulty difficulty) {
+        gameLoop.stop();
+        this.difficulty = difficulty;
+        this.itemMode = mode == GameMode.ITEM;
+        startGame();
     }
 
     private String getKeyName(Settings.KeyAction action) {
@@ -89,6 +110,15 @@ public class GameController {
         }
 
         render();
+
+        ClearResult event;
+        while ((event = gameEngine.pollClearEvent()) != null) {
+            gameView.playClearAnimation(event, () -> {
+                if (gameEngine.applyPendingLineClear()) {
+                    render();
+                }
+            });
+        }
     }
 
     public void togglePause() {
@@ -181,7 +211,9 @@ public class GameController {
         gameOverController.show(
                 gameEngine.getScore(),
                 gameEngine.getLevel(),
-                gameEngine.getClearedLines()
+                gameEngine.getClearedLines(),
+                difficulty,
+                itemMode ? GameMode.ITEM : GameMode.NORMAL
         );
     }
 }

@@ -3,6 +3,7 @@ package com.team.tetris.controller;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.team.tetris.domain.Difficulty;
 import com.team.tetris.domain.Settings;
 import com.team.tetris.domain.Settings.KeyAction;
 import com.team.tetris.domain.Settings.ScreenSize;
@@ -20,6 +21,7 @@ public class SettingsController {
 
     private enum NavigationType {
         SCREEN_SIZE,
+        DIFFICULTY,
         KEY,
         COLOR_BLIND,
         SAVE,
@@ -43,10 +45,8 @@ public class SettingsController {
             NavigationType type,
             String keyActionName
         ) {
-
             this.type = type;
-            this.keyActionName =
-                keyActionName;
+            this.keyActionName = keyActionName;
         }
     }
 
@@ -56,9 +56,8 @@ public class SettingsController {
     private final SceneManager sceneManager;
     private final Settings settings;
 
-    private final List<NavigationItem>
-        navigationItems =
-            new ArrayList<>();
+    private final List<NavigationItem> navigationItems =
+        new ArrayList<>();
 
     /*
      * 키 변경 중인 Action
@@ -72,6 +71,12 @@ public class SettingsController {
 
     private int selectedIndex;
 
+    /*
+     * 저장된 난이도를 View에 표시할 때
+     * changeDifficulty가 다시 호출되는 것을 방지
+     */
+    private boolean updatingDifficultyView;
+
     public SettingsController(
         SettingsView settingsView,
         SettingsService settingsService,
@@ -80,20 +85,11 @@ public class SettingsController {
         Settings settings
     ) {
 
-        this.settingsView =
-            settingsView;
-
-        this.settingsService =
-            settingsService;
-
-        this.scoreboardService =
-            scoreboardService;
-
-        this.sceneManager =
-            sceneManager;
-
-        this.settings =
-            settings;
+        this.settingsView = settingsView;
+        this.settingsService = settingsService;
+        this.scoreboardService = scoreboardService;
+        this.sceneManager = sceneManager;
+        this.settings = settings;
 
         createNavigationItems();
 
@@ -117,6 +113,12 @@ public class SettingsController {
         navigationItems.add(
             new NavigationItem(
                 NavigationType.SCREEN_SIZE
+            )
+        );
+
+        navigationItems.add(
+            new NavigationItem(
+                NavigationType.DIFFICULTY
             )
         );
 
@@ -165,7 +167,7 @@ public class SettingsController {
     }
 
     /*
-     * MOUSE
+     * MOUSE / COMBOBOX
      */
     private void connectActions() {
 
@@ -188,11 +190,21 @@ public class SettingsController {
                 }
             });
 
-        /*
-         * 색맹 모드:
-         * 버튼 하나를 누를 때마다
-         * ON / OFF 전환
-         */
+        settingsView
+            .setOnDifficultyChanged(
+                difficulty -> {
+
+                    if (
+                        !updatingDifficultyView
+                    ) {
+
+                        changeDifficulty(
+                            difficulty
+                        );
+                    }
+                }
+            );
+
         settingsView
             .getColorBlindButton()
             .setOnAction(
@@ -249,10 +261,6 @@ public class SettingsController {
                     actionName
                 );
 
-            /*
-             * SKIP이 아직 Settings enum에
-             * 없는 경우에도 compile 가능.
-             */
             if (action == null) {
 
                 button.setOnAction(
@@ -298,12 +306,46 @@ public class SettingsController {
 
     /*
      * 키 변경 시작
-     *
-     * Enter를 누르면 기존 글자 삭제.
      */
     private void beginKeyCapture(
         KeyAction action
     ) {
+
+        if (
+            waitingForKeyAction
+                != null
+        ) {
+
+            if (
+                pendingKeyCode
+                    != null
+            ) {
+
+                confirmPendingKey();
+
+                if (
+                    waitingForKeyAction
+                        != null
+                ) {
+                    return;
+                }
+
+            } else {
+
+                KeyCode oldKey =
+                    settings.getKey(
+                        waitingForKeyAction
+                    );
+
+                if (oldKey != null) {
+
+                    settingsView.setKeyText(
+                        waitingForKeyAction.name(),
+                        oldKey.getName()
+                    );
+                }
+            }
+        }
 
         waitingForKeyAction =
             action;
@@ -318,7 +360,7 @@ public class SettingsController {
 
         settingsView.showMessage(
             action.name()
-            + " : 새 키를 누르세요"
+            + " : 새 키를 누른 뒤 저장해주세요."
         );
     }
 
@@ -350,13 +392,16 @@ public class SettingsController {
                     }
 
                     /*
-                     * Screen Size 목록이
-                     * 열려 있을 때는
-                     * ComboBox가 직접 처리
+                     * ComboBox가 열려 있으면
+                     * ComboBox 자체가 키를 처리
                      */
                     if (
                         settingsView
                             .getScreenSizeComboBox()
+                            .isShowing()
+                        ||
+                        settingsView
+                            .getDifficultyComboBox()
                             .isShowing()
                     ) {
 
@@ -393,31 +438,31 @@ public class SettingsController {
 
     /*
      * 키 변경 과정
-     *
-     * ENTER
-     * -> 빈 칸
-     *
-     * H
-     * -> H 표시
-     *
-     * ENTER
-     * -> 확정
      */
     private void handleKeyCapture(
         KeyCode key
     ) {
 
+        if (
+            key == KeyCode.ENTER
+            && pendingKeyCode != null
+        ) {
+
+            confirmPendingKey();
+            return;
+        }
+
         pendingKeyCode =
             key;
-        
+
         settingsView.setKeyText(
-        waitingForKeyAction.name(),
-        key.getName()
+            waitingForKeyAction.name(),
+            key.getName()
         );
 
         settingsView.showMessage(
             waitingForKeyAction.name()
-            + " : 저장 버튼을 눌러 적용하세요."
+            + " : ENTER를 눌러 확정"
         );
     }
 
@@ -453,8 +498,7 @@ public class SettingsController {
             );
 
             settingsView.showMessage(
-                action.name()
-                + " : 이미 사용 중인 키입니다."
+                "이미 사용 중인 키입니다."
             );
 
             return;
@@ -478,9 +522,8 @@ public class SettingsController {
             null;
     }
 
-
     /*
-     * FOCUS
+     * FOCUS / SELECTION
      */
     private void connectFocusTracking() {
 
@@ -489,6 +532,12 @@ public class SettingsController {
         addFocusTracking(
             settingsView
                 .getScreenSizeComboBox(),
+            index++
+        );
+
+        addFocusTracking(
+            settingsView
+                .getDifficultyComboBox(),
             index++
         );
 
@@ -561,9 +610,106 @@ public class SettingsController {
 
                         selectedIndex =
                             index;
+
+                        updateSelectionStyle();
                     }
                 }
             );
+    }
+
+    /*
+     * 선택된 항목을 직접 표시
+     */
+    private void updateSelectionStyle() {
+
+        for (
+            int i = 0;
+            i < navigationItems.size();
+            i++
+        ) {
+
+            Node node =
+                getNavigationNode(
+                    navigationItems.get(i)
+                );
+
+            if (node == null) {
+                continue;
+            }
+
+            if (
+                i == selectedIndex
+            ) {
+
+                node.setStyle(
+                    "-fx-background-color: linear-gradient(#f4f4f4, #dddddd);"
+                    + "-fx-border-color: #4A90E2;"
+                    + "-fx-border-width: 2px;"
+                    + "-fx-border-radius: 3px;"
+                    + "-fx-background-radius: 3px;"
+                    + "-fx-text-fill: black;"
+                    + "-fx-focus-color: transparent;"
+                    + "-fx-faint-focus-color: transparent;"
+                );
+
+            } else {
+
+                node.setStyle(
+                    "-fx-background-color: linear-gradient(#f4f4f4, #dddddd);"
+                    + "-fx-border-color: #b5b5b5;"
+                    + "-fx-border-width: 1px;"
+                    + "-fx-border-radius: 3px;"
+                    + "-fx-background-radius: 3px;"
+                    + "-fx-text-fill: black;"
+                    + "-fx-focus-color: transparent;"
+                    + "-fx-faint-focus-color: transparent;"
+                );
+            }
+        }
+    }
+
+    private Node getNavigationNode(
+        NavigationItem item
+    ) {
+
+        return switch (
+            item.type
+        ) {
+
+            case SCREEN_SIZE ->
+                settingsView
+                    .getScreenSizeComboBox();
+
+            case DIFFICULTY ->
+                settingsView
+                    .getDifficultyComboBox();
+
+            case KEY ->
+                settingsView
+                    .getKeyButton(
+                        item.keyActionName
+                    );
+
+            case COLOR_BLIND ->
+                settingsView
+                    .getColorBlindButton();
+
+            case SAVE ->
+                settingsView
+                    .getSaveButton();
+
+            case RESET_DEFAULT ->
+                settingsView
+                    .getResetDefaultButton();
+
+            case RESET_SCOREBOARD ->
+                settingsView
+                    .getResetScoreboardButton();
+
+            case BACK ->
+                settingsView
+                    .getBackButton();
+        };
     }
 
     /*
@@ -576,7 +722,9 @@ public class SettingsController {
         selectedIndex +=
             direction;
 
-        if (selectedIndex < 0) {
+        if (
+            selectedIndex < 0
+        ) {
 
             selectedIndex =
                 navigationItems.size()
@@ -596,61 +744,11 @@ public class SettingsController {
 
     private void focusCurrentItem() {
 
-        NavigationItem item =
-            navigationItems.get(
-                selectedIndex
-            );
-
-        switch (item.type) {
-
-            case SCREEN_SIZE ->
-
-                settingsView
-                    .getScreenSizeComboBox()
-                    .requestFocus();
-
-            case KEY -> {
-
-                Button button =
-                    settingsView.getKeyButton(
-                        item.keyActionName
-                    );
-
-                if (button != null) {
-                    button.requestFocus();
-                }
-            }
-
-            case COLOR_BLIND ->
-
-                settingsView
-                    .getColorBlindButton()
-                    .requestFocus();
-
-            case SAVE ->
-
-                settingsView
-                    .getSaveButton()
-                    .requestFocus();
-
-            case RESET_DEFAULT ->
-
-                settingsView
-                    .getResetDefaultButton()
-                    .requestFocus();
-
-            case RESET_SCOREBOARD ->
-
-                settingsView
-                    .getResetScoreboardButton()
-                    .requestFocus();
-
-            case BACK ->
-
-                settingsView
-                    .getBackButton()
-                    .requestFocus();
-        }
+        /*
+         * JavaFX 기본 focus 스타일에 의존하지 않고
+         * 선택 상태를 직접 표시
+         */
+        updateSelectionStyle();
     }
 
     /*
@@ -663,12 +761,20 @@ public class SettingsController {
                 selectedIndex
             );
 
-        switch (item.type) {
+        switch (
+            item.type
+        ) {
 
             case SCREEN_SIZE ->
 
                 settingsView
                     .getScreenSizeComboBox()
+                    .show();
+
+            case DIFFICULTY ->
+
+                settingsView
+                    .getDifficultyComboBox()
                     .show();
 
             case KEY -> {
@@ -678,7 +784,9 @@ public class SettingsController {
                         item.keyActionName
                     );
 
-                if (action == null) {
+                if (
+                    action == null
+                ) {
 
                     settingsView.showMessage(
                         item.keyActionName
@@ -757,8 +865,14 @@ public class SettingsController {
         sceneManager.showSettings();
 
         settingsView
-            .getScreenSizeComboBox()
+            .getRoot()
+            .setFocusTraversable(true);
+
+        settingsView
+            .getRoot()
             .requestFocus();
+
+        updateSelectionStyle();
     }
 
     /*
@@ -769,10 +883,13 @@ public class SettingsController {
     ) {
 
         if (
-            waitingForKeyAction != null
+            waitingForKeyAction
+                != null
         ) {
 
-            handleKeyCapture(key);
+            handleKeyCapture(
+                key
+            );
         }
     }
 
@@ -790,8 +907,7 @@ public class SettingsController {
         if (!changed) {
 
             settingsView.showMessage(
-                action.name()
-                + " : 이미 사용 중인 키입니다."
+                "이미 사용 중인 키입니다."
             );
 
             return false;
@@ -823,6 +939,29 @@ public class SettingsController {
         settingsView.showMessage(
             "화면 크기: "
             + screenSize.name()
+        );
+    }
+
+    /*
+     * DIFFICULTY
+     */
+    public void changeDifficulty(
+        Difficulty difficulty
+    ) {
+
+        if (
+            difficulty == null
+        ) {
+            return;
+        }
+
+        settings.setDifficulty(
+            difficulty
+        );
+
+        settingsView.showMessage(
+            "난이도: "
+            + difficulty.name()
         );
     }
 
@@ -865,6 +1004,8 @@ public class SettingsController {
             settings.getScreenSize()
         );
 
+        updateSelectionStyle();
+
         settingsView.showMessage(
             "기본 설정으로 복구했습니다."
         );
@@ -872,30 +1013,55 @@ public class SettingsController {
 
     /*
      * SAVE
-     *
-     * 여기서 파일에 저장
      */
     public void save() {
-        if (waitingForKeyAction != null) {
-        if (pendingKeyCode == null) {
-            settingsView.showMessage("새 키를 먼저 입력해주세요.");
-            return;
+
+        if (
+            waitingForKeyAction
+                != null
+        ) {
+
+            if (
+                pendingKeyCode
+                    == null
+            ) {
+
+                settingsView.showMessage(
+                    "새 키를 먼저 입력해주세요."
+                );
+
+                return;
+            }
+
+            confirmPendingKey();
+
+            if (
+                waitingForKeyAction
+                    != null
+            ) {
+                return;
+            }
         }
 
-        confirmPendingKey();
+        if (
+            settingsService.save(
+                settings
+            )
+        ) {
 
-        if (waitingForKeyAction != null) {
-            return;
+            renderSettings();
+            updateSelectionStyle();
+
+            settingsView.showMessage(
+                "설정을 저장했습니다."
+            );
+
+        } else {
+
+            settingsView.showMessage(
+                "설정 저장에 실패했습니다."
+            );
         }
-    }
-
-        settingsService.save(
-            settings
-        );
-
-        settingsView.showMessage(
-            "설정을 저장했습니다."
-        );
     }
 
     /*
@@ -925,11 +1091,28 @@ public class SettingsController {
                     .name()
             );
 
-        settingsView
-            .setColorBlindMode(
-                settings
-                    .isColorBlindMode()
+        Difficulty difficulty =
+            settings.getDifficulty();
+
+        if (
+            difficulty != null
+        ) {
+
+            updatingDifficultyView =
+                true;
+
+            settingsView.setDifficulty(
+                difficulty
             );
+
+            updatingDifficultyView =
+                false;
+        }
+
+        settingsView.setColorBlindMode(
+            settings
+                .isColorBlindMode()
+        );
 
         for (
             KeyAction action :
@@ -941,7 +1124,9 @@ public class SettingsController {
                     action
                 );
 
-            if (key != null) {
+            if (
+                key != null
+            ) {
 
                 settingsView.setKeyText(
                     action.name(),
@@ -956,23 +1141,8 @@ public class SettingsController {
         Settings target
     ) {
 
-        target.setScreenSize(
-            source.getScreenSize()
+        target.copyFrom(
+            source
         );
-
-        target.setColorBlindMode(
-            source.isColorBlindMode()
-        );
-
-        for (
-            KeyAction action :
-            KeyAction.values()
-        ) {
-
-            target.setKey(
-                action,
-                source.getKey(action)
-            );
-        }
     }
 }
