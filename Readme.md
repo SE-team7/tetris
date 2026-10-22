@@ -4,10 +4,10 @@
 
 Java를 설치하지 않아도 바로 실행할 수 있습니다.
 
-| OS | 다운로드 |
-|---|---|
-| Windows | [DP7-windows.zip](https://github.com/SE-team7/tetris/releases/latest/download/DP7-windows.zip) |
-| macOS | [DP7-mac.zip](https://github.com/SE-team7/tetris/releases/latest/download/DP7-mac.zip) |
+| OS | 다운로드 | 아이콘 |
+|---|---|:---:|
+| Windows | [DP7-windows.zip](https://github.com/SE-team7/tetris/releases/latest/download/DP7-windows.zip) | <a href="https://github.com/SE-team7/tetris/releases/latest/download/DP7-windows.zip"><img src="app/src/main/resources/icon/DP7.png" alt="Windows 다운로드" width="64"></a> |
+| macOS | [DP7-mac.zip](https://github.com/SE-team7/tetris/releases/latest/download/DP7-mac.zip) | <a href="https://github.com/SE-team7/tetris/releases/latest/download/DP7-mac.zip"><img src="app/src/main/resources/icon/DP7.png" alt="macOS 다운로드" width="64"></a> |
 
 릴리스 노트와 버전 기록은 [Releases](https://github.com/SE-team7/tetris/releases)에서 확인할 수 있습니다.
 
