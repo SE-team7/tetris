@@ -1,5 +1,32 @@
 # Tetris 게임 개발
 
+## 다운로드
+
+Java를 설치하지 않아도 바로 실행할 수 있습니다.
+
+| OS | 다운로드 |
+|---|---|
+| Windows | [DP7-windows.zip](https://github.com/SE-team7/tetris/releases/latest/download/DP7-windows.zip) |
+| macOS | [DP7-mac.zip](https://github.com/SE-team7/tetris/releases/latest/download/DP7-mac.zip) |
+
+릴리스 노트와 버전 기록은 [Releases](https://github.com/SE-team7/tetris/releases)에서 확인할 수 있습니다.
+
+### Windows
+
+1. `DP7-windows.zip`을 다운로드하고 압축을 풉니다.
+2. `DP7` 폴더 안의 `DP7.exe`를 실행합니다.
+   - "Windows의 PC 보호" 창이 뜨면 **추가 정보 → 실행**을 누릅니다.
+
+> `DP7.exe`만 따로 꺼내면 실행되지 않습니다. `app/`, `runtime/` 폴더와 같은 위치에 있어야 합니다.
+
+### macOS
+
+1. `DP7-mac.zip`을 다운로드하고 압축을 풉니다.
+2. `DP7.app`을 **우클릭 → 열기**로 실행합니다.
+   - 그래도 막히면 **시스템 설정 → 개인정보 보호 및 보안 → 그래도 열기**를 누릅니다.
+
+---
+
 ## 개발 환경
 
 - Java: JDK 21
@@ -132,7 +159,7 @@ app/src/test/java/com/team/tetris/
 .\gradlew.bat packageZip
 ```
 
-`app/build/distributions/DP7-1.0.0-windows.zip`을 배포합니다. 압축을 풀고 `DP7/DP7.exe`를 실행하면 됩니다.
+`app/build/distributions/DP7-<버전>-windows.zip`이 생성됩니다. 압축을 풀고 `DP7/DP7.exe`를 실행하면 됩니다.
 
 설치 파일(`exe`)이 필요하면 [WiX Toolset 3](https://github.com/wixtoolset/wix3/releases)을 설치하고 PATH에 추가한 뒤 실행합니다.
 
@@ -143,11 +170,29 @@ app/src/test/java/com/team/tetris/
 ### macOS
 
 ```bash
-./gradlew packageZip        # DP7-1.0.0-mac.zip (DP7.app)
-./gradlew packageInstaller  # DP7-1.0.0.dmg
+./gradlew packageZip        # DP7-<버전>-mac.zip (DP7.app)
+./gradlew packageInstaller  # DP7-<버전>.dmg
 ```
 
 서명되지 않은 앱이라 처음 실행할 때 경고가 뜨면, 앱을 우클릭 → **열기**로 실행합니다.
+
+### GitHub Release로 배포
+
+1. `app/build.gradle`의 `appVersion`을 올리고 Windows·macOS에서 각각 `packageZip`을 실행합니다.
+2. 생성된 zip의 이름을 **`DP7-windows.zip`, `DP7-mac.zip`으로 변경**합니다.
+   (README 다운로드 링크가 이 파일명을 사용하므로 버전이 바뀌어도 이름은 고정합니다.)
+3. 최신 코드를 `main`에 push합니다.
+4. GitHub **Releases → Draft a new release**
+   - **Choose a tag**: 새 태그 입력(예: `v2.0`) 후 **Create new tag ... on publish** 클릭
+   - **Target**: `main`
+   - **Attach binaries** 영역(설명칸 아래)에 zip 두 개를 첨부
+   - **Release label**: **Latest**
+5. **Publish release**
+
+| 태그 | 내용 |
+|---|---|
+| `v1.0` | 1차 요구사항 완료 |
+| `v2.0` | 1·2차 요구사항 완료 |
 
 ### 이름·아이콘·버전 변경
 
