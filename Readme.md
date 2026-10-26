@@ -25,6 +25,16 @@ Java를 설치하지 않아도 바로 실행할 수 있습니다.
 2. `DP7.app`을 **우클릭 → 열기**로 실행합니다.
    - 그래도 막히면 **시스템 설정 → 개인정보 보호 및 보안 → 그래도 열기**를 누릅니다.
 
+<개발자>
+> `packageZip`으로 만든 zip은 실행 권한과 서명이 깨져 "손상됨" 오류가 납니다. 반드시 아래 방법으로 압축하세요.
+
+```bash
+./gradlew clean packageApp
+cd app/build/jpackage
+xattr -cr DP7.app
+ditto -c -k --norsrc --noextattr --keepParent DP7.app DP7-mac.zip
+```
+
 ---
 
 ## 개발 환경
