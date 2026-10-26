@@ -16,6 +16,8 @@ import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.scene.layout.Region;
+
 
 public class SettingsView {
 
@@ -46,9 +48,9 @@ public class SettingsView {
 
     public SettingsView() {
 
-        root = new VBox(14);
+        root = new VBox(8);
         root.setAlignment(Pos.TOP_CENTER);
-        root.setPadding(new Insets(24));
+        root.setPadding(new Insets(12));
 
         /*
          * TITLE
@@ -270,6 +272,9 @@ public class SettingsView {
             + "-fx-font-size: 13px;"
             + "-fx-padding: 8px;"
         );
+        fixedKeyNotice.setWrapText(true);
+        fixedKeyNotice.setMinHeight(Region.USE_PREF_SIZE);
+        fixedKeyNotice.setMaxWidth(Double.MAX_VALUE);
 
         /*
          * BUTTONS
