@@ -280,13 +280,23 @@ public class GameEngineService {
     }
 
     public boolean rotate() {
-        if (!hasCurrentBlock()) {
+        if (!hasCurrentBlock() || !currentBlock.canRotate()) {
             return false;
         }
-        if (board.canRotate(currentBlock)) {
-            currentBlock.rotate();
-            return true;
+
+        // 현재 위치 → 왼쪽 1칸 → 오른쪽 1칸
+        // → 왼쪽 2칸 → 오른쪽 2칸
+        int[] colOffsets = {0, -1, 1, -2, 2};
+
+        for (int deltaCol : colOffsets) {
+            if (board.canRotate(currentBlock, 0, deltaCol)) {
+                currentBlock.move(0, deltaCol);
+                currentBlock.rotate();
+                return true;
+            }
         }
+
+        // 모든 후보가 막혀 있으면 위치와 회전 상태 유지
         return false;
     }
 

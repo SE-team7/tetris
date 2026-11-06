@@ -133,17 +133,27 @@ public class Block {
         }
         rotation = (rotation+1)%4;
     }
+    
+    // 현재 위치에서 회전한 좌표 예측
+    public Position[] getRotatedCells() {
+        return getRotatedCells(0, 0);
+    }
 
     // 회전했을 때의 셀 위치를 미리 계산
     // 실제 rotation은 변경하지 않음
-    public Position[] getRotatedCells() {
-        if (!canRotate()) {
-            return getCells();
-        }
+    // 이동한 위치에서 회전했을 때의 좌표를 예측
+    // 실제 position과 rotation은 변경하지 않음
+    public Position[] getRotatedCells(int deltaRow, int deltaCol) {
+        Position movedPosition = new Position(
+                position.getRow() + deltaRow,
+                position.getCol() + deltaCol
+        );
 
-        int nextRotation = (rotation+1)%4;
+        int nextRotation = canRotate()
+                ? (rotation + 1) % 4
+                : rotation;
 
-        return getCells(position, nextRotation);
+        return getCells(movedPosition, nextRotation);
     }
 
     //현재 블록이 있는 칸

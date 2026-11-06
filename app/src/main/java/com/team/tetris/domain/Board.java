@@ -22,10 +22,15 @@ public class Board {
     public boolean canMove(Block block, int deltaRow, int deltaCol) {
         return canPlace(block.getMovedCells(deltaRow, deltaCol));
     }
-    //회전 가능 확인
+    
     public boolean canRotate(Block block) {
-        return block.canRotate() && canPlace(block.getRotatedCells());
+        return canRotate(block, 0, 0);
     }
+    //회전 가능 확인
+    public boolean canRotate(Block block, int deltaRow, int deltaCol) {
+        return block.canRotate() && canPlace(block.getRotatedCells(deltaRow, deltaCol));
+    }
+
     //현재 위치에 블록 배치 가능한지 확인
     public boolean canPlace(Block block) {
         return canPlace(block.getCells());

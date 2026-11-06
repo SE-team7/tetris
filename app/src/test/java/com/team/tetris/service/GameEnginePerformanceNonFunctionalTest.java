@@ -28,7 +28,7 @@ public class GameEnginePerformanceNonFunctionalTest {
         long maxRight = 0;
         long maxRotate = 0;
         long maxHardDrop = 0;
-
+        //1000회 반복
         for (int i = 0; i < 1_000; i++) {
             //게임 초기화와 블록 생성은 측정에서 제외
             prepareGame(engine);

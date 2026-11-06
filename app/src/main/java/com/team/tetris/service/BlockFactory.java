@@ -10,7 +10,7 @@ import com.team.tetris.domain.Position;
 
 public class BlockFactory {
     //보드 바로 위에 생성됨
-    private static final int SPAWN_ROW = 4;
+    private static final int SPAWN_ROW = 5;
 
     //보드 위 한줄 비우고 생성됨
     //private static final int SPAWN_COL = 3;
