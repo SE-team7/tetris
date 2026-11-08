@@ -1,0 +1,213 @@
+.settings-title {
+    -fx-font-size: 36px;
+    -fx-font-weight: bold;
+}
+
+.settings-section-title {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}
+
+.fixed-key-notice {
+    -fx-text-fill: #AAAAAA;
+    -fx-font-size: 13px;
+    -fx-padding: 8px;
+}
+
+.settings-message {
+    -fx-font-size: 12px;
+}
+
+.settings-label {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+}
+
+.game-over-title {
+    -fx-font-size: 28px;
+    -fx-font-weight: bold;
+}
+
+.game-over-highlight {
+    -fx-text-fill: #f5c542;
+    -fx-font-weight: bold;
+}
+
+.game-over-name {
+    -fx-font-size: 20px;
+}
+
+.main-menu-title-main {
+    -fx-font-family: "Georgia";
+    -fx-font-size: 54px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #222222;
+    -fx-effect: dropshadow(gaussian, #b8b8b8, 5, 0.2, 1, 2);
+}
+
+.main-menu-title-sub {
+    -fx-font-family: "Georgia";
+    -fx-font-size: 32px;
+    -fx-font-style: italic;
+    -fx-text-fill: #555555;
+    -fx-effect: dropshadow(gaussian, #c8c8c8, 4, 0.2, 1, 1);
+}
+
+.main-menu-key-guide {
+    -fx-font-size: 13px;
+    -fx-text-fill: #888888;
+}
+
+.menu-item {
+    -fx-border-width: 2px;
+}
+
+.menu-item-selected {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #222222;
+    -fx-background-color: #eeeeee;
+    -fx-border-color: #4A90E2;
+}
+
+.menu-item-unselected {
+    -fx-font-size: 20px;
+    -fx-font-weight: normal;
+    -fx-text-fill: #333333;
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+
+.scoreboard-root {
+    -fx-background-color: #F4F4F4;
+}
+
+.scoreboard-title {
+    -fx-font-size: 36px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #222222;
+}
+
+.scoreboard-key-guide {
+    -fx-font-size: 13px;
+    -fx-text-fill: #AAAAAA;
+}
+
+.scoreboard-header {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #333333;
+}
+
+.scoreboard-mode-button {
+    -fx-font-size: 14px;
+    -fx-padding: 7 14 7 14;
+    -fx-background-radius: 3;
+}
+
+.scoreboard-mode-selected {
+    -fx-background-color: #444444;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}
+
+.scoreboard-mode-normal {
+    -fx-background-color: #E8E8E8;
+    -fx-text-fill: #222222;
+    -fx-border-color: #BBBBBB;
+}
+
+.scoreboard-cell {
+    -fx-font-size: 14px;
+}
+
+.scoreboard-cell-highlight {
+    -fx-text-fill: #E89B00;
+    -fx-font-weight: bold;
+}
+
+.scoreboard-cell-normal {
+    -fx-text-fill: #222222;
+    -fx-font-weight: normal;
+}
+
+.scoreboard-cell-dim {
+    -fx-text-fill: #AAAAAA;
+}
+
+.game-root {
+    -fx-background-color: #111111;
+}
+
+.game-score-label {
+    -fx-text-fill: white;
+    -fx-font-family: "Consolas";
+}
+
+.game-status-label {
+    -fx-text-fill: #FFD54F;
+    -fx-font-family: "Consolas";
+}
+
+.game-skip-label {
+    -fx-text-fill: white;
+    -fx-font-family: "Consolas";
+}
+
+.game-info-title {
+    -fx-text-fill: white;
+    -fx-font-family: "Consolas";
+    -fx-font-size: 17px;
+    -fx-font-weight: bold;
+}
+
+.game-info-small {
+    -fx-text-fill: #BBBBBB;
+    -fx-font-family: "Consolas";
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+
+.item-info-title {
+    -fx-text-fill: #E8DEFF;
+    -fx-font-family: "Consolas";
+    -fx-font-size: 17px;
+    -fx-font-weight: bold;
+    -fx-effect: dropshadow(gaussian, #7C4DFF, 6, 0.40, 0, 0);
+}
+
+.item-info-box {
+    -fx-background-color: rgba(124, 77, 255, 0.10);
+    -fx-border-color: #7C4DFF;
+    -fx-border-width: 1px;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+}
+
+.item-info-description {
+    -fx-text-fill: #E6E6E6;
+    -fx-font-family: "Consolas";
+    -fx-font-size: 11px;
+}
+
+.item-info-action {
+    -fx-text-fill: #BBBBBB;
+    -fx-font-family: "Consolas";
+    -fx-font-size: 11px;
+}
+
+.game-small-bordered-label {
+    -fx-text-fill: #FFFFFF;
+    -fx-font-family: "Consolas";
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+
+    -fx-background-color: #222222;
+    -fx-border-color: #BDBDBD;
+    -fx-border-width: 1px;
+    -fx-border-radius: 3px;
+    -fx-background-radius: 3px;
+
+    -fx-padding: 2px 6px;
+}

@@ -46,6 +46,8 @@ class MainMenuViewTest {
         });
     }
 
+
+    // 메인 메뉴에서 기본 선택 항목에 선택 CSS 스타일이 적용되는지 확인
     @Test
     void defaultSelectionIsStartGame()
         throws Exception {
@@ -70,10 +72,8 @@ class MainMenuViewTest {
 
             assertTrue(
                 labels.get(0)
-                    .getStyle()
-                    .contains(
-                        "font-weight: bold"
-                    )
+                .getStyleClass()
+                .contains("menu-item-selected")
             );
 
             assertEquals(
@@ -85,6 +85,8 @@ class MainMenuViewTest {
         });
     }
 
+
+    // 메뉴 이동 시 선택된 항목과 선택되지 않은 항목의 CSS 스타일이 올바르게 변경되는지 확인
     @Test
     void allMenuItemsCanBeSelected()
         throws Exception {
@@ -140,18 +142,10 @@ class MainMenuViewTest {
                         );
 
                         assertTrue(
-                            label.getStyle()
-                                .contains(
-                                    "-fx-font-size: 22px"
-                                )
+                            label.getStyleClass()
+                            .contains("menu-item-selected")
                         );
 
-                        assertTrue(
-                            label.getStyle()
-                                .contains(
-                                    "-fx-font-weight: bold"
-                                )
-                        );
 
                     } else {
 
@@ -161,24 +155,8 @@ class MainMenuViewTest {
                         );
 
                         assertTrue(
-                            label.getStyle()
-                                .contains(
-                                    "-fx-font-size: 20px"
-                                )
-                        );
-
-                        assertTrue(
-                            label.getStyle()
-                                .contains(
-                                    "-fx-font-weight: normal"
-                                )
-                        );
-
-                        assertTrue(
-                            label.getStyle()
-                                .contains(
-                                    "transparent"
-                                )
+                            label.getStyleClass()
+                            .contains("menu-item-unselected")
                         );
                     }
                 }
@@ -188,6 +166,8 @@ class MainMenuViewTest {
         });
     }
 
+
+    // 메인 메뉴 항목에 공통 CSS 클래스가 적용되는지 확인
     @Test
     void menuLabelsHaveMenuItemStyleClass()
         throws Exception {

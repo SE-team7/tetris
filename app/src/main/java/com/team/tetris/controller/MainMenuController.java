@@ -121,12 +121,11 @@ public class MainMenuController {
              */
             case START_GAME:
 
-                sceneManager.showGame();
-
                 gameController.startGame(
                     GameMode.NORMAL,
                     settings.getDifficulty()
                 );
+                sceneManager.showGame();
 
                 break;
 
@@ -136,12 +135,11 @@ public class MainMenuController {
              */
             case START_ITEM_GAME:
 
-                sceneManager.showGame();
-
                 gameController.startGame(
                     GameMode.ITEM,
                     Difficulty.EASY
                 );
+                sceneManager.showGame();
 
                 break;
 

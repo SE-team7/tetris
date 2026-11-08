@@ -121,16 +121,31 @@ class ScoreboardViewTest {
         });
     }
 
+
+    // 스코어보드에서 선택된 행에만 하이라이트 CSS 스타일이 적용되는지 확인
     @Test
     void highlightedRow_isStyledOnlyThatRow() throws Exception {
         onFx(() -> {
             ScoreboardView view = new ScoreboardView();
             view.render(scores(300, 200, 100), 2, ScoreboardMenu.MAIN_MENU, GameMode.NORMAL);
 
-            assertTrue(cell(view, 1, 2).getStyle().contains(HIGHLIGHT_COLOR));
-            assertTrue(cell(view, 1, 2).getStyle().contains("bold"));
-            assertFalse(cell(view, 1, 1).getStyle().contains(HIGHLIGHT_COLOR));
-            assertFalse(cell(view, 1, 3).getStyle().contains(HIGHLIGHT_COLOR));
+            assertTrue(
+    cell(view, 1, 2)
+        .getStyleClass()
+        .contains("scoreboard-cell-highlight")
+);
+
+assertFalse(
+    cell(view, 1, 1)
+        .getStyleClass()
+        .contains("scoreboard-cell-highlight")
+);
+
+assertFalse(
+    cell(view, 1, 3)
+        .getStyleClass()
+        .contains("scoreboard-cell-highlight")
+);
         });
     }
 
@@ -166,6 +181,8 @@ class ScoreboardViewTest {
         });
     }
 
+
+    // 스코어보드 모드 변경 시 선택된 모드 버튼의 CSS 스타일이 올바르게 적용되는지 확인
     @Test
     void render_withMode_updatesSelectedModeButton() throws Exception {
         onFx(() -> {
@@ -174,8 +191,17 @@ class ScoreboardViewTest {
 
             view.render(List.of(), -1, ScoreboardMenu.MAIN_MENU, GameMode.ITEM);
             assertEquals(GameMode.ITEM, view.getSelectedMode());
-            assertTrue(modeButton(view, 1).getStyle().contains("#444444")); // 선택된 버튼 색
-            assertFalse(modeButton(view, 0).getStyle().contains("#444444"));
+            assertTrue(
+    modeButton(view, 1)
+        .getStyleClass()
+        .contains("scoreboard-mode-selected")
+);
+
+assertFalse(
+    modeButton(view, 0)
+        .getStyleClass()
+        .contains("scoreboard-mode-selected")
+);
 
             // 모드 없는 render는 선택된 모드를 바꾸지 않음
             view.render(List.of(), -1, ScoreboardMenu.MAIN_MENU);
