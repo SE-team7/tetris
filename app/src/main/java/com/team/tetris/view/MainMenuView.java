@@ -36,29 +36,9 @@ public class MainMenuView {
 Label theLabel = new Label("the");
 Label sevenLabel = new Label("SEVEN");
 
-dropLabel.setStyle(
-    "-fx-font-family: 'Georgia';"
-    + "-fx-font-size: 54px;"
-    + "-fx-font-weight: bold;"
-    + "-fx-text-fill: #222222;"
-    + "-fx-effect: dropshadow(gaussian, #b8b8b8, 5, 0.2, 1, 2);"
-);
-
-theLabel.setStyle(
-    "-fx-font-family: 'Georgia';"
-    + "-fx-font-size: 32px;"
-    + "-fx-font-style: italic;"
-    + "-fx-text-fill: #555555;"
-    + "-fx-effect: dropshadow(gaussian, #c8c8c8, 4, 0.2, 1, 1);"
-);
-
-sevenLabel.setStyle(
-    "-fx-font-family: 'Georgia';"
-    + "-fx-font-size: 54px;"
-    + "-fx-font-weight: bold;"
-    + "-fx-text-fill: #222222;"
-    + "-fx-effect: dropshadow(gaussian, #b8b8b8, 5, 0.2, 1, 2);"
-);
+dropLabel.getStyleClass().add("main-menu-title-main");
+theLabel.getStyleClass().add("main-menu-title-sub");
+sevenLabel.getStyleClass().add("main-menu-title-main");
 
 HBox titleBox = new HBox(
     10,
@@ -109,10 +89,7 @@ titleBox.setAlignment(Pos.BASELINE_CENTER);
             .getStyleClass()
             .add("key-guide");
 
-        keyGuideLabel.setStyle(
-            "-fx-font-size: 13px;"
-            + "-fx-text-fill: #888888;"
-        );
+        keyGuideLabel.getStyleClass().add("main-menu-key-guide");
 
         root.getChildren().add(
             titleBox
@@ -164,17 +141,7 @@ titleBox.setAlignment(Pos.BASELINE_CENTER);
                     "▶ " + menuTexts[i]
                 );
 
-                label.setStyle(
-                    "-fx-font-size: 22px;"
-                    + "-fx-font-weight: bold;"
-                    + "-fx-text-fill: #222222;"
-                    + "-fx-background-color: #eeeeee;"
-                    + "-fx-border-color: #4A90E2;"
-                    + "-fx-border-width: 2px;"
-                    + "-fx-border-radius: 4px;"
-                    + "-fx-background-radius: 4px;"
-                    + "-fx-padding: 6 15 6 15;"
-                );
+                label.getStyleClass().setAll("menu-item", "menu-item-selected");
 
             } else {
 
@@ -182,15 +149,7 @@ titleBox.setAlignment(Pos.BASELINE_CENTER);
                     "   " + menuTexts[i]
                 );
 
-                label.setStyle(
-                    "-fx-font-size: 20px;"
-                    + "-fx-font-weight: normal;"
-                    + "-fx-text-fill: #333333;"
-                    + "-fx-background-color: transparent;"
-                    + "-fx-border-color: transparent;"
-                    + "-fx-border-width: 2px;"
-                    + "-fx-padding: 6 15 6 15;"
-                );
+                label.getStyleClass().setAll("menu-item", "menu-item-unselected");
             }
         }
     }

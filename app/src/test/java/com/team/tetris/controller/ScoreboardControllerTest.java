@@ -79,8 +79,10 @@ class ScoreboardControllerTest {
     }
 
     private boolean highlighted(int row) {
-        return cell(1, row).getStyle().contains(HIGHLIGHT_COLOR);
-    }
+    return cell(1, row)
+        .getStyleClass()
+        .contains("scoreboard-cell-highlight");
+}
 
     @Test
     void show_displaysNormalModeWithoutHighlight() throws Exception {

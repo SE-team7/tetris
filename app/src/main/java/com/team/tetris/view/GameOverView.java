@@ -11,8 +11,6 @@ import javafx.scene.layout.VBox;
  */
 public class GameOverView {
 
-    private static final String HIGHLIGHT_STYLE = "-fx-text-fill: #f5c542; -fx-font-weight: bold;";
-
     private final VBox root = new VBox(16);
     private final Label resultLabel = new Label();
     private final VBox nameInputBox = new VBox(8);
@@ -22,10 +20,10 @@ public class GameOverView {
 
     public GameOverView() {
         Label title = new Label("GAME OVER");
-        title.setStyle("-fx-font-size: 28px; -fx-font-weight: bold;");
+        title.getStyleClass().add("game-over-title");
 
-        newRecordLabel.setStyle(HIGHLIGHT_STYLE);
-        nameLabel.setStyle("-fx-font-size: 20px;");
+        newRecordLabel.getStyleClass().add("game-over-highlight");
+        nameLabel.getStyleClass().add("game-over-name");
         nameInputBox.setAlignment(Pos.CENTER);
         nameInputBox.getChildren().addAll(newRecordLabel, nameLabel);
 

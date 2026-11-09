@@ -63,14 +63,7 @@ public class ScoreboardView {
                 )
         );
 
-        /*
-         * Settings 화면과 맞춘 밝은 배경
-         */
-        root.setStyle(
-                "-fx-background-color: "
-                        + BACKGROUND_COLOR
-                        + ";"
-        );
+        root.getStyleClass().add("scoreboard-root");
 
         /*
          * TITLE
@@ -78,13 +71,7 @@ public class ScoreboardView {
         Label titleLabel =
                 new Label("SCOREBOARD");
 
-        titleLabel.setStyle(
-                "-fx-font-size: 36px;"
-                        + "-fx-font-weight: bold;"
-                        + "-fx-text-fill: "
-                        + TEXT_COLOR
-                        + ";"
-        );
+        titleLabel.getStyleClass().add("scoreboard-title");
 
         /*
          * 제목 아래 공간
@@ -107,6 +94,9 @@ public class ScoreboardView {
 
         itemModeButton =
                 new Button("아이템 모드");
+
+        normalModeButton.getStyleClass().add("scoreboard-mode-button");
+        itemModeButton.getStyleClass().add("scoreboard-mode-button");
 
         normalModeButton.setFocusTraversable(false);
         itemModeButton.setFocusTraversable(false);
@@ -195,12 +185,7 @@ public class ScoreboardView {
         keyGuideLabel =
                 new Label();
 
-        keyGuideLabel.setStyle(
-                "-fx-font-size: 13px;"
-                        + "-fx-text-fill: "
-                        + DIM_TEXT_COLOR
-                        + ";"
-        );
+        keyGuideLabel.getStyleClass().add("scoreboard-key-guide");
 
         VBox.setVgrow(
                 scoreGrid,
@@ -242,45 +227,48 @@ public class ScoreboardView {
     }
 
     /*
-     * 현재 선택된 모드 표시
-     */
-    public void setSelectedMode(
-            GameMode mode) {
+ * 현재 선택된 모드 표시
+ */
+public void setSelectedMode(
+        GameMode mode) {
 
-        if (mode == null) {
-
-            mode =
-                    GameMode.NORMAL;
-        }
-
-        selectedMode =
-                mode;
-
-        if (
-                selectedMode
-                == GameMode.NORMAL
-        ) {
-
-            normalModeButton.setStyle(
-                    selectedButtonStyle()
-            );
-
-            itemModeButton.setStyle(
-                    normalButtonStyle()
-            );
-
-        } else {
-
-            normalModeButton.setStyle(
-                    normalButtonStyle()
-            );
-
-            itemModeButton.setStyle(
-                    selectedButtonStyle()
-            );
-        }
+    if (mode == null) {
+        mode = GameMode.NORMAL;
     }
 
+    selectedMode = mode;
+
+    normalModeButton.getStyleClass().removeAll(
+        "scoreboard-mode-selected",
+        "scoreboard-mode-normal"
+    );
+
+    itemModeButton.getStyleClass().removeAll(
+        "scoreboard-mode-selected",
+        "scoreboard-mode-normal"
+    );
+
+    if (selectedMode == GameMode.NORMAL) {
+
+        normalModeButton.getStyleClass().add(
+            "scoreboard-mode-selected"
+        );
+
+        itemModeButton.getStyleClass().add(
+            "scoreboard-mode-normal"
+        );
+
+    } else {
+
+        normalModeButton.getStyleClass().add(
+            "scoreboard-mode-normal"
+        );
+
+        itemModeButton.getStyleClass().add(
+            "scoreboard-mode-selected"
+        );
+    }
+}
     public GameMode getSelectedMode() {
 
         return selectedMode;
@@ -549,13 +537,7 @@ public class ScoreboardView {
                 )
         );
 
-        label.setStyle(
-                "-fx-font-size: 14px;"
-                        + "-fx-font-weight: bold;"
-                        + "-fx-text-fill: "
-                        + HEADER_COLOR
-                        + ";"
-        );
+        label.getStyleClass().add("scoreboard-header");
 
         scoreGrid.add(
                 label,
@@ -586,21 +568,16 @@ public class ScoreboardView {
                 )
         );
 
-        boolean highlighted = HIGHLIGHT_COLOR.equals(color);
+        label.getStyleClass().add("scoreboard-cell");
+        if (HIGHLIGHT_COLOR.equals(color)) {
+                label.getStyleClass().add("scoreboard-cell-highlight");
+        } 
+        else if (DIM_TEXT_COLOR.equals(color)) {
 
-        label.setStyle(
-                "-fx-font-size: 14px;"
-                        + "-fx-text-fill: "
-                        + color
-                        + ";"
-                        + "-fx-font-weight: "
-                        + (
-                        highlighted
-                                ? "bold"
-                                : "normal"
-                )
-                        + ";"
-        );
+                label.getStyleClass().add("scoreboard-cell-dim");
+        } else {
+                label.getStyleClass().add("scoreboard-cell-normal");
+        }
 
         scoreGrid.add(
                 label,
@@ -642,34 +619,5 @@ public class ScoreboardView {
         return text;
     }
 
-    /*
-     * 선택된 모드 버튼
-     */
-    private String selectedButtonStyle() {
-
-        return
-                "-fx-background-color: #444444;"
-                        + "-fx-text-fill: white;"
-                        + "-fx-font-size: 14px;"
-                        + "-fx-font-weight: bold;"
-                        + "-fx-padding: 7 14 7 14;"
-                        + "-fx-background-radius: 3;"
-                        + "-fx-border-color: #444444;"
-                        + "-fx-border-radius: 3;";
-    }
-
-    /*
-     * 선택되지 않은 모드 버튼
-     */
-    private String normalButtonStyle() {
-
-        return
-                "-fx-background-color: #E8E8E8;"
-                        + "-fx-text-fill: #222222;"
-                        + "-fx-font-size: 14px;"
-                        + "-fx-padding: 7 14 7 14;"
-                        + "-fx-background-radius: 3;"
-                        + "-fx-border-color: #BBBBBB;"
-                        + "-fx-border-radius: 3;";
-    }
+    
 }

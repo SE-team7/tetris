@@ -125,11 +125,7 @@ public class GameView {
 
         root.setPadding(new Insets(20));
 
-        root.setStyle(
-
-            "-fx-background-color: #111111;"
-
-        );
+        root.getStyleClass().add("game-root");
 
 
 
@@ -209,17 +205,7 @@ public class GameView {
 
 
 
-        scoreLabel.setStyle(
-
-            "-fx-text-fill: white;"
-
-            + "-fx-font-family: 'Consolas';"
-
-            + "-fx-font-size: 24px;"
-
-            + "-fx-font-weight: bold;"
-
-        );
+        scoreLabel.getStyleClass().add("game-score-label");
 
 
 
@@ -235,17 +221,7 @@ public class GameView {
 
 
 
-        statusLabel.setStyle(
-
-            "-fx-text-fill: #FFD54F;"
-
-            + "-fx-font-family: 'Consolas';"
-
-            + "-fx-font-size: 14px;"
-
-            + "-fx-font-weight: bold;"
-
-        );
+        statusLabel.getStyleClass().add("game-status-label");
 
 
 
@@ -275,17 +251,7 @@ public class GameView {
 
 
 
-        skipRemainingLabel.setStyle(
-
-            "-fx-text-fill: white;"
-
-            + "-fx-font-family: 'Consolas';"
-
-            + "-fx-font-size: 18px;"
-
-            + "-fx-font-weight: bold;"
-
-        );
+        skipRemainingLabel.getStyleClass().add("game-skip-label");
 
 
 
@@ -940,17 +906,7 @@ public class GameView {
 
 
 
-        label.setStyle(
-
-            "-fx-text-fill: white;"
-
-            + "-fx-font-family: 'Consolas';"
-
-            + "-fx-font-size: 17px;"
-
-            + "-fx-font-weight: bold;"
-
-        );
+        label.getStyleClass().add("game-info-title");
 
 
 
@@ -974,17 +930,7 @@ public class GameView {
 
 
 
-        label.setStyle(
-
-            "-fx-text-fill: #BBBBBB;"
-
-            + "-fx-font-family: 'Consolas';"
-
-            + "-fx-font-size: 11px;"
-
-            + "-fx-font-weight: bold;"
-
-        );
+        label.getStyleClass().add("game-info-small");
 
 
 
@@ -1020,25 +966,7 @@ public class GameView {
 
 
 
-        label.setStyle(
-
-            "-fx-text-fill: white;"
-
-            + "-fx-font-family: 'Consolas';"
-
-            + "-fx-font-size: 11px;"
-
-            + "-fx-font-weight: bold;"
-
-            + "-fx-border-color: #555555;"
-
-            + "-fx-border-width: 1px;"
-
-            + "-fx-padding: 1px 5px;"
-
-        );
-
-
+        label.getStyleClass().add("game-small-bordered-label");
 
         return label;
 
@@ -1775,19 +1703,7 @@ public class GameView {
 
 
 
-        title.setStyle(
-
-            "-fx-text-fill: #E8DEFF;"
-
-            + "-fx-font-family: 'Consolas';"
-
-            + "-fx-font-size: 17px;"
-
-            + "-fx-font-weight: bold;"
-
-            + "-fx-effect: dropshadow(gaussian, #7C4DFF, 6, 0.40, 0, 0);"
-
-        );
+        title.getStyleClass().add("item-info-title");
 
 
 
@@ -1835,23 +1751,7 @@ public class GameView {
 
         box.setPadding(new Insets(8, 12, 8, 12));
 
-        box.setStyle(
-
-            "-fx-background-color: rgba(124, 77, 255, 0.10);"
-
-            + "-fx-border-color: #7C4DFF;"
-
-            + "-fx-border-width: 1px;"
-
-            + "-fx-border-radius: 8px;"
-
-            + "-fx-background-radius: 8px;"
-
-            + "-fx-effect: dropshadow(gaussian, rgba(124,77,255,0.35), 8, 0.25, 0, 0);"
-
-        );
-
-
+        box.getStyleClass().add("item-info-box");
 
         return box;
 
@@ -1909,17 +1809,7 @@ public class GameView {
 
 
 
-        descriptionLabel.setStyle(
-
-            "-fx-text-fill: #E6E6E6;"
-
-            + "-fx-font-family: 'Consolas';"
-
-            + "-fx-font-size: 11px;"
-
-        );
-
-
+        descriptionLabel.getStyleClass().add("item-info-description");
 
         grid.add(symbolLabel, 0, row);
 
@@ -2035,15 +1925,7 @@ public class GameView {
 
 
 
-        actionLabel.setStyle(
-
-            "-fx-text-fill: #BBBBBB;"
-
-            + "-fx-font-family: 'Consolas';"
-
-            + "-fx-font-size: 11px;"
-
-        );
+        actionLabel.getStyleClass().add("item-info-action");
 
 
 
@@ -2106,60 +1988,38 @@ public class GameView {
 
 
     private String getFrameStyle(
+    boolean nextArea
+) {
 
-        boolean nextArea
-
-    ) {
-
-
-
-        if (currentGameMode == GameMode.ITEM) {
-
-
-
-            return
-
-                baseCellStyle()
-
-                + "-fx-text-fill: "
-
-                + ITEM_FRAME_COLOR
-
-                + ";"
-
-                + "-fx-font-weight: bold;"
-
-                + "-fx-effect: dropshadow(gaussian, "
-
-                + ITEM_FRAME_GLOW_COLOR
-
-                + ", 5, 0.35, 0, 0);";
-
-        }
-
-
+    if (currentGameMode == GameMode.ITEM) {
 
         return
-
             baseCellStyle()
-
-            + "-fx-text-fill: "
-
-            + (
-
-                nextArea
-
-                    ? "#777777"
-
-                    : NORMAL_FRAME_COLOR
-
-            )
-
+            + "-fx-background-color: "
+            + ITEM_FRAME_COLOR
             + ";"
-
-            + "-fx-font-weight: bold;";
-
+            + "-fx-text-fill: transparent;"
+            + "-fx-border-color: #111111;"
+            + "-fx-border-width: 1px;"
+            + "-fx-effect: dropshadow(gaussian, "
+            + ITEM_FRAME_GLOW_COLOR
+            + ", 5, 0.35, 0, 0);";
     }
+
+    String frameColor =
+        nextArea
+            ? "#777777"
+            : NORMAL_FRAME_COLOR;
+
+    return
+        baseCellStyle()
+        + "-fx-background-color: "
+        + frameColor
+        + ";"
+        + "-fx-text-fill: transparent;"
+        + "-fx-border-color: #111111;"
+        + "-fx-border-width: 1px;";
+}
 
 
 
@@ -2223,183 +2083,75 @@ public class GameView {
 
 
 
-    /*
-
-     * NORMAL / FIXED BLOCK
-
-     */
-
     private void drawBlockCell(
-
-        Label cell,
-
-        BlockType type
-
-    ) {
-
-
-
-        if (type == null) {
-
-            return;
-
-        }
-
-
-
-        /*
-
-         * 고정된 특수 아이템 블록
-
-         */
-
-        switch (type) {
-
-
-
-            case WEIGHT -> {
-
-                drawItemCell(
-
-                    cell,
-
-                    ItemType.WEIGHT
-
-                );
-
-                return;
-
-            }
-
-
-
-            case BOMB -> {
-
-                drawItemCell(
-
-                    cell,
-
-                    ItemType.BOMB
-
-                );
-
-                return;
-
-            }
-
-
-
-            case CROSS -> {
-
-                drawItemCell(
-
-                    cell,
-
-                    ItemType.CROSS
-
-                );
-
-                return;
-
-            }
-
-
-
-            case GAP_DESTROY -> {
-
-                drawItemCell(
-
-                    cell,
-
-                    ItemType.GAP_DESTROY
-
-                );
-
-                return;
-
-            }
-
-
-
-            default -> {
-
-            }
-
-        }
-
-
-
-        if (colorBlindMode) {
-
-
-
-            /*
-
-             * 일반 L 테트로미노는
-
-             * 아이템 L과 구분하기 위해 G
-
-             */
-
-            if (
-
-                type == BlockType.L
-
-            ) {
-
-
-
-                cell.setText("G");
-
-
-
-            } else {
-
-
-
-                cell.setText(
-
-                    type.name()
-
-                );
-
-            }
-
-
-
-        } else {
-
-
-
-            cell.setText("O");
-
-        }
-
-
-
-        cell.setStyle(
-
-            baseCellStyle()
-
-            + "-fx-text-fill: "
-
-            + getBlockColor(type)
-
-            + ";"
-
-            + "-fx-font-weight: bold;"
-
-        );
-
+    Label cell,
+    BlockType type
+) {
+
+    if (type == null) {
+        return;
     }
 
+    switch (type) {
 
+        case WEIGHT -> {
+            drawItemCell(
+                cell,
+                ItemType.WEIGHT
+            );
+            return;
+        }
 
-    /*
+        case BOMB -> {
+            drawItemCell(
+                cell,
+                ItemType.BOMB
+            );
+            return;
+        }
 
-     * ITEM DRAW
+        case CROSS -> {
+            drawItemCell(
+                cell,
+                ItemType.CROSS
+            );
+            return;
+        }
 
-     */
+        case GAP_DESTROY -> {
+            drawItemCell(
+                cell,
+                ItemType.GAP_DESTROY
+            );
+            return;
+        }
+
+        default -> {
+        }
+    }
+
+    if (colorBlindMode) {
+
+        if (type == BlockType.L) {
+            cell.setText("G");
+        } else {
+            cell.setText(type.name());
+        }
+
+    } else {
+
+        cell.setText("");
+    }
+
+    cell.setStyle(
+        baseCellStyle()
+            + "-fx-background-color: "
+            + getBlockColor(type)
+            + ";"
+            + "-fx-text-fill: white;"
+            + "-fx-font-weight: bold;"
+    );
+}
 
     private void drawItemCell(
 

@@ -123,6 +123,8 @@ class GameViewTest {
         });
     }
 
+
+    // 아이템 모드에서 아이템 전용 UI가 정상적으로 표시되는지 확인
     @Test
     void itemModeUsesItemUi() throws Exception {
 
@@ -256,6 +258,7 @@ class GameViewTest {
         });
     }
 
+    // 아이템 모드에서 일반 모드로 전환할 때 아이템 전용 UI가 제거되는지 확인
     @Test
     void switchingBackToNormalRemovesItemUi()
         throws Exception {
@@ -382,8 +385,10 @@ class GameViewTest {
         });
     }
 
+    // 작은 보드에서도 블록이 정상적으로 렌더링되는지 확인
     @Test
-    void renderHandlesSmallBoard() throws Exception {
+    void renderHandlesSmallBoard() 
+    throws Exception {
 
         runFx(() -> {
 
@@ -413,7 +418,7 @@ class GameViewTest {
                 );
 
             assertEquals(
-                "O",
+                "",
                 cells[0][0].getText()
             );
 
@@ -485,8 +490,10 @@ class GameViewTest {
         });
     }
 
+
+    // 일반 모드에서 일반 블록이 알파벳 없이 네모 그래픽으로 표시되는지 확인
     @Test
-    void normalBlocksUseOInNormalMode()
+    void normalBlocksUseNoTextInNormalMode()
         throws Exception {
 
         runFx(() -> {
@@ -541,9 +548,9 @@ class GameViewTest {
             ) {
 
                 assertEquals(
-                    "O",
+                    "",
                     cells[0][col]
-                        .getText()
+                    .getText()
                 );
             }
 
@@ -551,6 +558,8 @@ class GameViewTest {
         });
     }
 
+
+    // 색맹 모드에서 일반 블록 내부에 구분용 알파벳이 표시되는지 확인
     @Test
     void colorBlindModeUsesBlockLetters()
         throws Exception {
@@ -1028,6 +1037,8 @@ class GameViewTest {
         });
     }
 
+
+    // 게임 모드에 따라 보드 프레임 스타일이 올바르게 변경되는지 확인
     @Test
     void boardFrameChangesByGameMode()
         throws Exception {
