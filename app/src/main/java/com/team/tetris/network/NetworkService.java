@@ -126,6 +126,7 @@ public class NetworkService {
         checkPort(port);
         long id;
         ServerSocket server;
+        String error = null;
         synchronized (lock) {
             ensureIdle();
             id = generation.incrementAndGet();
@@ -133,14 +134,20 @@ public class NetworkService {
                 server = new ServerSocket();
                 server.setReuseAddress(true);
                 server.bind(new InetSocketAddress(port), 1);
+                serverSocket = server;
+                opening = true;
             } catch (IOException e) {
-                listener.onError("포트 " + port + "를 열 수 없습니다: " + e.getMessage());
-                return;
+                server = null;
+                error = "포트 " + port + "를 열 수 없습니다: " + e.getMessage();
             }
-            serverSocket = server;
-            opening = true;
         }
-        daemon(() -> acceptLoop(id, server), "p2p-accept").start();
+        if (server == null) {
+            // 리스너 호출은 lock 밖에서 (리스너가 다른 lock을 잡아도 교착되지 않게)
+            listener.onError(error);
+            return;
+        }
+        ServerSocket opened = server;
+        daemon(() -> acceptLoop(id, opened), "p2p-accept").start();
     }
 
     /** 상대 호스트 접속. UI 스레드를 막지 않음. 실패하면 onError */
