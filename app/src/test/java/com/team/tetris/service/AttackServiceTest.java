@@ -10,13 +10,14 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 
+import com.team.tetris.domain.AttackQueue;
 import com.team.tetris.domain.AttackRows;
 import com.team.tetris.domain.Block;
 import com.team.tetris.domain.BlockType;
 import com.team.tetris.domain.Board;
 import com.team.tetris.domain.Position;
 
-//콜백 전송, 로컬 상대 연결, 보드 적용, 상단 초과 반환, 초기화 검증
+// 콜백 전송, 로컬 상대 연결, 보드 적용, 상단 초과 반환, 초기화 검증
 class AttackServiceTest {
 
     private AttackRows attack(int count) {
@@ -30,73 +31,85 @@ class AttackServiceTest {
     }
 
     @Test
-    void sendPassesAttackToRegisteredListener() {
-        AttackService service = new AttackService();
+    void sendPassesAttackToSender() {
         AtomicReference<AttackRows> received = new AtomicReference<>();
         AtomicInteger calls = new AtomicInteger();
 
-        service.setAttackListener(rows -> {
-            received.set(rows);
-            calls.incrementAndGet();
-        });
+        AttackService service = new AttackService(
+                new Board(),
+                new AttackQueue(),
+                rows -> {
+                    received.set(rows);
+                    calls.incrementAndGet();
+                }
+        );
 
         service.sendAttack(attack(2));
 
         assertEquals(1, calls.get());
         assertEquals(2, received.get().getRowCount());
-        assertEquals(
-                BlockType.BOMB,
-                received.get().getRows()[0][0]
-        );
+        assertEquals(BlockType.BOMB, received.get().getRows()[0][0]);
         assertEquals(0, service.getPendingRowCount());
     }
 
     @Test
     void emptyAttackIsNotSent() {
-        AttackService service = new AttackService();
         AtomicInteger calls = new AtomicInteger();
 
-        service.setAttackListener(rows -> calls.incrementAndGet());
+        AttackService service = new AttackService(
+                new Board(),
+                new AttackQueue(),
+                rows -> calls.incrementAndGet()
+        );
+
         service.sendAttack(AttackRows.empty());
 
         assertEquals(0, calls.get());
     }
 
     @Test
-    void sendingWithoutListenerDoesNotFail() {
-        AttackService service = new AttackService();
+    void sendingWithoutSenderDoesNotFail() {
+        AttackService service = new AttackService(
+                new Board(),
+                new AttackQueue(),
+                null
+        );
 
         assertDoesNotThrow(() -> service.sendAttack(attack(2)));
     }
 
     @Test
-    void nullListenerDisconnectsSending() {
-        AttackService service = new AttackService();
-        AtomicInteger calls = new AtomicInteger();
-
-        service.setAttackListener(rows -> calls.incrementAndGet());
-        service.setAttackListener(null);
-        service.sendAttack(attack(2));
-
-        assertEquals(0, calls.get());
-    }
-
-    @Test
     void localConnectionQueuesAttackOnlyForOpponent() {
-        AttackService player1 = new AttackService();
-        AttackService player2 = new AttackService();
+        AttackQueue player1Queue = new AttackQueue();
+        AttackQueue player2Queue = new AttackQueue();
 
-        player1.setAttackListener(player2::receiveAttack);
+        AttackService player2 = new AttackService(
+                new Board(),
+                player2Queue,
+                null
+        );
+
+        AttackService player1 = new AttackService(
+                new Board(),
+                player1Queue,
+                player2::receiveAttack
+        );
+
         player1.sendAttack(attack(2));
 
         assertEquals(0, player1.getPendingRowCount());
         assertEquals(2, player2.getPendingRowCount());
+        assertEquals(2, player2Queue.getRowCount());
     }
 
     @Test
     void receiveQueuesAttackUntilApplyIsCalled() {
-        AttackService service = new AttackService();
         Board board = new Board();
+        AttackService service = new AttackService(
+                board,
+                new AttackQueue(),
+                null
+        );
 
         service.receiveAttack(attack(2));
 
@@ -108,7 +121,7 @@ class AttackServiceTest {
             assertArrayEquals(new BlockType[Board.COLS], row);
         }
 
-        assertFalse(service.applyAttack(board));
+        assertFalse(service.applyAttack());
 
         assertEquals(
                 BlockType.BOMB,
@@ -122,35 +135,43 @@ class AttackServiceTest {
 
         // 같은 공격을 다시 적용하지 않음
         BlockType[][] before = board.getCells();
-        assertFalse(service.applyAttack(board));
+        assertFalse(service.applyAttack());
 
+        BlockType[][] after = board.getCells();
         for (int row = 0; row < Board.ROWS; row++) {
-            assertArrayEquals(before[row], board.getCells()[row]);
+            assertArrayEquals(before[row], after[row]);
         }
     }
 
     @Test
     void applyReturnsTrueWhenFixedCellOverflowsTop() {
-        AttackService service = new AttackService();
         Board board = new Board();
+        AttackService service = new AttackService(
+                board,
+                new AttackQueue(),
+                null
+        );
 
         board.lockBlock(
                 new Block(BlockType.CROSS, new Position(0, 3))
         );
         service.receiveAttack(attack(2));
 
-        assertTrue(service.applyAttack(board));
+        assertTrue(service.applyAttack());
         assertEquals(0, service.getPendingRowCount());
     }
 
     @Test
-    void resetClearsPendingAttackButKeepsListener() {
-        AttackService service = new AttackService();
+    void resetClearsPendingAttackButKeepsSender() {
         AtomicInteger calls = new AtomicInteger();
 
-        service.setAttackListener(rows -> calls.incrementAndGet());
-        service.receiveAttack(attack(2));
+        AttackService service = new AttackService(
+                new Board(),
+                new AttackQueue(),
+                rows -> calls.incrementAndGet()
+        );
 
+        service.receiveAttack(attack(2));
         service.reset();
 
         assertEquals(0, service.getPendingRowCount());

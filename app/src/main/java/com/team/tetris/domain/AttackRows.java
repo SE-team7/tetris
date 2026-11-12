@@ -1,9 +1,13 @@
 package com.team.tetris.domain;
 
+import java.io.Serializable;
 import java.util.Objects;
 
 // 위→아래 순서로 공격 행 저장
-public final class AttackRows {
+public final class AttackRows implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
     private final BlockType[][] rows;
 
     public AttackRows(BlockType[][] rows) {
@@ -42,8 +46,7 @@ public final class AttackRows {
 
     // 내부 배열을 직접 노출하지 않고 복사본 반환
     public BlockType[][] getRows() {
-        BlockType[][] copy =
-                new BlockType[rows.length][Board.COLS];
+        BlockType[][] copy = new BlockType[rows.length][Board.COLS];
 
         for (int row = 0; row < rows.length; row++) {
             System.arraycopy(
