@@ -12,7 +12,9 @@ public final class ClearResult {
     private final int compactStartRow;
     private final int scoreLineCount;
     private final int itemCounterLineCount;
+    private final List<Integer> attackRowIndexes;
 
+     
     public ClearResult(
             ItemType itemType,
             List<Integer> rowsToDelete,
@@ -26,6 +28,11 @@ public final class ClearResult {
         this.rowsToDelete = List.copyOf(rowsToDelete);
         this.cellsToDelete = List.copyOf(cellsToDelete);
         this.columnsToCompact = List.copyOf(columnsToCompact);
+        this.attackRowIndexes = this.rowsToDelete.stream()
+            .distinct()
+            .sorted()
+            .toList();
+        
 
         if (scoreLineCount < 0 || itemCounterLineCount < 0) {
             throw new IllegalArgumentException("line counts must not be negative");
@@ -109,5 +116,9 @@ public final class ClearResult {
 
     public int getItemCounterLineCount() {
         return itemCounterLineCount;
+    }
+
+    public List<Integer> getAttackRowIndexes() {
+        return attackRowIndexes;
     }
 }

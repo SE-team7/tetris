@@ -14,6 +14,7 @@ public class MainMenuView {
     public enum MainMenuItem {
         START_GAME,
         START_ITEM_GAME,
+        BATTLE_MODE,
         SETTINGS,
         SCOREBOARD,
         EXIT
@@ -23,147 +24,88 @@ public class MainMenuView {
     private final List<Label> menuLabels;
     private final Label keyGuideLabel;
 
-    public MainMenuView() {
+    private static final String[] MENU_TEXTS = {
+        "일반 모드 시작",
+        "아이템 모드 시작",
+        "대전 모드",
+        "설정",
+        "스코어보드",
+        "종료"
+    };
 
+    public MainMenuView() {
         root = new VBox(20);
         root.setAlignment(Pos.CENTER);
-        root.getStyleClass().add("root");
 
-        /*
-         * TITLE
-         */
-        Label dropLabel = new Label("DROP");
-Label theLabel = new Label("the");
-Label sevenLabel = new Label("SEVEN");
+        Label mainTitle = new Label("DROP");
+        Label subTitle = new Label("the");
+        Label sevenTitle = new Label("SEVEN");
 
-dropLabel.getStyleClass().add("main-menu-title-main");
-theLabel.getStyleClass().add("main-menu-title-sub");
-sevenLabel.getStyleClass().add("main-menu-title-main");
+        mainTitle.getStyleClass().add("main-menu-title-main");
+        subTitle.getStyleClass().add("main-menu-title-sub");
+        sevenTitle.getStyleClass().add("main-menu-title-main");
 
-HBox titleBox = new HBox(
-    10,
-    dropLabel,
-    theLabel,
-    sevenLabel
-);
+        HBox titleBox = new HBox(10, mainTitle, subTitle, sevenTitle);
+        titleBox.setAlignment(Pos.BASELINE_CENTER);
 
-titleBox.setAlignment(Pos.BASELINE_CENTER);
-        /*
-         * MENU
-         */
-        menuLabels =
-            new ArrayList<>();
+        menuLabels = new ArrayList<>();
 
-        menuLabels.add(
-            new Label("일반 모드 시작")
-        );
-
-        menuLabels.add(
-            new Label("아이템 모드 시작")
-        );
-
-        menuLabels.add(
-            new Label("설정")
-        );
-
-        menuLabels.add(
-            new Label("스코어보드")
-        );
-
-        menuLabels.add(
-            new Label("종료")
-        );
-
-        for (Label label : menuLabels) {
-            label.getStyleClass()
-                .add("menu-item");
+        for (String text : MENU_TEXTS) {
+            Label label = new Label(text);
+            label.getStyleClass().add("menu-item");
+            menuLabels.add(label);
         }
 
-        /*
-         * KEY GUIDE
-         */
-        keyGuideLabel =
-            new Label();
-
-        keyGuideLabel
-            .getStyleClass()
-            .add("key-guide");
-
-        keyGuideLabel.getStyleClass().add("main-menu-key-guide");
-
-        root.getChildren().add(
-            titleBox
+        keyGuideLabel = new Label();
+        keyGuideLabel.getStyleClass().addAll(
+            "key-guide",
+            "main-menu-key-guide"
         );
 
-        root.getChildren().addAll(
-            menuLabels
-        );
+        root.getChildren().add(titleBox);
+        root.getChildren().addAll(menuLabels);
+        root.getChildren().add(keyGuideLabel);
 
-        root.getChildren().add(
-            keyGuideLabel
-        );
-
-        render(
-            MainMenuItem.START_GAME
-        );
+        render(MainMenuItem.START_GAME);
     }
 
     public Parent getRoot() {
         return root;
     }
 
-    public void render(
-        MainMenuItem selectedMenu
-    ) {
+    public void render(MainMenuItem selectedMenu) {
+        if (selectedMenu == null) {
+            return;
+        }
 
-        String[] menuTexts = {
-            "일반 모드 시작",
-            "아이템 모드 시작",
-            "설정",
-            "스코어보드",
-            "종료"
-        };
+        for (int i = 0; i < menuLabels.size(); i++) {
+            Label label = menuLabels.get(i);
+            boolean selected = i == selectedMenu.ordinal();
 
-        for (
-            int i = 0;
-            i < menuLabels.size();
-            i++
-        ) {
+            label.setText(
+                (selected ? "▶ " : "   ") + MENU_TEXTS[i]
+            );
 
-            Label label =
-                menuLabels.get(i);
+            label.getStyleClass().removeAll(
+                "menu-item-selected",
+                "menu-item-unselected"
+            );
 
-            if (
-                i == selectedMenu.ordinal()
-            ) {
-
-                label.setText(
-                    "▶ " + menuTexts[i]
-                );
-
-                label.getStyleClass().setAll("menu-item", "menu-item-selected");
-
-            } else {
-
-                label.setText(
-                    "   " + menuTexts[i]
-                );
-
-                label.getStyleClass().setAll("menu-item", "menu-item-unselected");
-            }
+            label.getStyleClass().add(
+                selected
+                    ? "menu-item-selected"
+                    : "menu-item-unselected"
+            );
         }
     }
 
     public void showKeyGuide(
-        String moveKeys,
+        String moveKey,
         String selectKey
     ) {
-
         keyGuideLabel.setText(
-            moveKeys
-            + ": 이동   "
-            + selectKey
-            + ": 선택"
+            moveKey + ": 이동   "
+                + selectKey + ": 선택"
         );
     }
 }

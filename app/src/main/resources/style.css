@@ -211,3 +211,282 @@
 
     -fx-padding: 2px 6px;
 }
+
+.battle-mode-root {
+    -fx-background-color: #111111;
+}
+
+.battle-mode-title {
+    -fx-text-fill: white;
+    -fx-font-size: 32px;
+    -fx-font-weight: bold;
+    -fx-padding: 0 0 20 0;
+}
+
+.battle-mode-item {
+    -fx-min-width: 240px;
+    -fx-alignment: center;
+    -fx-padding: 10px 20px;
+    -fx-font-size: 18px;
+}
+
+.battle-mode-selected {
+    -fx-text-fill: white;
+    -fx-background-color: #333333;
+    -fx-border-color: #FFD54F;
+    -fx-border-width: 2px;
+}
+
+.battle-mode-unselected {
+    -fx-text-fill: #BBBBBB;
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-border-width: 2px;
+}
+
+.battle-type-root {
+    -fx-background-color: #111111;
+}
+
+.battle-type-title {
+    -fx-text-fill: white;
+    -fx-font-size: 32px;
+    -fx-font-weight: bold;
+    -fx-padding: 0 0 20 0;
+}
+
+.battle-type-item {
+    -fx-min-width: 240px;
+    -fx-alignment: center;
+    -fx-padding: 10px 20px;
+    -fx-font-size: 18px;
+}
+
+.battle-type-selected {
+    -fx-text-fill: white;
+    -fx-background-color: #333333;
+    -fx-border-color: #FFD54F;
+    -fx-border-width: 2px;
+}
+
+.battle-type-unselected {
+    -fx-text-fill: #BBBBBB;
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-border-width: 2px;
+}
+.p2p-root {
+    -fx-background-color: #111111;
+}
+
+.p2p-title {
+    -fx-text-fill: white;
+    -fx-font-size: 32px;
+    -fx-font-weight: bold;
+    -fx-padding: 0 0 20 0;
+}
+
+.p2p-item {
+    -fx-min-width: 240px;
+    -fx-alignment: center;
+    -fx-padding: 10px 20px;
+    -fx-font-size: 18px;
+}
+
+.p2p-selected {
+    -fx-text-fill: white;
+    -fx-background-color: #333333;
+    -fx-border-color: #FFD54F;
+    -fx-border-width: 2px;
+}
+
+.p2p-unselected {
+    -fx-text-fill: #BBBBBB;
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-border-width: 2px;
+}
+
+.p2p-ip-field {
+    -fx-font-size: 16px;
+    -fx-padding: 8px;
+}
+
+.p2p-status {
+    -fx-text-fill: #BBBBBB;
+    -fx-font-size: 14px;
+}
+
+.p2p-host-ip {
+    -fx-text-fill: #FFD54F;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+
+.p2p-waiting-root {
+    -fx-background-color: #111111;
+}
+
+.p2p-waiting-title {
+    -fx-text-fill: white;
+    -fx-font-size: 32px;
+    -fx-font-weight: bold;
+    -fx-padding: 0 0 20 0;
+}
+
+.p2p-waiting-status {
+    -fx-text-fill: #FFD54F;
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+}
+
+.p2p-waiting-info {
+    -fx-text-fill: #BBBBBB;
+    -fx-font-size: 15px;
+}
+
+.p2p-waiting-ready {
+    -fx-text-fill: white;
+    -fx-font-size: 17px;
+    -fx-padding: 18px 0 0 0;
+}
+
+.p2p-waiting-back {
+    -fx-text-fill: #888888;
+    -fx-font-size: 13px;
+}
+
+.battle-root {
+    -fx-background-color: #111111;
+    -fx-padding: 18px;
+}
+
+.battle-title {
+    -fx-text-fill: white;
+    -fx-font-size: 28px;
+    -fx-font-weight: bold;
+}
+
+.battle-timer {
+    -fx-text-fill: #ffd54f;
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+}
+
+.battle-status {
+    -fx-text-fill: #dddddd;
+    -fx-font-size: 15px;
+}
+
+.battle-player {
+    -fx-alignment: center;
+}
+
+.battle-player-name {
+    -fx-text-fill: white;
+    -fx-font-size: 17px;
+    -fx-font-weight: bold;
+}
+
+.battle-board {
+    -fx-background-color: #222222;
+    -fx-border-color: #777777;
+    -fx-border-width: 2px;
+}
+
+.battle-cell {
+    -fx-min-width: 18px;
+    -fx-min-height: 18px;
+    -fx-pref-width: 18px;
+    -fx-pref-height: 18px;
+    -fx-border-color: #292929;
+    -fx-border-width: 0.5px;
+    -fx-background-color: #151515;
+}
+
+.battle-info-title {
+    -fx-text-fill: #aaaaaa;
+    -fx-font-size: 11px;
+}
+
+.battle-next {
+    -fx-text-fill: white;
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+}
+
+.battle-score {
+    -fx-text-fill: white;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+
+.battle-attack {
+    -fx-text-fill: #ff8a80;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}
+
+.battle-block-i {
+    -fx-background-color: #00bcd4;
+}
+
+.battle-block-o {
+    -fx-background-color: #fdd835;
+}
+
+.battle-block-t {
+    -fx-background-color: #ab47bc;
+}
+
+.battle-block-s {
+    -fx-background-color: #66bb6a;
+}
+
+.battle-block-z {
+    -fx-background-color: #ef5350;
+}
+
+.battle-block-j {
+    -fx-background-color: #42a5f5;
+}
+
+.battle-block-l {
+    -fx-background-color: #ffa726;
+}
+
+.battle-block-attack {
+    -fx-background-color: #777777;
+}
+
+.time-limit-root {
+    -fx-background-color: #111111;
+}
+
+.time-limit-title {
+    -fx-text-fill: white;
+    -fx-font-size: 32px;
+    -fx-font-weight: bold;
+    -fx-padding: 0 0 20 0;
+}
+
+.time-limit-item {
+    -fx-min-width: 220px;
+    -fx-alignment: center;
+    -fx-padding: 10px 20px;
+    -fx-font-size: 18px;
+}
+
+.time-limit-selected {
+    -fx-text-fill: white;
+    -fx-background-color: #333333;
+    -fx-border-color: #FFD54F;
+    -fx-border-width: 2px;
+}
+
+.time-limit-unselected {
+    -fx-text-fill: #BBBBBB;
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-border-width: 2px;
+}

@@ -7,11 +7,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import com.team.tetris.domain.AttackQueue;
+import com.team.tetris.domain.AttackRows;
 import com.team.tetris.domain.Block;
 import com.team.tetris.domain.BlockType;
 import com.team.tetris.domain.Board;
 import com.team.tetris.domain.ClearResult;
 import com.team.tetris.domain.Difficulty;
+import com.team.tetris.domain.GameSnapshot;
 import com.team.tetris.domain.ItemType;
 import com.team.tetris.domain.Position;
 
@@ -24,6 +27,7 @@ public class GameEngineService {
     private final BlockFactory blockFactory;
     private final ScoreService scoreService;
     private final LevelService levelService;
+    private final AttackService attackService;
 
     private Block currentBlock;
     private Block nextBlock;
@@ -38,6 +42,7 @@ public class GameEngineService {
     private boolean itemMode;
     private boolean isItemBlockTurn;
     private ClearResult pendingLineClear;
+    private AttackRows pendingAttack; // 미뤄둔 줄 삭제가 끝나면 보낼 공격
     private boolean weightCollided;
     private final Deque<ClearResult> clearEvents = new ArrayDeque<>();
 
@@ -49,10 +54,22 @@ public class GameEngineService {
                              BlockFactory blockFactory,
                              ScoreService scoreService,
                              LevelService levelService) {
+        // 싱글 모드: 받은 공격도 없고 보낼 상대도 없음
+        this(board, blockFactory, scoreService, levelService,
+                new AttackService(board, new AttackQueue(), attack -> { }));
+    }
+
+    // 대전 모드: 자신의 보드로 만든 AttackService를 함께 넘긴다
+    public GameEngineService(Board board,
+                             BlockFactory blockFactory,
+                             ScoreService scoreService,
+                             LevelService levelService,
+                             AttackService attackService) {
         this.board = board;
         this.blockFactory = blockFactory;
         this.scoreService = scoreService;
         this.levelService = levelService;
+        this.attackService = attackService;
     }
 
     //변수 초기화
@@ -72,6 +89,7 @@ public class GameEngineService {
         isItemBlockTurn = false;
         nextBlock = createNextBlock();
         pendingLineClear = null;
+        pendingAttack = null;
         weightCollided = false;
         clearEvents.clear();
 
@@ -92,11 +110,18 @@ public class GameEngineService {
                     pending.getScoreLineCount(),
                     pending.getItemCounterLineCount()
             );
+            sendPendingAttack();
             return;
         }
 
         // 현재 블럭이 없으면 다음 블럭을 올리고, 다음 블럭 새로 생성
         if (currentBlock == null) {
+            // 대전 모드: 현재 블럭의 삭제 처리가 모두 끝난 뒤, 다음 블럭 생성 전에 받은 공격 적용
+            if (attackService.applyAttack()) {
+                gameOver = true;
+                return;
+            }
+
             currentBlock = nextBlock;
             nextBlock = createNextBlock();
             weightCollided = false;
@@ -117,7 +142,10 @@ public class GameEngineService {
         if (blockLocked) {
             if (currentBlock != null && currentBlock.hasItem()) {
                 ClearResult itemResult = board.findItemEffect(currentBlock);
+                // 대전 모드: 행 삭제 전에 공격 생성 → 삭제 → 전송
+                AttackRows itemAttack = board.createAttackRows(itemResult, currentBlock.getCells());
                 board.applyClear(itemResult);
+                attackService.sendAttack(itemAttack);
                 applyScoreAndCounter(
                         itemResult.getScoreLineCount(),
                         itemResult.getItemCounterLineCount()
@@ -129,6 +157,8 @@ public class GameEngineService {
 
             ClearResult pending = board.findFullLines();
             if (!pending.isEmpty()) {
+                // 대전 모드: 행이 지워지기 전에 공격 생성, 실제 삭제 후 전송
+                pendingAttack = board.createAttackRows(pending, currentBlock.getCells());
                 pendingLineClear = pending;
                 clearEvents.add(pending);
             }
@@ -154,7 +184,18 @@ public class GameEngineService {
                 pending.getScoreLineCount(),
                 pending.getItemCounterLineCount()
         );
+        sendPendingAttack();
         return true;
+    }
+
+    //미뤄둔 줄 삭제가 반영된 직후 공격 전송
+    private void sendPendingAttack() {
+        if (pendingAttack == null) {
+            return;
+        }
+        AttackRows attack = pendingAttack;
+        pendingAttack = null;
+        attackService.sendAttack(attack);
     }
 
     private Block createNextBlock() {
@@ -384,6 +425,27 @@ public class GameEngineService {
 
     public int getSkipsRemaining() {
         return MAX_SKIPS - skipsUsed;
+    }
+
+    //대전 모드: 현재 상태 복사본 (화면 표시·P2P 전송용). 엔진 스레드에서 호출한다
+    public GameSnapshot getSnapshot() {
+        boolean[][] attackCells = new boolean[Board.ROWS][Board.COLS];
+        for (int row = 0; row < Board.ROWS; row++) {
+            for (int col = 0; col < Board.COLS; col++) {
+                attackCells[row][col] = board.isAttackCell(row, col);
+            }
+        }
+        return new GameSnapshot(
+                board.getCells(),
+                attackCells,
+                currentBlock,
+                nextBlock,
+                getScore(),
+                getLevel(),
+                getSkipsRemaining(),
+                attackService.getPendingAttack(),
+                gameOver
+        );
     }
 
     public long getDropIntervalMillis() {
