@@ -116,6 +116,18 @@ public class Board {
         );
     }
 
+    // 삭제 전 보드로 공격 행 생성. 2줄 미만이면 빈 결과 (보드 변경 없음)
+    // TODO(1번): 임시 메서드. 1번 구현으로 교체.
+    public AttackRows createAttackRows(ClearResult result, Position[] lastLockedCells) {
+        return AttackRows.empty();
+    }
+
+    // 해당 고정 셀이 공격으로 들어온 블럭인지 반환
+    // TODO(1번): 임시 메서드. 1번 구현으로 교체.
+    public boolean isAttackCell(int row, int col) {
+        return false;
+    }
+
     //아이템 효과 계산 (보드 변경 없)
     public ClearResult findItemEffect(Block block) {
         return switch (block.getItemType()) {
