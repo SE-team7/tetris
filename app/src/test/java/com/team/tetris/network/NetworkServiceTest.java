@@ -459,6 +459,18 @@ class NetworkServiceTest {
     }
 
     @Test
+    void shutdown_closesConnectionAndPeerIsNotified() throws InterruptedException {
+        Pair pair = new Pair();
+
+        pair.client.shutdown();   // 앱 종료
+
+        pair.hostEvents.awaitDisconnected();
+        assertFalse(pair.client.isConnected());
+        assertEquals(0, pair.clientEvents.disconnectedCount.get(), "직접 종료한 쪽은 끊김 통지 없음");
+        assertDoesNotThrow(pair.client::shutdown, "여러 번 호출해도 안전");
+    }
+
+    @Test
     void reconnect_afterDisconnectStartsFreshSession() throws InterruptedException {
         Pair pair = new Pair();
         pair.client.send(NetworkMessage.of(MessageType.PAUSE, 1));

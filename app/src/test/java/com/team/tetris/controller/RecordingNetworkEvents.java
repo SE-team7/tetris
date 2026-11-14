@@ -53,8 +53,12 @@ class RecordingNetworkEvents implements NetworkEvents {
         startingDelays.add(delayMillis);
     }
 
+    /** 마지막 대전 시작 시각 (System.nanoTime) */
+    volatile long battleStartedAtNanos;
+
     @Override
     public void onBattleStarted() {
+        battleStartedAtNanos = System.nanoTime();
         battleStarted++;
     }
 
