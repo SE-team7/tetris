@@ -1,12 +1,8 @@
 package com.team.tetris.view;
-
-
-
 import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
-
 import com.team.tetris.domain.Block;
 import com.team.tetris.domain.BlockType;
 import com.team.tetris.domain.Board;
@@ -15,7 +11,6 @@ import com.team.tetris.domain.Difficulty;
 import com.team.tetris.domain.GameMode;
 import com.team.tetris.domain.ItemType;
 import com.team.tetris.domain.Position;
-
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.geometry.Insets;
@@ -24,5304 +19,788 @@ import javafx.scene.Parent;
 import javafx.scene.control.Label;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
-
-
-
 public class GameView {
-
-
-
     private static final int VISIBLE_ROWS = 20;
-
     private static final int COLS = 10;
-
     private static final int NEXT_SIZE = 4;
-
     private static final int MAX_SKIP_COUNT = 7;
-
     private static final String NORMAL_FRAME_COLOR = "#FFFFFF";
-
     private static final String ITEM_FRAME_COLOR = "#D6C2FF";
-
     private static final String ITEM_FRAME_GLOW_COLOR = "#7C4DFF";
-
-
-
     private final BorderPane root;
-
-
-
     private final GridPane boardGrid;
-
     private final Label[][] boardCells;
-
-
-
     private final GridPane nextGrid;
-
     private final Label[][] nextCells;
-
     private final VBox itemInfoBox;
-
     private final GridPane controlsGrid;
-
     private final BorderPane sidePanel;
-
-
-
     private final Label scoreLabel;
-
     private final Label statusLabel;
-
     private final Label skipRemainingLabel;
-
-
-
-    /*
-
-     * 2차:
-
-     * 현재 모드 / 난이도 표시
-
-     */
-
     private final Label modeLabel;
-
     private final Label difficultyLabel;
-
-
-
     private final Label moveKeyLabel;
-
     private final Label softDropKeyLabel;
-
     private final Label rotateKeyLabel;
-
     private final Label hardDropKeyLabel;
-
     private final Label skipKeyLabel;
-
     private final Label pauseKeyLabel;
-
     private final Label mainMenuKeyLabel;
-
     private final Label exitKeyLabel;
-
-
-
     private boolean colorBlindMode;
-
     private GameMode currentGameMode = GameMode.NORMAL;
-
-
-
     public GameView() {
-
-
-
         root = new BorderPane();
-
         root.setPadding(new Insets(20));
-
         root.getStyleClass().add("game-root");
-
-
-
-        /*
-
-         * BOARD
-
-         */
-
         boardGrid = new GridPane();
-
         boardGrid.setAlignment(Pos.CENTER);
-
         boardGrid.setHgap(1);
-
         boardGrid.setVgap(0);
-
-
-
-        boardCells =
-
-            new Label[VISIBLE_ROWS][COLS];
-
-
-
+        boardCells = new Label[VISIBLE_ROWS][COLS];
         createTextBoard();
-
-
-
-        /*
-
-         * NEXT
-
-         */
-
-        Label nextTitle =
-
-            createSectionTitle("NEXT");
-
-
-
+        Label nextTitle = createSectionTitle("NEXT");
         nextGrid = new GridPane();
-
         nextGrid.setAlignment(Pos.CENTER);
-
         nextGrid.setHgap(2);
-
         nextGrid.setVgap(1);
-
-
-
-        nextCells =
-
-            new Label[NEXT_SIZE][NEXT_SIZE];
-
-
-
+        nextCells = new Label[NEXT_SIZE][NEXT_SIZE];
         createNextArea();
-
-
-
-        /*
-
-         * SCORE
-
-         */
-
-        Label scoreTitle =
-
-            createSectionTitle("SCORE");
-
-
-
-        scoreLabel =
-
-            new Label("0");
-
-
-
+        Label scoreTitle = createSectionTitle("SCORE");
+        scoreLabel = new Label("0");
         scoreLabel.getStyleClass().add("game-score-label");
-
-
-
-        /*
-
-         * PAUSE STATUS
-
-         */
-
-        statusLabel =
-
-            new Label("");
-
-
-
+        statusLabel = new Label("");
         statusLabel.getStyleClass().add("game-status-label");
-
-
-
-        /*
-
-         * SKIP
-
-         */
-
-        Label skipTitle =
-
-            createSectionTitle("SKIP");
-
-
-
-        skipRemainingLabel =
-
-            new Label(
-
-                MAX_SKIP_COUNT
-
-                + " / "
-
-                + MAX_SKIP_COUNT
-
-            );
-
-
-
+        Label skipTitle = createSectionTitle("SKIP");
+        skipRemainingLabel = new Label(MAX_SKIP_COUNT + " / " + MAX_SKIP_COUNT);
         skipRemainingLabel.getStyleClass().add("game-skip-label");
-
-
-
-        VBox skipBox =
-
-            new VBox(
-
-                2,
-
-                skipTitle,
-
-                skipRemainingLabel
-
-            );
-
-
-
-        skipBox.setAlignment(
-
-            Pos.CENTER
-
-        );
-
-
-
-        /*
-
-         * MODE / DIFFICULTY
-
-         */
-
-        modeLabel =
-
-            createGameInfoLabel(
-
-                "MODE: -"
-
-            );
-
-
-
-        difficultyLabel =
-
-            createGameInfoLabel(
-
-                "DIFFICULTY: -"
-
-            );
-
-
-
-        VBox gameInfoBox =
-
-            new VBox(
-
-                2,
-
-                modeLabel,
-
-                difficultyLabel
-
-            );
-
-
-
-        gameInfoBox.setAlignment(
-
-            Pos.CENTER
-
-        );
-
-
-
-        /*
-
-         * ITEM MODE 전용 ITEM INFO
-
-         */
-        itemInfoBox =
-
-            createItemInfoBox();
-
-
-
+        VBox skipBox = new VBox(2,  skipTitle,  skipRemainingLabel);
+        skipBox.setAlignment(Pos.CENTER);
+        modeLabel = createGameInfoLabel("MODE: -");
+        difficultyLabel = createGameInfoLabel("DIFFICULTY: -");
+        VBox gameInfoBox = new VBox(2,  modeLabel,  difficultyLabel);
+        gameInfoBox.setAlignment(Pos.CENTER);
+        itemInfoBox = createItemInfoBox();
         itemInfoBox.setVisible(false);
-
         itemInfoBox.setManaged(false);
-
-
-
-        /*
-
-         * TOP RIGHT
-
-         */
-
-        VBox infoBox =
-
-            new VBox(
-
-                8,
-
-                nextTitle,
-
-                nextGrid,
-
-                scoreTitle,
-
-                scoreLabel,
-
-                statusLabel,
-
-                skipBox,
-
-                gameInfoBox
-
-            );
-
-
-
-        infoBox.setAlignment(
-
-            Pos.TOP_CENTER
-
-        );
-
-
-
-        /*
-
-         * CONTROLS
-
-         */
-
-        Label controlsTitle =
-
-            createSectionTitle(
-
-                "CONTROLS"
-
-            );
-
-
-
-        controlsGrid =
-
-            new GridPane();
-
-
-
-        controlsGrid.setAlignment(
-
-            Pos.CENTER
-
-        );
-
-
-
+        VBox infoBox = new VBox(8,  nextTitle,  nextGrid,  scoreTitle,  scoreLabel,  statusLabel,  skipBox,  gameInfoBox);
+        infoBox.setAlignment(Pos.TOP_CENTER);
+        Label controlsTitle = createSectionTitle("CONTROLS");
+        controlsGrid = new GridPane();
+        controlsGrid.setAlignment(Pos.CENTER);
         controlsGrid.setHgap(10);
-
         controlsGrid.setVgap(3);
-
-
-
-        moveKeyLabel =
-
-            createControlKeyLabel(
-
-                "A D"
-
-            );
-
-
-
-        softDropKeyLabel =
-
-            createControlKeyLabel(
-
-                "S"
-
-            );
-
-
-
-        rotateKeyLabel =
-
-            createControlKeyLabel(
-
-                "P"
-
-            );
-
-
-
-        hardDropKeyLabel =
-
-            createControlKeyLabel(
-
-                "ENTER"
-
-            );
-
-
-
-        skipKeyLabel =
-
-            createControlKeyLabel(
-
-                "-"
-
-            );
-
-
-
-        pauseKeyLabel =
-
-            createControlKeyLabel(
-
-                "SHIFT"
-
-            );
-
-
-
-        mainMenuKeyLabel =
-
-            createControlKeyLabel(
-
-                "TAB"
-
-            );
-
-
-
-        exitKeyLabel =
-
-            createControlKeyLabel(
-
-                "ESC"
-
-            );
-
-
-
+        moveKeyLabel = createControlKeyLabel("A D");
+        softDropKeyLabel = createControlKeyLabel("S");
+        rotateKeyLabel = createControlKeyLabel("P");
+        hardDropKeyLabel = createControlKeyLabel("ENTER");
+        skipKeyLabel = createControlKeyLabel("-");
+        pauseKeyLabel = createControlKeyLabel("SHIFT");
+        mainMenuKeyLabel = createControlKeyLabel("TAB");
+        exitKeyLabel = createControlKeyLabel("ESC");
         configureControls(GameMode.NORMAL);
-
-
-
-        VBox controlsBox =
-
-            new VBox(
-
-                4,
-
-                controlsTitle,
-
-                controlsGrid
-
-            );
-
-
-
-        controlsBox.setAlignment(
-
-            Pos.CENTER
-
-        );
-
-
-
-        /*
-
-         * RIGHT PANEL
-
-         * 위/아래에 요소를 고정하지 않고 한 VBox에 순서대로 배치해서
-
-         * ITEM 모드에서도 중간에 큰 빈 공간이 생기지 않도록 한다.
-
-         */
-
-        VBox rightContent =
-
-            new VBox(
-
-                12,
-
-                infoBox,
-
-                itemInfoBox,
-
-                controlsBox
-
-            );
-
-
-
-        rightContent.setAlignment(
-
-            Pos.TOP_CENTER
-
-        );
-
-
-
-        sidePanel =
-
-            new BorderPane();
-
-
-
+        VBox controlsBox = new VBox(4,  controlsTitle,  controlsGrid);
+        controlsBox.setAlignment(Pos.CENTER);
+        VBox rightContent = new VBox(12,  infoBox,  itemInfoBox,  controlsBox);
+        rightContent.setAlignment(Pos.TOP_CENTER);
+        sidePanel = new BorderPane();
         sidePanel.setTop(rightContent);
-
-
-
-        BorderPane.setAlignment(
-
-            rightContent,
-
-            Pos.TOP_CENTER
-
-        );
-
-
-
-        sidePanel.setPadding(
-
-            new Insets(
-
-                8,
-
-                10,
-
-                8,
-
-                18
-
-            )
-
-        );
-
-
-
+        BorderPane.setAlignment(rightContent,  Pos.TOP_CENTER);
+        sidePanel.setPadding(new Insets(8,  10,  8,  18));
         sidePanel.setPrefWidth(225);
-
-
-
         root.setCenter(boardGrid);
-
         root.setRight(sidePanel);
-
     }
-
-
-
-    /*
-
-     * BOARD
-
-     */
-
     private void createTextBoard() {
-
-
-
-        boardGrid
-
-            .getChildren()
-
-            .clear();
-
-
-
-        for (
-
-            int row = 0;
-
-            row < VISIBLE_ROWS + 2;
-
-            row++
-
-        ) {
-
-
-
-            for (
-
-                int col = 0;
-
-                col < COLS + 2;
-
-                col++
-
-            ) {
-
-
-
-                boolean border =
-
-                    row == 0
-
-                    || row == VISIBLE_ROWS + 1
-
-                    || col == 0
-
-                    || col == COLS + 1;
-
-
-
-                Label cell =
-
-                    createTextCell();
-
-
-
+        boardGrid.getChildren().clear();
+        for (int row = 0; row < VISIBLE_ROWS + 2; row++) {
+            for (int col = 0; col < COLS + 2; col++) {
+                boolean border = row == 0 || row == VISIBLE_ROWS + 1 || col == 0 || col == COLS + 1;
+                Label cell = createTextCell();
                 if (border) {
-
-
-
                     cell.setText("X");
-
-
-
-                    applyFrameStyle(
-
-                        cell,
-
-                        false
-
-                    );
-
-
-
+                    applyFrameStyle(cell,  false);
                 } else {
-
-
-
                     resetBoardCell(cell);
-
-
-
-                    boardCells
-
-                        [row - 1]
-
-                        [col - 1] =
-
-                            cell;
-
+                    boardCells[row - 1][col - 1] = cell;
                 }
-
-
-
-                boardGrid.add(
-
-                    cell,
-
-                    col,
-
-                    row
-
-                );
-
+                boardGrid.add(cell,  col,  row);
             }
-
         }
-
     }
-
-
-
-    /*
-
-     * NEXT
-
-     */
-
     private void createNextArea() {
-
-
-
-        nextGrid
-
-            .getChildren()
-
-            .clear();
-
-
-
-        for (
-
-            int row = 0;
-
-            row < NEXT_SIZE + 2;
-
-            row++
-
-        ) {
-
-
-
-            for (
-
-                int col = 0;
-
-                col < NEXT_SIZE + 2;
-
-                col++
-
-            ) {
-
-
-
-                boolean border =
-
-                    row == 0
-
-                    || row == NEXT_SIZE + 1
-
-                    || col == 0
-
-                    || col == NEXT_SIZE + 1;
-
-
-
-                Label cell =
-
-                    createTextCell();
-
-
-
+        nextGrid.getChildren().clear();
+        for (int row = 0; row < NEXT_SIZE + 2; row++) {
+            for (int col = 0; col < NEXT_SIZE + 2; col++) {
+                boolean border = row == 0 || row == NEXT_SIZE + 1 || col == 0 || col == NEXT_SIZE + 1;
+                Label cell = createTextCell();
                 if (border) {
-
-
-
                     cell.setText("X");
-
-
-
-                    applyFrameStyle(
-
-                        cell,
-
-                        true
-
-                    );
-
-
-
+                    applyFrameStyle(cell,  true);
                 } else {
-
-
-
-                    nextCells
-
-                        [row - 1]
-
-                        [col - 1] =
-
-                            cell;
-
+                    nextCells[row - 1][col - 1] = cell;
                 }
-
-
-
-                nextGrid.add(
-
-                    cell,
-
-                    col,
-
-                    row
-
-                );
-
+                nextGrid.add(cell,  col,  row);
             }
-
         }
-
     }
-
-
-
     private Label createTextCell() {
-
-
-
-        Label label =
-
-            new Label(" ");
-
-
-
-        label.setAlignment(
-
-            Pos.CENTER
-
-        );
-
-
-
-        label.setMinSize(22, 22);
-
-        label.setPrefSize(22, 22);
-
-        label.setMaxSize(22, 22);
-
-
-
-        label.setStyle(
-
-            baseCellStyle()
-
-        );
-
-
-
+        Label label = new Label(" ");
+        label.setAlignment(Pos.CENTER);
+        label.setMinSize(22,  22);
+        label.setPrefSize(22,  22);
+        label.setMaxSize(22,  22);
+        label.setStyle(baseCellStyle());
         return label;
-
     }
-
-
-
     private String baseCellStyle() {
-
-
-
-        return
-
-            "-fx-font-family: 'Consolas';"
-
-            + "-fx-font-size: 18px;"
-
-            + "-fx-background-color: #111111;"
-
-            + "-fx-text-fill: white;";
-
+        return "-fx-font-family: 'Consolas';" + "-fx-font-size: 18px;" + "-fx-background-color: #111111;" + "-fx-text-fill: white;";
     }
-
-
-
-    private Label createSectionTitle(
-
-        String text
-
-    ) {
-
-
-
-        Label label =
-
-            new Label(text);
-
-
-
+    private Label createSectionTitle(String text) {
+        Label label = new Label(text);
         label.getStyleClass().add("game-info-title");
-
-
-
         return label;
-
     }
-
-
-
-    private Label createGameInfoLabel(
-
-        String text
-
-    ) {
-
-
-
-        Label label =
-
-            new Label(text);
-
-
-
+    private Label createGameInfoLabel(String text) {
+        Label label = new Label(text);
         label.getStyleClass().add("game-info-small");
-
-
-
         return label;
-
     }
-
-
-
-    private Label createControlKeyLabel(
-
-        String text
-
-    ) {
-
-
-
-        Label label =
-
-            new Label(text);
-
-
-
-        label.setAlignment(
-
-            Pos.CENTER
-
-        );
-
-
-
+    private Label createControlKeyLabel(String text) {
+        Label label = new Label(text);
+        label.setAlignment(Pos.CENTER);
         label.setMinWidth(68);
-
-
-
         label.getStyleClass().add("game-small-bordered-label");
-
         return label;
-
     }
-
-
-
-    private void addControlRow(
-
-        GridPane grid,
-
-        int row,
-
-        String actionText,
-
-        Label keyLabel
-
-    ) {
-
-
-
-        addControlEntry(
-
-            grid,
-
-            row,
-
-            0,
-
-            actionText,
-
-            keyLabel
-
-        );
-
+    private void addControlRow(GridPane grid,  int row,  String actionText,  Label keyLabel) {
+        addControlEntry(grid,  row,  0,  actionText,  keyLabel);
     }
-
-
-
-    /*
-
-     * RENDER
-
-     */
-
-    public void render(
-
-        BlockType[][] board,
-
-        Block currentBlock,
-
-        Block nextBlock,
-
-        int score,
-
-        int level,
-
-        boolean paused
-
-    ) {
-
-
-
+    public void render(BlockType[][] board,  Block currentBlock,  Block nextBlock,  int score,  int level,  boolean paused) {
         clearBoard();
-
         clearNext();
-
-
-
         if (board != null) {
-
-
-
-            renderFixedBlocks(
-
-                board
-
-            );
-
+            renderFixedBlocks(board);
         }
-
-
-
         if (currentBlock != null) {
-
-
-
-            renderCurrentBlock(
-
-                board,
-
-                currentBlock
-
-            );
-
+            renderCurrentBlock(board,  currentBlock);
         }
-
-
-
         if (nextBlock != null) {
-
-
-
-            renderNextBlock(
-
-                nextBlock
-
-            );
-
+            renderNextBlock(nextBlock);
         }
-
-
-
         updateScore(score);
-
         setPaused(paused);
-
     }
-
-
-
-    private void renderFixedBlocks(
-
-        BlockType[][] board
-
-    ) {
-
-
-
-        int firstVisibleRow =
-
-            Math.max(
-
-                0,
-
-                board.length
-
-                - VISIBLE_ROWS
-
-            );
-
-
-
-        for (
-
-            int visibleRow = 0;
-
-            visibleRow < VISIBLE_ROWS;
-
-            visibleRow++
-
-        ) {
-
-
-
-            int boardRow =
-
-                firstVisibleRow
-
-                + visibleRow;
-
-
-
-            if (
-
-                boardRow >= board.length
-
-            ) {
-
+    private void renderFixedBlocks(BlockType[][] board) {
+        int firstVisibleRow = Math.max(0,  board.length - VISIBLE_ROWS);
+        for (int visibleRow = 0; visibleRow < VISIBLE_ROWS; visibleRow++) {
+            int boardRow = firstVisibleRow + visibleRow;
+            if (boardRow >= board.length) {
                 break;
-
             }
-
-
-
-            for (
-
-                int col = 0;
-
-                col < COLS
-
-                && col < board[boardRow].length;
-
-                col++
-
-            ) {
-
-
-
-                BlockType type =
-
-                    board
-
-                        [boardRow]
-
-                        [col];
-
-
-
+            for (int col = 0; col < COLS && col < board[boardRow].length; col++) {
+                BlockType type = board[boardRow][col];
                 if (type != null) {
-
-
-
-                    drawBlockCell(
-
-                        boardCells
-
-                            [visibleRow]
-
-                            [col],
-
-                        type
-
-                    );
-
+                    drawBlockCell(boardCells[visibleRow][col],  type);
                 }
-
             }
-
         }
-
     }
-
-
-
-    /*
-
-     * CURRENT BLOCK
-
-     */
-
-    private void renderCurrentBlock(
-
-        BlockType[][] board,
-
-        Block currentBlock
-
-    ) {
-
-
-
-        int boardRows =
-
-            board == null
-
-                ? Board.ROWS
-
-                : board.length;
-
-
-
-        int firstVisibleRow =
-
-            Math.max(
-
-                0,
-
-                boardRows
-
-                - VISIBLE_ROWS
-
-            );
-
-
-
-        ItemType itemType =
-
-            currentBlock
-
-                .getItemType();
-
-
-
-        Position itemPosition =
-
-            currentBlock
-
-                .getItemPosition();
-
-
-
-        for (
-
-            Position position :
-
-            currentBlock.getCells()
-
-        ) {
-
-
-
-            int visibleRow =
-
-                position.getRow()
-
-                - firstVisibleRow;
-
-
-
-            int col =
-
-                position.getCol();
-
-
-
-            if (
-
-                visibleRow >= 0
-
-                && visibleRow < VISIBLE_ROWS
-
-                && col >= 0
-
-                && col < COLS
-
-            ) {
-
-
-
-                Label cell =
-
-                    boardCells
-
-                        [visibleRow]
-
-                        [col];
-
-
-
-                /*
-
-                 * Line Clear:
-
-                 * 부착된 한 칸만 L 표시
-
-                 */
-
-                if (
-
-                    itemType
-
-                        == ItemType.LINE_CLEAR
-
-                    && samePosition(
-
-                        position,
-
-                        itemPosition
-
-                    )
-
-                ) {
-
-
-
-                    drawItemCell(
-
-                        cell,
-
-                        ItemType.LINE_CLEAR
-
-                    );
-
-
-
-                } else if (
-
-                    itemType != null
-
-                    && itemType != ItemType.NONE
-
-                    && itemType
-
-                        != ItemType.LINE_CLEAR
-
-                ) {
-
-
-
-                    drawItemCell(
-
-                        cell,
-
-                        itemType
-
-                    );
-
-
-
+    private void renderCurrentBlock(BlockType[][] board,  Block currentBlock) {
+        int boardRows = board == null ? Board.ROWS : board.length;
+        int firstVisibleRow = Math.max(0,  boardRows - VISIBLE_ROWS);
+        ItemType itemType = currentBlock.getItemType();
+        Position itemPosition = currentBlock.getItemPosition();
+        for (Position position : currentBlock.getCells()) {
+            int visibleRow = position.getRow() - firstVisibleRow;
+            int col = position.getCol();
+            if (visibleRow >= 0 && visibleRow < VISIBLE_ROWS && col >= 0 && col < COLS) {
+                Label cell = boardCells[visibleRow][col];
+                if (itemType == ItemType.LINE_CLEAR && samePosition(position,  itemPosition)) {
+                    drawItemCell(cell,  ItemType.LINE_CLEAR);
+                } else if (itemType != null && itemType != ItemType.NONE && itemType != ItemType.LINE_CLEAR) {
+                    drawItemCell(cell,  itemType);
                 } else {
-
-
-
-                    drawBlockCell(
-
-                        cell,
-
-                        currentBlock
-
-                            .getType()
-
-                    );
-
+                    drawBlockCell(cell,  currentBlock.getType());
                 }
-
             }
-
         }
-
     }
-
-
-
-    /*
-
-     * NEXT
-
-     */
-
-    private void renderNextBlock(
-
-        Block nextBlock
-
-    ) {
-
-
-
-        Position[] cells =
-
-            nextBlock.getCells();
-
-
-
-        if (
-
-            cells == null
-
-            || cells.length == 0
-
-        ) {
-
+    private void renderNextBlock(Block nextBlock) {
+        Position[] cells = nextBlock.getCells();
+        if (cells == null || cells.length == 0) {
             return;
-
         }
-
-
-
-        int minRow =
-
-            cells[0].getRow();
-
-
-
-        int maxRow =
-
-            cells[0].getRow();
-
-
-
-        int minCol =
-
-            cells[0].getCol();
-
-
-
-        int maxCol =
-
-            cells[0].getCol();
-
-
-
-        for (
-
-            Position cell :
-
-            cells
-
-        ) {
-
-
-
-            minRow =
-
-                Math.min(
-
-                    minRow,
-
-                    cell.getRow()
-
-                );
-
-
-
-            maxRow =
-
-                Math.max(
-
-                    maxRow,
-
-                    cell.getRow()
-
-                );
-
-
-
-            minCol =
-
-                Math.min(
-
-                    minCol,
-
-                    cell.getCol()
-
-                );
-
-
-
-            maxCol =
-
-                Math.max(
-
-                    maxCol,
-
-                    cell.getCol()
-
-                );
-
+        int minRow = cells[0].getRow();
+        int maxRow = cells[0].getRow();
+        int minCol = cells[0].getCol();
+        int maxCol = cells[0].getCol();
+        for (Position cell : cells) {
+            minRow = Math.min(minRow,  cell.getRow());
+            maxRow = Math.max(maxRow,  cell.getRow());
+            minCol = Math.min(minCol,  cell.getCol());
+            maxCol = Math.max(maxCol,  cell.getCol());
         }
-
-
-
-        int height =
-
-            maxRow
-
-            - minRow
-
-            + 1;
-
-
-
-        int width =
-
-            maxCol
-
-            - minCol
-
-            + 1;
-
-
-
-        int startRow =
-
-            (
-
-                NEXT_SIZE
-
-                - height
-
-            )
-
-            / 2;
-
-
-
-        int startCol =
-
-            (
-
-                NEXT_SIZE
-
-                - width
-
-            )
-
-            / 2;
-
-
-
-        ItemType itemType =
-
-            nextBlock
-
-                .getItemType();
-
-
-
-        Position itemPosition =
-
-            nextBlock
-
-                .getItemPosition();
-
-
-
-        for (
-
-            Position cell :
-
-            cells
-
-        ) {
-
-
-
-            int row =
-
-                startRow
-
-                + cell.getRow()
-
-                - minRow;
-
-
-
-            int col =
-
-                startCol
-
-                + cell.getCol()
-
-                - minCol;
-
-
-
-            if (
-
-                row >= 0
-
-                && row < NEXT_SIZE
-
-                && col >= 0
-
-                && col < NEXT_SIZE
-
-            ) {
-
-
-
-                Label nextCell =
-
-                    nextCells[row][col];
-
-
-
-                if (
-
-                    itemType
-
-                        == ItemType.LINE_CLEAR
-
-                    && samePosition(
-
-                        cell,
-
-                        itemPosition
-
-                    )
-
-                ) {
-
-
-
-                    drawItemCell(
-
-                        nextCell,
-
-                        ItemType.LINE_CLEAR
-
-                    );
-
-
-
-                } else if (
-
-                    itemType != null
-
-                    && itemType != ItemType.NONE
-
-                    && itemType
-
-                        != ItemType.LINE_CLEAR
-
-                ) {
-
-
-
-                    drawItemCell(
-
-                        nextCell,
-
-                        itemType
-
-                    );
-
-
-
+        int height = maxRow - minRow + 1;
+        int width = maxCol - minCol + 1;
+        int startRow =(NEXT_SIZE - height) / 2;
+        int startCol =(NEXT_SIZE - width) / 2;
+        ItemType itemType = nextBlock.getItemType();
+        Position itemPosition = nextBlock.getItemPosition();
+        for (Position cell : cells) {
+            int row = startRow + cell.getRow() - minRow;
+            int col = startCol + cell.getCol() - minCol;
+            if (row >= 0 && row < NEXT_SIZE && col >= 0 && col < NEXT_SIZE) {
+                Label nextCell = nextCells[row][col];
+                if (itemType == ItemType.LINE_CLEAR && samePosition(cell,  itemPosition)) {
+                    drawItemCell(nextCell,  ItemType.LINE_CLEAR);
+                } else if (itemType != null && itemType != ItemType.NONE && itemType != ItemType.LINE_CLEAR) {
+                    drawItemCell(nextCell,  itemType);
                 } else {
-
-
-
-                    drawBlockCell(
-
-                        nextCell,
-
-                        nextBlock
-
-                            .getType()
-
-                    );
-
+                    drawBlockCell(nextCell,  nextBlock.getType());
                 }
-
             }
-
         }
-
     }
-
-
-
-    /*
-
-     * ITEM MODE 전용 UI
-
-     */
     private VBox createItemInfoBox() {
-
-
-
-        Label title =
-
-            new Label("ITEM INFO");
-
-
-
+        Label title = new Label("ITEM INFO");
         title.getStyleClass().add("item-info-title");
-
-
-
-        GridPane infoGrid =
-
-            new GridPane();
-
-
-
+        GridPane infoGrid = new GridPane();
         infoGrid.setAlignment(Pos.CENTER);
-
         infoGrid.setHgap(10);
-
         infoGrid.setVgap(3);
-
-
-
-        addItemInfoRow(infoGrid, 0, "W", "아래 블록 제거", "#FFFFFF");
-
-        addItemInfoRow(infoGrid, 1, "L", "해당 줄 삭제", "#F0E442");
-
-        addItemInfoRow(infoGrid, 2, "B", "중심 3×3 제거", "#D55E00");
-
-        addItemInfoRow(infoGrid, 3, "+", "행·열 제거", "#CC79A7");
-
-        addItemInfoRow(infoGrid, 4, "D", "아래 두 열 압축", "#56B4E9");
-
-
-
-        VBox box =
-
-            new VBox(
-
-                6,
-
-                title,
-
-                infoGrid
-
-            );
-
-
-
+        addItemInfoRow(infoGrid,  0,  "W",  "아래 블록 제거",  "#FFFFFF");
+        addItemInfoRow(infoGrid,  1,  "L",  "해당 줄 삭제",  "#F0E442");
+        addItemInfoRow(infoGrid,  2,  "B",  "중심 3×3 제거",  "#D55E00");
+        addItemInfoRow(infoGrid,  3,  "+",  "행·열 제거",  "#CC79A7");
+        addItemInfoRow(infoGrid,  4,  "D",  "아래 두 열 압축",  "#56B4E9");
+        VBox box = new VBox(6,  title,  infoGrid);
         box.setAlignment(Pos.CENTER);
-
-        box.setPadding(new Insets(8, 12, 8, 12));
-
+        box.setPadding(new Insets(8,  12,  8,  12));
         box.getStyleClass().add("item-info-box");
-
         return box;
-
     }
-
-
-
-    private void addItemInfoRow(
-
-        GridPane grid,
-
-        int row,
-
-        String symbol,
-
-        String description,
-
-        String color
-
-    ) {
-
-
-
-        Label symbolLabel =
-
-            new Label(symbol);
-
-
-
+    private void addItemInfoRow(GridPane grid,  int row,  String symbol,  String description,  String color) {
+        Label symbolLabel = new Label(symbol);
         symbolLabel.setMinWidth(24);
-
         symbolLabel.setAlignment(Pos.CENTER);
-
-        symbolLabel.setStyle(
-
-            "-fx-text-fill: "
-
-            + color
-
-            + ";"
-
-            + "-fx-font-family: 'Consolas';"
-
-            + "-fx-font-size: 13px;"
-
-            + "-fx-font-weight: bold;"
-
-        );
-
-
-
-        Label descriptionLabel =
-
-            new Label(description);
-
-
-
+        symbolLabel.setStyle("-fx-text-fill: " + color + ";" + "-fx-font-family: 'Consolas';" + "-fx-font-size: 13px;" + "-fx-font-weight: bold;");
+        Label descriptionLabel = new Label(description);
         descriptionLabel.getStyleClass().add("item-info-description");
-
-        grid.add(symbolLabel, 0, row);
-
-        grid.add(descriptionLabel, 1, row);
-
+        grid.add(symbolLabel,  0,  row);
+        grid.add(descriptionLabel,  1,  row);
     }
-
-
-
-    private void configureControls(
-
-        GameMode mode
-
-    ) {
-
-
-
+    private void configureControls(GameMode mode) {
         controlsGrid.getChildren().clear();
-
-
-
-        boolean itemMode =
-
-            mode == GameMode.ITEM;
-
-
-
-        controlsGrid.setHgap(
-
-            itemMode ? 8 : 10
-
-        );
-
-
-
+        boolean itemMode = mode == GameMode.ITEM;
+        controlsGrid.setHgap(itemMode ? 8 : 10);
         controlsGrid.setVgap(3);
-
-
-
         if (itemMode) {
-
-
-
-            addControlEntry(controlsGrid, 0, 0, "이동", moveKeyLabel);
-
-            addControlEntry(controlsGrid, 1, 0, "아래", softDropKeyLabel);
-
-            addControlEntry(controlsGrid, 2, 0, "회전", rotateKeyLabel);
-
-            addControlEntry(controlsGrid, 3, 0, "하드드랍", hardDropKeyLabel);
-
-
-
-            addControlEntry(controlsGrid, 0, 2, "스킵", skipKeyLabel);
-
-            addControlEntry(controlsGrid, 1, 2, "일시정지", pauseKeyLabel);
-
-            addControlEntry(controlsGrid, 2, 2, "메인메뉴", mainMenuKeyLabel);
-
-            addControlEntry(controlsGrid, 3, 2, "전체 게임 종료", exitKeyLabel);
-
-
-
+            addControlEntry(controlsGrid,  0,  0,  "이동",  moveKeyLabel);
+            addControlEntry(controlsGrid,  1,  0,  "아래",  softDropKeyLabel);
+            addControlEntry(controlsGrid,  2,  0,  "회전",  rotateKeyLabel);
+            addControlEntry(controlsGrid,  3,  0,  "하드드랍",  hardDropKeyLabel);
+            addControlEntry(controlsGrid,  0,  2,  "스킵",  skipKeyLabel);
+            addControlEntry(controlsGrid,  1,  2,  "일시정지",  pauseKeyLabel);
+            addControlEntry(controlsGrid,  2,  2,  "메인메뉴",  mainMenuKeyLabel);
+            addControlEntry(controlsGrid,  3,  2,  "전체 게임 종료",  exitKeyLabel);
         } else {
-
-
-
             int row = 0;
-
-
-
-            addControlRow(controlsGrid, row++, "이동", moveKeyLabel);
-
-            addControlRow(controlsGrid, row++, "아래", softDropKeyLabel);
-
-            addControlRow(controlsGrid, row++, "회전", rotateKeyLabel);
-
-            addControlRow(controlsGrid, row++, "하드드랍", hardDropKeyLabel);
-
-            addControlRow(controlsGrid, row++, "스킵", skipKeyLabel);
-
-            addControlRow(controlsGrid, row++, "일시정지", pauseKeyLabel);
-
-            addControlRow(controlsGrid, row++, "메인메뉴", mainMenuKeyLabel);
-
-            addControlRow(controlsGrid, row, "전체 게임 종료", exitKeyLabel);
-
+            addControlRow(controlsGrid,  row++,  "이동",  moveKeyLabel);
+            addControlRow(controlsGrid,  row++,  "아래",  softDropKeyLabel);
+            addControlRow(controlsGrid,  row++,  "회전",  rotateKeyLabel);
+            addControlRow(controlsGrid,  row++,  "하드드랍",  hardDropKeyLabel);
+            addControlRow(controlsGrid,  row++,  "스킵",  skipKeyLabel);
+            addControlRow(controlsGrid,  row++,  "일시정지",  pauseKeyLabel);
+            addControlRow(controlsGrid,  row++,  "메인메뉴",  mainMenuKeyLabel);
+            addControlRow(controlsGrid,  row,  "전체 게임 종료",  exitKeyLabel);
         }
-
     }
-
-
-
-    private void addControlEntry(
-
-        GridPane grid,
-
-        int row,
-
-        int startColumn,
-
-        String actionText,
-
-        Label keyLabel
-
-    ) {
-
-
-
-        Label actionLabel =
-
-            new Label(actionText);
-
-
-
+    private void addControlEntry(GridPane grid,  int row,  int startColumn,  String actionText,  Label keyLabel) {
+        Label actionLabel = new Label(actionText);
         actionLabel.getStyleClass().add("item-info-action");
-
-
-
-        grid.add(actionLabel, startColumn, row);
-
-        grid.add(keyLabel, startColumn + 1, row);
-
+        grid.add(actionLabel,  startColumn,  row);
+        grid.add(keyLabel,  startColumn + 1,  row);
     }
-
-
-
-    private void applyModeLayout(
-
-        GameMode mode
-
-    ) {
-
-
-
-        currentGameMode =
-
-            mode == null
-
-                ? GameMode.NORMAL
-
-                : mode;
-
-
-
-        boolean itemMode =
-
-            currentGameMode == GameMode.ITEM;
-
-
-
+    private void applyModeLayout(GameMode mode) {
+        currentGameMode = mode == null ? GameMode.NORMAL : mode;
+        boolean itemMode = currentGameMode == GameMode.ITEM;
         itemInfoBox.setVisible(itemMode);
-
         itemInfoBox.setManaged(itemMode);
-
-
-
         configureControls(currentGameMode);
-
-
-
-        sidePanel.setPrefWidth(
-
-            itemMode ? 330 : 225
-
-        );
-
-
-
+        sidePanel.setPrefWidth(itemMode ? 330 : 225);
         createTextBoard();
-
         createNextArea();
-
     }
-
-
-
-    private String getFrameStyle(
-    boolean nextArea
-) {
-
-    if (currentGameMode == GameMode.ITEM) {
-
-        return
-            baseCellStyle()
-            + "-fx-background-color: "
-            + ITEM_FRAME_COLOR
-            + ";"
-            + "-fx-text-fill: transparent;"
-            + "-fx-border-color: #111111;"
-            + "-fx-border-width: 1px;"
-            + "-fx-effect: dropshadow(gaussian, "
-            + ITEM_FRAME_GLOW_COLOR
-            + ", 5, 0.35, 0, 0);";
+    private String getFrameStyle(boolean nextArea) {
+        if (currentGameMode == GameMode.ITEM) {
+            return baseCellStyle() + "-fx-background-color: " + ITEM_FRAME_COLOR + ";" + "-fx-text-fill: transparent;" + "-fx-border-color: #111111;" + "-fx-border-width: 1px;" + "-fx-effect: dropshadow(gaussian, " + ITEM_FRAME_GLOW_COLOR + ", 5, 0.35, 0, 0);";
+        }
+        String frameColor = nextArea ? "#777777" : NORMAL_FRAME_COLOR;
+        return baseCellStyle() + "-fx-background-color: " + frameColor + ";" + "-fx-text-fill: transparent;" + "-fx-border-color: #111111;" + "-fx-border-width: 1px;";
     }
-
-    String frameColor =
-        nextArea
-            ? "#777777"
-            : NORMAL_FRAME_COLOR;
-
-    return
-        baseCellStyle()
-        + "-fx-background-color: "
-        + frameColor
-        + ";"
-        + "-fx-text-fill: transparent;"
-        + "-fx-border-color: #111111;"
-        + "-fx-border-width: 1px;";
-}
-
-
-
-    private void applyFrameStyle(
-
-        Label cell,
-
-        boolean nextArea
-
-    ) {
-
-
-
-        cell.setStyle(
-
-            getFrameStyle(nextArea)
-
-        );
-
+    private void applyFrameStyle(Label cell,  boolean nextArea) {
+        cell.setStyle(getFrameStyle(nextArea));
     }
-
-
-
-    private boolean samePosition(
-
-        Position first,
-
-        Position second
-
-    ) {
-
-
-
-        if (
-
-            first == null
-
-            || second == null
-
-        ) {
-
+    private boolean samePosition(Position first,  Position second) {
+        if (first == null || second == null) {
             return false;
-
         }
-
-
-
-        return
-
-            first.getRow()
-
-                == second.getRow()
-
-            &&
-
-            first.getCol()
-
-                == second.getCol();
-
+        return first.getRow() == second.getRow() && first.getCol() == second.getCol();
     }
-
-
-
-    private void drawBlockCell(
-    Label cell,
-    BlockType type
-) {
-
-    if (type == null) {
-        return;
-    }
-
-    switch (type) {
-
-        case WEIGHT -> {
-            drawItemCell(
-                cell,
-                ItemType.WEIGHT
-            );
+    private void drawBlockCell(Label cell,  BlockType type) {
+        if (type == null) {
             return;
         }
-
-        case BOMB -> {
-            drawItemCell(
-                cell,
-                ItemType.BOMB
-            );
-            return;
+        switch (type) {
+            case WEIGHT -> {
+                drawItemCell(cell,  ItemType.WEIGHT);
+                return;
+            }
+            case BOMB -> {
+                drawItemCell(cell,  ItemType.BOMB);
+                return;
+            }
+            case CROSS -> {
+                drawItemCell(cell,  ItemType.CROSS);
+                return;
+            }
+            case GAP_DESTROY -> {
+                drawItemCell(cell,  ItemType.GAP_DESTROY);
+                return;
+            }
+            default -> {
+            }
         }
-
-        case CROSS -> {
-            drawItemCell(
-                cell,
-                ItemType.CROSS
-            );
-            return;
-        }
-
-        case GAP_DESTROY -> {
-            drawItemCell(
-                cell,
-                ItemType.GAP_DESTROY
-            );
-            return;
-        }
-
-        default -> {
-        }
-    }
-
-    if (colorBlindMode) {
-
-        if (type == BlockType.L) {
-            cell.setText("G");
+        if (colorBlindMode) {
+            if (type == BlockType.L) {
+                cell.setText("G");
+            } else {
+                cell.setText(type.name());
+            }
         } else {
-            cell.setText(type.name());
+            cell.setText("");
         }
-
-    } else {
-
-        cell.setText("");
+        cell.setStyle(baseCellStyle() + "-fx-background-color: " + getBlockColor(type) + ";" + "-fx-text-fill: white;" + "-fx-font-weight: bold;");
+    }
+    private void drawItemCell(Label cell,  ItemType itemType) {
+        if (itemType == null || itemType == ItemType.NONE) {
+            return;
+        }
+        cell.setText(getItemText(itemType));
+        cell.setStyle(baseCellStyle() + "-fx-text-fill: " + getItemColor(itemType) + ";" + "-fx-font-weight: bold;");
+    }
+    private String getItemText(ItemType itemType) {
+        return switch (itemType) {
+            case WEIGHT -> "W";
+            case LINE_CLEAR -> "L";
+            case BOMB -> "B";
+            case CROSS -> "+";
+            case GAP_DESTROY -> "D";
+            case NONE -> "O";
+        };
+    }
+    private String getItemColor(ItemType itemType) {
+        if (colorBlindMode) {
+            return switch (itemType) {
+                case WEIGHT -> "#FFFFFF";
+                case LINE_CLEAR -> "#F0E442";
+                case BOMB -> "#D55E00";
+                case CROSS -> "#CC79A7";
+                case GAP_DESTROY -> "#56B4E9";
+                case NONE -> "#FFFFFF";
+            };
+        }
+        return switch (itemType) {
+            case WEIGHT -> "#FFFFFF";
+            case LINE_CLEAR -> "#FFFF00";
+            case BOMB -> "#FF5555";
+            case CROSS -> "#FF66CC";
+            case GAP_DESTROY -> "#66CCFF";
+            case NONE -> "#FFFFFF";
+        };
+    }
+    private String getBlockColor(BlockType type) {
+        if (colorBlindMode) {
+            return switch (type) {
+                case I -> "#56B4E9";
+                case J -> "#0072B2";
+                case L -> "#E69F00";
+                case O -> "#F0E442";
+                case S -> "#009E73";
+                case T -> "#CC79A7";
+                case Z -> "#D55E00";
+                case WEIGHT -> "#FFFFFF";
+                case BOMB -> "#D55E00";
+                case CROSS -> "#CC79A7";
+                case GAP_DESTROY -> "#56B4E9";
+            };
+        }
+        return switch (type) {
+            case I -> "#00FFFF";
+            case J -> "#0000FF";
+            case L -> "#FFA500";
+            case O -> "#FFFF00";
+            case S -> "#00FF00";
+            case T -> "#800080";
+            case Z -> "#FF0000";
+            case WEIGHT -> "#FFFFFF";
+            case BOMB -> "#FF5555";
+            case CROSS -> "#FF66CC";
+            case GAP_DESTROY -> "#66CCFF";
+        };
+    }
+    public void playClearAnimation(ClearResult result,  Runnable onFinished) {
+        if (result == null) {
+            finishAnimation(onFinished);
+            return;
+        }
+        ItemType itemType = result.getItemType();
+        if (result.isEmpty() && itemType != ItemType.WEIGHT) {
+            finishAnimation(onFinished);
+            return;
+        }
+        if (itemType == null) {
+            itemType = ItemType.NONE;
+        }
+        switch (itemType) {
+            case LINE_CLEAR -> playLineClearAnimation(result,  onFinished);
+            case BOMB -> playBombAnimation(result,  onFinished);
+            case CROSS -> playCrossAnimation(result,  onFinished);
+            case WEIGHT -> playWeightAnimation(result,  onFinished);
+            case GAP_DESTROY -> playGapDestroyAnimation(result,  onFinished);
+            case NONE -> playNormalClearAnimation(result,  onFinished);
+        }
+    }
+    private void playNormalClearAnimation(ClearResult result,  Runnable onFinished) {
+        Set < Label > targets = collectAnimationTargets(result);
+        if (targets.isEmpty()) {
+            finishAnimation(onFinished);
+            return;
+        }
+        Map < Label,  String > originalStyles = rememberStyles(targets);
+        String previousText = statusLabel.getText();
+        String previousStyle = statusLabel.getStyle();
+        showEffectStatus("LINE CLEAR!",  "#FFFFFF");
+        applyEffectStyle(targets,  "#FFFFFF",  "#111111");
+        Timeline timeline = new Timeline(new KeyFrame(Duration.millis(90),  event -> applyEffectStyle(targets,  "#BBBBBB",  "#111111")),  new KeyFrame(Duration.millis(180),  event -> {
+            restoreAnimationState(targets,  originalStyles); restoreEffectStatus(previousText,  previousStyle); finishAnimation(onFinished);
+        }));
+        timeline.play();
+    }
+    private void playLineClearAnimation(ClearResult result,  Runnable onFinished) {
+        Set < Label > targets = collectAnimationTargets(result);
+        if (targets.isEmpty()) {
+            finishAnimation(onFinished);
+            return;
+        }
+        Map < Label,  String > originalStyles = rememberStyles(targets);
+        String previousText = statusLabel.getText();
+        String previousStyle = statusLabel.getStyle();
+        showEffectStatus("LINE CLEAR!",  "#FFFF00");
+        applyEffectStyle(targets,  "#FFD600",  "#111111");
+        Timeline timeline = new Timeline(new KeyFrame(Duration.millis(80),  event -> applyEffectStyle(targets,  "#FFFFFF",  "#111111")),  new KeyFrame(Duration.millis(160),  event -> applyEffectStyle(targets,  "#FFF176",  "#111111")),  new KeyFrame(Duration.millis(250),  event -> {
+            restoreAnimationState(targets,  originalStyles); restoreEffectStatus(previousText,  previousStyle); finishAnimation(onFinished);
+        }));
+        timeline.play();
+    }
+    private void playBombAnimation(ClearResult result,  Runnable onFinished) {
+        Set < Label > targets = collectAnimationTargets(result);
+        if (targets.isEmpty()) {
+            finishAnimation(onFinished);
+            return;
+        }
+        Map < Label,  String > originalStyles = rememberStyles(targets);
+        String previousText = statusLabel.getText();
+        String previousStyle = statusLabel.getStyle();
+        showEffectStatus("BOMB!",  "#FF5555");
+        applyEffectStyle(targets,  "#FF3D00",  "#FFFFFF");
+        setTargetScale(targets,  1.15,  1.15);
+        Timeline timeline = new Timeline(new KeyFrame(Duration.millis(70),  event -> {
+            applyEffectStyle(targets,  "#FFFFFF",  "#FF3D00"); setTargetScale(targets,  1.30,  1.30);
+        }),  new KeyFrame(Duration.millis(150),  event -> {
+            applyEffectStyle(targets,  "#FF9800",  "#111111"); setTargetScale(targets,  1.08,  1.08);
+        }),  new KeyFrame(Duration.millis(260),  event -> {
+            restoreAnimationState(targets,  originalStyles); restoreEffectStatus(previousText,  previousStyle); finishAnimation(onFinished);
+        }));
+        timeline.play();
+    }
+    private void playCrossAnimation(ClearResult result,  Runnable onFinished) {
+        Set < Label > targets = collectAnimationTargets(result);
+        if (targets.isEmpty()) {
+            finishAnimation(onFinished);
+            return;
+        }
+        Map < Label,  String > originalStyles = rememberStyles(targets);
+        String previousText = statusLabel.getText();
+        String previousStyle = statusLabel.getStyle();
+        showEffectStatus("CROSS!",  "#FF66CC");
+        applyEffectStyle(targets,  "#FF66CC",  "#111111");
+        setTargetScale(targets,  1.35,  0.85);
+        Timeline timeline = new Timeline(new KeyFrame(Duration.millis(90),  event -> {
+            applyEffectStyle(targets,  "#FFFFFF",  "#CC2E8A"); setTargetScale(targets,  0.85,  1.35);
+        }),  new KeyFrame(Duration.millis(180),  event -> {
+            applyEffectStyle(targets,  "#FF66CC",  "#111111"); setTargetScale(targets,  1.10,  1.10);
+        }),  new KeyFrame(Duration.millis(270),  event -> {
+            restoreAnimationState(targets,  originalStyles); restoreEffectStatus(previousText,  previousStyle); finishAnimation(onFinished);
+        }));
+        timeline.play();
+    }
+    private void playWeightAnimation(ClearResult result,  Runnable onFinished) {
+        Set < Label > targets = collectAnimationTargets(result);
+        Map < Label,  String > originalStyles = rememberStyles(targets);
+        String previousText = statusLabel.getText();
+        String previousStyle = statusLabel.getStyle();
+        showEffectStatus("WEIGHT!",  "#FFFFFF");
+        applyEffectStyle(targets,  "#9E9E9E",  "#111111");
+        boardGrid.setTranslateY(5);
+        Timeline timeline = new Timeline(new KeyFrame(Duration.millis(65),  event -> {
+            boardGrid.setTranslateY(-2); applyEffectStyle(targets,  "#FFFFFF",  "#111111");
+        }),  new KeyFrame(Duration.millis(125),  event -> {
+            boardGrid.setTranslateY(2); applyEffectStyle(targets,  "#BDBDBD",  "#111111");
+        }),  new KeyFrame(Duration.millis(190),  event -> boardGrid.setTranslateY(0)),  new KeyFrame(Duration.millis(260),  event -> {
+            boardGrid.setTranslateY(0); restoreAnimationState(targets,  originalStyles); restoreEffectStatus(previousText,  previousStyle); finishAnimation(onFinished);
+        }));
+        timeline.play();
+    }
+    private void playGapDestroyAnimation(ClearResult result,  Runnable onFinished) {
+        Set < Label > targets = collectAnimationTargets(result);
+        if (targets.isEmpty()) {
+            finishAnimation(onFinished);
+            return;
+        }
+        Map < Label,  String > originalStyles = rememberStyles(targets);
+        String previousText = statusLabel.getText();
+        String previousStyle = statusLabel.getStyle();
+        showEffectStatus("GAP DESTROY!",  "#66CCFF");
+        applyEffectStyle(targets,  "#66CCFF",  "#111111");
+        setTargetOpacity(targets,  0.35);
+        Timeline timeline = new Timeline(new KeyFrame(Duration.millis(80),  event -> {
+            setTargetOpacity(targets,  1.0); applyEffectStyle(targets,  "#FFFFFF",  "#2A7FA8");
+        }),  new KeyFrame(Duration.millis(160),  event -> {
+            setTargetOpacity(targets,  0.45); applyEffectStyle(targets,  "#66CCFF",  "#111111");
+        }),  new KeyFrame(Duration.millis(240),  event -> {
+            setTargetOpacity(targets,  1.0); restoreAnimationState(targets,  originalStyles); restoreEffectStatus(previousText,  previousStyle); finishAnimation(onFinished);
+        }));
+        timeline.play();
+    }
+    private Set < Label > collectAnimationTargets(ClearResult result) {
+        Set < Label > targets = new LinkedHashSet < >();
+        if (result == null) {
+            return targets;
+        }
+        if (result.getRowsToDelete() != null) {
+            for (Integer boardRow : result.getRowsToDelete()) {
+                if (boardRow != null) {
+                    addAnimationRow(targets,  boardRow);
+                }
+            }
+        }
+        if (result.getCellsToDelete() != null) {
+            for (Position position : result.getCellsToDelete()) {
+                addAnimationCell(targets,  position);
+            }
+        }
+        if (result.getColumnsToCompact() != null) {
+            int startRow = result.getCompactStartRow();
+            for (Integer col : result.getColumnsToCompact()) {
+                if (col != null) {
+                    addAnimationColumn(targets,  col,  startRow);
+                }
+            }
+        }
+        return targets;
+    }
+    private Map < Label,  String > rememberStyles(Set < Label > targets) {
+        Map < Label,  String > originalStyles = new IdentityHashMap < >();
+        for (Label cell : targets) {
+            originalStyles.put(cell,  cell.getStyle());
+        }
+        return originalStyles;
+    }
+    private void applyEffectStyle(Set < Label > targets,  String backgroundColor,  String textColor) {
+        if (targets == null) {
+            return;
+        }
+        for (Label cell : targets) {
+            if (cell == null) {
+                continue;
+            }
+            cell.setStyle(baseCellStyle() + "-fx-background-color: " + backgroundColor + ";" + "-fx-text-fill: " + textColor + ";" + "-fx-font-weight: bold;");
+        }
+    }
+    private void setTargetScale(Set < Label > targets,  double scaleX,  double scaleY) {
+        if (targets == null) {
+            return;
+        }
+        for (Label cell : targets) {
+            if (cell == null) {
+                continue;
+            }
+            cell.setScaleX(scaleX);
+            cell.setScaleY(scaleY);
+        }
+    }
+    private void setTargetOpacity(Set < Label > targets,  double opacity) {
+        if (targets == null) {
+            return;
+        }
+        for (Label cell : targets) {
+            if (cell != null) {
+                cell.setOpacity(opacity);
+            }
+        }
+    }
+    private void restoreAnimationState(Set < Label > targets,  Map < Label,  String > originalStyles) {
+        if (targets != null) {
+            for (Label cell : targets) {
+                if (cell == null) {
+                    continue;
+                }
+                cell.setScaleX(1.0);
+                cell.setScaleY(1.0);
+                cell.setOpacity(1.0);
+            }
+        }
+        if (originalStyles != null) {
+            for (Map.Entry < Label,  String > entry : originalStyles.entrySet()) {
+                if (entry.getKey() != null) {
+                    entry.getKey().setStyle(entry.getValue());
+                }
+            }
+        }
+    }
+    private void showEffectStatus(String text,  String color) {
+        statusLabel.setText(text);
+        statusLabel.setStyle("-fx-text-fill: " + color + ";" + "-fx-font-family: 'Consolas';" + "-fx-font-size: 15px;" + "-fx-font-weight: bold;");
+    }
+    private void restoreEffectStatus(String previousText,  String previousStyle) {
+        statusLabel.setText(previousText == null ? "" : previousText);
+        if (previousStyle != null) {
+            statusLabel.setStyle(previousStyle);
+        }
+    }
+    private void finishAnimation(Runnable onFinished) {
+        if (onFinished != null) {
+            onFinished.run();
+        }
+    }
+    private void addAnimationRow(Set < Label > targets,  int boardRow) {
+        int visibleRow = toVisibleRow(boardRow);
+        if (visibleRow < 0 || visibleRow >= VISIBLE_ROWS) {
+            return;
+        }
+        for (int col = 0; col < COLS; col++) {
+            targets.add(boardCells[visibleRow][col]);
+        }
+    }
+    private void addAnimationCell(Set < Label > targets,  Position position) {
+        if (position == null) {
+            return;
+        }
+        int visibleRow = toVisibleRow(position.getRow());
+        int col = position.getCol();
+        if (visibleRow >= 0 && visibleRow < VISIBLE_ROWS && col >= 0 && col < COLS) {
+            targets.add(boardCells[visibleRow][col]);
+        }
+    }
+    private void addAnimationColumn(Set < Label > targets,  int col,  int startBoardRow) {
+        if (col < 0 || col >= COLS) {
+            return;
+        }
+        int firstVisibleBoardRow = Math.max(0,  Board.ROWS - VISIBLE_ROWS);
+        int start = startBoardRow < 0 ? firstVisibleBoardRow : Math.max(firstVisibleBoardRow,  startBoardRow);
+        for (int boardRow = start; boardRow < Board.ROWS; boardRow++) {
+            int visibleRow = toVisibleRow(boardRow);
+            if (visibleRow >= 0 && visibleRow < VISIBLE_ROWS) {
+                targets.add(boardCells[visibleRow][col]);
+            }
+        }
+    }
+    private int toVisibleRow(int boardRow) {
+        int firstVisibleRow = Math.max(0,  Board.ROWS - VISIBLE_ROWS);
+        return boardRow - firstVisibleRow;
+    }
+    private void clearBoard() {
+        for (int row = 0; row < VISIBLE_ROWS; row++) {
+            for (int col = 0; col < COLS; col++) {
+                resetBoardCell(boardCells[row][col]);
+            }
+        }
+    }
+    private void resetBoardCell(Label cell) {
+        cell.setText(".");
+        cell.setStyle(baseCellStyle() + "-fx-text-fill: #444444;");
+    }
+    private void clearNext() {
+        for (int row = 0; row < NEXT_SIZE; row++) {
+            for (int col = 0; col < NEXT_SIZE; col++) {
+                nextCells[row][col].setText(" ");
+                nextCells[row][col].setStyle(baseCellStyle());
+            }
+        }
+    }
+    public Parent getRoot() {
+        return root;
+    }
+    public void updateScore(int score) {
+        scoreLabel.setText(String.valueOf(score));
+    }
+    public void setGameInfo(GameMode mode,  Difficulty difficulty) {
+        modeLabel.setText("MODE: " +(mode == null ? "-" : mode.name()));
+        difficultyLabel.setText("DIFFICULTY: " +(difficulty == null ? "-" : difficulty.name()));
+        applyModeLayout(mode);
+    }
+    public void updateSkipInfo(String skipKey,  int remaining) {
+        skipKeyLabel.setText(safeKey(skipKey));
+        skipRemainingLabel.setText(remaining + " / " + MAX_SKIP_COUNT);
+    }
+    public void setControlKeyGuide(String moveLeft,  String moveRight,  String softDrop,  String rotate,  String hardDrop,  String skip) {
+        moveKeyLabel.setText(safeKey(moveLeft) + " " + safeKey(moveRight));
+        softDropKeyLabel.setText(safeKey(softDrop));
+        rotateKeyLabel.setText(safeKey(rotate));
+        hardDropKeyLabel.setText(safeKey(hardDrop));
+        skipKeyLabel.setText(safeKey(skip));
+    }
+    private String safeKey(String key) {
+        if (key == null || key.isBlank()) {
+            return "-";
+        }
+        return key;
+    }
+    public void applyColorBlindMode(boolean enabled) {
+        colorBlindMode = enabled;
+    }
+    public void setPaused(boolean paused) {
+        statusLabel.setText(paused ? "PAUSED" : "");
     }
 
-    cell.setStyle(
-        baseCellStyle()
-            + "-fx-background-color: "
-            + getBlockColor(type)
-            + ";"
-            + "-fx-text-fill: white;"
-            + "-fx-font-weight: bold;"
-    );
+    public void showBattle() {
+    root.setCenter(createBattleLayout());
 }
 
-    private void drawItemCell(
-
-        Label cell,
-
-        ItemType itemType
-
-    ) {
-
-
-
-        if (
-
-            itemType == null
-
-            || itemType
-
-                == ItemType.NONE
-
-        ) {
-
-            return;
-
-        }
-
-
-
-        cell.setText(
-
-            getItemText(
-
-                itemType
-
-            )
-
-        );
-
-
-
-        cell.setStyle(
-
-            baseCellStyle()
-
-            + "-fx-text-fill: "
-
-            + getItemColor(
-
-                itemType
-
-            )
-
-            + ";"
-
-            + "-fx-font-weight: bold;"
-
-        );
-
-    }
-
-
-
-    private String getItemText(
-
-        ItemType itemType
-
-    ) {
-
-
-
-        return switch (
-
-            itemType
-
-        ) {
-
-
-
-            case WEIGHT ->
-
-                "W";
-
-
-
-            case LINE_CLEAR ->
-
-                "L";
-
-
-
-            case BOMB ->
-
-                "B";
-
-
-
-            case CROSS ->
-
-                "+";
-
-
-
-            case GAP_DESTROY ->
-
-                "D";
-
-
-
-            case NONE ->
-
-                "O";
-
-        };
-
-    }
-
-
-
-    private String getItemColor(
-
-        ItemType itemType
-
-    ) {
-
-
-
-        if (colorBlindMode) {
-
-
-
-            return switch (
-
-                itemType
-
-            ) {
-
-
-
-                case WEIGHT ->
-
-                    "#FFFFFF";
-
-
-
-                case LINE_CLEAR ->
-
-                    "#F0E442";
-
-
-
-                case BOMB ->
-
-                    "#D55E00";
-
-
-
-                case CROSS ->
-
-                    "#CC79A7";
-
-
-
-                case GAP_DESTROY ->
-
-                    "#56B4E9";
-
-
-
-                case NONE ->
-
-                    "#FFFFFF";
-
-            };
-
-        }
-
-
-
-        return switch (
-
-            itemType
-
-        ) {
-
-
-
-            case WEIGHT ->
-
-                "#FFFFFF";
-
-
-
-            case LINE_CLEAR ->
-
-                "#FFFF00";
-
-
-
-            case BOMB ->
-
-                "#FF5555";
-
-
-
-            case CROSS ->
-
-                "#FF66CC";
-
-
-
-            case GAP_DESTROY ->
-
-                "#66CCFF";
-
-
-
-            case NONE ->
-
-                "#FFFFFF";
-
-        };
-
-    }
-
-
-
-    private String getBlockColor(
-
-        BlockType type
-
-    ) {
-
-
-
-        if (colorBlindMode) {
-
-
-
-            return switch (
-
-                type
-
-            ) {
-
-
-
-                case I ->
-
-                    "#56B4E9";
-
-
-
-                case J ->
-
-                    "#0072B2";
-
-
-
-                case L ->
-
-                    "#E69F00";
-
-
-
-                case O ->
-
-                    "#F0E442";
-
-
-
-                case S ->
-
-                    "#009E73";
-
-
-
-                case T ->
-
-                    "#CC79A7";
-
-
-
-                case Z ->
-
-                    "#D55E00";
-
-
-
-                case WEIGHT ->
-
-                    "#FFFFFF";
-
-
-
-                case BOMB ->
-
-                    "#D55E00";
-
-
-
-                case CROSS ->
-
-                    "#CC79A7";
-
-
-
-                case GAP_DESTROY ->
-
-                    "#56B4E9";
-
-            };
-
-        }
-
-
-
-        return switch (
-
-            type
-
-        ) {
-
-
-
-            case I ->
-
-                "#00FFFF";
-
-
-
-            case J ->
-
-                "#0000FF";
-
-
-
-            case L ->
-
-                "#FFA500";
-
-
-
-            case O ->
-
-                "#FFFF00";
-
-
-
-            case S ->
-
-                "#00FF00";
-
-
-
-            case T ->
-
-                "#800080";
-
-
-
-            case Z ->
-
-                "#FF0000";
-
-
-
-            case WEIGHT ->
-
-                "#FFFFFF";
-
-
-
-            case BOMB ->
-
-                "#FF5555";
-
-
-
-            case CROSS ->
-
-                "#FF66CC";
-
-
-
-            case GAP_DESTROY ->
-
-                "#66CCFF";
-
-        };
-
-    }
-
-
-
-    /*
-
-     * 2차:
-
-     * CLEAR / ITEM EFFECT ANIMATION
-
-     *
-
-     * Board 자체는 여기서 변경하지 않는다.
-
-     * 아이템마다 서로 다른 애니메이션을 사용한다.
-
-     */
-
-    public void playClearAnimation(
-
-        ClearResult result,
-
-        Runnable onFinished
-
-    ) {
-
-
-
-        if (
-
-            result == null
-
-        ) {
-
-
-
-            finishAnimation(
-
-                onFinished
-
-            );
-
-
-
-            return;
-
-        }
-
-
-
-        ItemType itemType =
-
-            result.getItemType();
-
-
-
-        /*
-         * WEIGHT는 이동 중 실제 삭제를 이미 처리할 수 있으므로
-         * 삭제 대상이 없어도 마지막 충격 애니메이션을 보여준다.
-         */
-        if (
-
-            result.isEmpty()
-
-            && itemType != ItemType.WEIGHT
-
-        ) {
-
-
-
-            finishAnimation(
-
-                onFinished
-
-            );
-
-
-
-            return;
-
-        }
-
-
-
-        if (
-
-            itemType == null
-
-        ) {
-
-
-
-            itemType =
-
-                ItemType.NONE;
-
-        }
-
-
-
-        switch (itemType) {
-
-
-
-            case LINE_CLEAR ->
-
-                playLineClearAnimation(
-
-                    result,
-
-                    onFinished
-
-                );
-
-
-
-            case BOMB ->
-
-                playBombAnimation(
-
-                    result,
-
-                    onFinished
-
-                );
-
-
-
-            case CROSS ->
-
-                playCrossAnimation(
-
-                    result,
-
-                    onFinished
-
-                );
-
-
-
-            case WEIGHT ->
-
-                playWeightAnimation(
-
-                    result,
-
-                    onFinished
-
-                );
-
-
-
-            case GAP_DESTROY ->
-
-                playGapDestroyAnimation(
-
-                    result,
-
-                    onFinished
-
-                );
-
-
-
-            case NONE ->
-
-                playNormalClearAnimation(
-
-                    result,
-
-                    onFinished
-
-                );
-
-        }
-
-    }
-
-
-
-    /*
-
-     * 일반 줄 삭제:
-
-     * 흰색으로 한 번 반짝인다.
-
-     */
-
-    private void playNormalClearAnimation(
-
-        ClearResult result,
-
-        Runnable onFinished
-
-    ) {
-
-
-
-        Set<Label> targets =
-
-            collectAnimationTargets(
-
-                result
-
-            );
-
-
-
-        if (
-
-            targets.isEmpty()
-
-        ) {
-
-
-
-            finishAnimation(
-
-                onFinished
-
-            );
-
-
-
-            return;
-
-        }
-
-
-
-        Map<Label, String>
-
-            originalStyles =
-
-                rememberStyles(
-
-                    targets
-
-                );
-
-
-
-        String previousText =
-
-            statusLabel.getText();
-
-
-
-        String previousStyle =
-
-            statusLabel.getStyle();
-
-
-
-        showEffectStatus(
-
-            "LINE CLEAR!",
-
-            "#FFFFFF"
-
-        );
-
-
-
-        applyEffectStyle(
-
-            targets,
-
-            "#FFFFFF",
-
-            "#111111"
-
-        );
-
-
-
-        Timeline timeline =
-
-            new Timeline(
-
-
-
-                new KeyFrame(
-
-                    Duration.millis(90),
-
-                    event ->
-
-                        applyEffectStyle(
-
-                            targets,
-
-                            "#BBBBBB",
-
-                            "#111111"
-
-                        )
-
-                ),
-
-
-
-                new KeyFrame(
-
-                    Duration.millis(180),
-
-                    event -> {
-
-                        restoreAnimationState(
-
-                            targets,
-
-                            originalStyles
-
-                        );
-
-
-
-                        restoreEffectStatus(
-
-                            previousText,
-
-                            previousStyle
-
-                        );
-
-
-
-                        finishAnimation(
-
-                            onFinished
-
-                        );
-
-                    }
-
-                )
-
-            );
-
-
-
-        timeline.play();
-
-    }
-
-
-
-    /*
-
-     * L:
-
-     * 노란색 -> 흰색 -> 노란색으로 빠르게 반짝인다.
-
-     */
-
-    private void playLineClearAnimation(
-
-        ClearResult result,
-
-        Runnable onFinished
-
-    ) {
-
-
-
-        Set<Label> targets =
-
-            collectAnimationTargets(
-
-                result
-
-            );
-
-
-
-        if (
-
-            targets.isEmpty()
-
-        ) {
-
-
-
-            finishAnimation(
-
-                onFinished
-
-            );
-
-
-
-            return;
-
-        }
-
-
-
-        Map<Label, String>
-
-            originalStyles =
-
-                rememberStyles(
-
-                    targets
-
-                );
-
-
-
-        String previousText =
-
-            statusLabel.getText();
-
-
-
-        String previousStyle =
-
-            statusLabel.getStyle();
-
-
-
-        showEffectStatus(
-
-            "LINE CLEAR!",
-
-            "#FFFF00"
-
-        );
-
-
-
-        applyEffectStyle(
-
-            targets,
-
-            "#FFD600",
-
-            "#111111"
-
-        );
-
-
-
-        Timeline timeline =
-
-            new Timeline(
-
-
-
-                new KeyFrame(
-
-                    Duration.millis(80),
-
-                    event ->
-
-                        applyEffectStyle(
-
-                            targets,
-
-                            "#FFFFFF",
-
-                            "#111111"
-
-                        )
-
-                ),
-
-
-
-                new KeyFrame(
-
-                    Duration.millis(160),
-
-                    event ->
-
-                        applyEffectStyle(
-
-                            targets,
-
-                            "#FFF176",
-
-                            "#111111"
-
-                        )
-
-                ),
-
-
-
-                new KeyFrame(
-
-                    Duration.millis(250),
-
-                    event -> {
-
-                        restoreAnimationState(
-
-                            targets,
-
-                            originalStyles
-
-                        );
-
-
-
-                        restoreEffectStatus(
-
-                            previousText,
-
-                            previousStyle
-
-                        );
-
-
-
-                        finishAnimation(
-
-                            onFinished
-
-                        );
-
-                    }
-
-                )
-
-            );
-
-
-
-        timeline.play();
-
-    }
-
-
-
-    /*
-
-     * B:
-
-     * 빨강 -> 흰색 -> 주황 플래시와 확대 효과.
-
-     */
-
-    private void playBombAnimation(
-
-        ClearResult result,
-
-        Runnable onFinished
-
-    ) {
-
-
-
-        Set<Label> targets =
-
-            collectAnimationTargets(
-
-                result
-
-            );
-
-
-
-        if (
-
-            targets.isEmpty()
-
-        ) {
-
-
-
-            finishAnimation(
-
-                onFinished
-
-            );
-
-
-
-            return;
-
-        }
-
-
-
-        Map<Label, String>
-
-            originalStyles =
-
-                rememberStyles(
-
-                    targets
-
-                );
-
-
-
-        String previousText =
-
-            statusLabel.getText();
-
-
-
-        String previousStyle =
-
-            statusLabel.getStyle();
-
-
-
-        showEffectStatus(
-
-            "BOMB!",
-
-            "#FF5555"
-
-        );
-
-
-
-        applyEffectStyle(
-
-            targets,
-
-            "#FF3D00",
-
-            "#FFFFFF"
-
-        );
-
-
-
-        setTargetScale(
-
-            targets,
-
-            1.15,
-
-            1.15
-
-        );
-
-
-
-        Timeline timeline =
-
-            new Timeline(
-
-
-
-                new KeyFrame(
-
-                    Duration.millis(70),
-
-                    event -> {
-
-                        applyEffectStyle(
-
-                            targets,
-
-                            "#FFFFFF",
-
-                            "#FF3D00"
-
-                        );
-
-
-
-                        setTargetScale(
-
-                            targets,
-
-                            1.30,
-
-                            1.30
-
-                        );
-
-                    }
-
-                ),
-
-
-
-                new KeyFrame(
-
-                    Duration.millis(150),
-
-                    event -> {
-
-                        applyEffectStyle(
-
-                            targets,
-
-                            "#FF9800",
-
-                            "#111111"
-
-                        );
-
-
-
-                        setTargetScale(
-
-                            targets,
-
-                            1.08,
-
-                            1.08
-
-                        );
-
-                    }
-
-                ),
-
-
-
-                new KeyFrame(
-
-                    Duration.millis(260),
-
-                    event -> {
-
-                        restoreAnimationState(
-
-                            targets,
-
-                            originalStyles
-
-                        );
-
-
-
-                        restoreEffectStatus(
-
-                            previousText,
-
-                            previousStyle
-
-                        );
-
-
-
-                        finishAnimation(
-
-                            onFinished
-
-                        );
-
-                    }
-
-                )
-
-            );
-
-
-
-        timeline.play();
-
-    }
-
-
-
-    /*
-
-     * +:
-
-     * 가로로 퍼졌다가 세로로 퍼지는 느낌의 십자 펄스.
-
-     */
-
-    private void playCrossAnimation(
-
-        ClearResult result,
-
-        Runnable onFinished
-
-    ) {
-
-
-
-        Set<Label> targets =
-
-            collectAnimationTargets(
-
-                result
-
-            );
-
-
-
-        if (
-
-            targets.isEmpty()
-
-        ) {
-
-
-
-            finishAnimation(
-
-                onFinished
-
-            );
-
-
-
-            return;
-
-        }
-
-
-
-        Map<Label, String>
-
-            originalStyles =
-
-                rememberStyles(
-
-                    targets
-
-                );
-
-
-
-        String previousText =
-
-            statusLabel.getText();
-
-
-
-        String previousStyle =
-
-            statusLabel.getStyle();
-
-
-
-        showEffectStatus(
-
-            "CROSS!",
-
-            "#FF66CC"
-
-        );
-
-
-
-        applyEffectStyle(
-
-            targets,
-
-            "#FF66CC",
-
-            "#111111"
-
-        );
-
-
-
-        setTargetScale(
-
-            targets,
-
-            1.35,
-
-            0.85
-
-        );
-
-
-
-        Timeline timeline =
-
-            new Timeline(
-
-
-
-                new KeyFrame(
-
-                    Duration.millis(90),
-
-                    event -> {
-
-                        applyEffectStyle(
-
-                            targets,
-
-                            "#FFFFFF",
-
-                            "#CC2E8A"
-
-                        );
-
-
-
-                        setTargetScale(
-
-                            targets,
-
-                            0.85,
-
-                            1.35
-
-                        );
-
-                    }
-
-                ),
-
-
-
-                new KeyFrame(
-
-                    Duration.millis(180),
-
-                    event -> {
-
-                        applyEffectStyle(
-
-                            targets,
-
-                            "#FF66CC",
-
-                            "#111111"
-
-                        );
-
-
-
-                        setTargetScale(
-
-                            targets,
-
-                            1.10,
-
-                            1.10
-
-                        );
-
-                    }
-
-                ),
-
-
-
-                new KeyFrame(
-
-                    Duration.millis(270),
-
-                    event -> {
-
-                        restoreAnimationState(
-
-                            targets,
-
-                            originalStyles
-
-                        );
-
-
-
-                        restoreEffectStatus(
-
-                            previousText,
-
-                            previousStyle
-
-                        );
-
-
-
-                        finishAnimation(
-
-                            onFinished
-
-                        );
-
-                    }
-
-                )
-
-            );
-
-
-
-        timeline.play();
-
-    }
-
-
-
-    /*
-
-     * W:
-
-     * 회색 충격 플래시 + 보드가 아래/위로 짧게 흔들린다.
-
-     */
-
-    private void playWeightAnimation(
-
-        ClearResult result,
-
-        Runnable onFinished
-
-    ) {
-
-
-
-        Set<Label> targets =
-
-            collectAnimationTargets(
-
-                result
-
-            );
-
-
-
-        Map<Label, String>
-
-            originalStyles =
-
-                rememberStyles(
-
-                    targets
-
-                );
-
-
-
-        String previousText =
-
-            statusLabel.getText();
-
-
-
-        String previousStyle =
-
-            statusLabel.getStyle();
-
-
-
-        showEffectStatus(
-
-            "WEIGHT!",
-
-            "#FFFFFF"
-
-        );
-
-
-
-        applyEffectStyle(
-
-            targets,
-
-            "#9E9E9E",
-
-            "#111111"
-
-        );
-
-
-
-        boardGrid.setTranslateY(
-
-            5
-
-        );
-
-
-
-        Timeline timeline =
-
-            new Timeline(
-
-
-
-                new KeyFrame(
-
-                    Duration.millis(65),
-
-                    event -> {
-
-                        boardGrid.setTranslateY(
-
-                            -2
-
-                        );
-
-
-
-                        applyEffectStyle(
-
-                            targets,
-
-                            "#FFFFFF",
-
-                            "#111111"
-
-                        );
-
-                    }
-
-                ),
-
-
-
-                new KeyFrame(
-
-                    Duration.millis(125),
-
-                    event -> {
-
-                        boardGrid.setTranslateY(
-
-                            2
-
-                        );
-
-
-
-                        applyEffectStyle(
-
-                            targets,
-
-                            "#BDBDBD",
-
-                            "#111111"
-
-                        );
-
-                    }
-
-                ),
-
-
-
-                new KeyFrame(
-
-                    Duration.millis(190),
-
-                    event ->
-
-                        boardGrid.setTranslateY(
-
-                            0
-
-                        )
-
-                ),
-
-
-
-                new KeyFrame(
-
-                    Duration.millis(260),
-
-                    event -> {
-
-                        boardGrid.setTranslateY(
-
-                            0
-
-                        );
-
-
-
-                        restoreAnimationState(
-
-                            targets,
-
-                            originalStyles
-
-                        );
-
-
-
-                        restoreEffectStatus(
-
-                            previousText,
-
-                            previousStyle
-
-                        );
-
-
-
-                        finishAnimation(
-
-                            onFinished
-
-                        );
-
-                    }
-
-                )
-
-            );
-
-
-
-        timeline.play();
-
-    }
-
-
-
-    /*
-
-     * D:
-
-     * 압축되는 두 열을 청록색으로 깜빡이고
-
-     * 투명도를 바꿔 스캔되는 느낌을 준다.
-
-     */
-
-    private void playGapDestroyAnimation(
-
-        ClearResult result,
-
-        Runnable onFinished
-
-    ) {
-
-
-
-        Set<Label> targets =
-
-            collectAnimationTargets(
-
-                result
-
-            );
-
-
-
-        if (
-
-            targets.isEmpty()
-
-        ) {
-
-
-
-            finishAnimation(
-
-                onFinished
-
-            );
-
-
-
-            return;
-
-        }
-
-
-
-        Map<Label, String>
-
-            originalStyles =
-
-                rememberStyles(
-
-                    targets
-
-                );
-
-
-
-        String previousText =
-
-            statusLabel.getText();
-
-
-
-        String previousStyle =
-
-            statusLabel.getStyle();
-
-
-
-        showEffectStatus(
-
-            "GAP DESTROY!",
-
-            "#66CCFF"
-
-        );
-
-
-
-        applyEffectStyle(
-
-            targets,
-
-            "#66CCFF",
-
-            "#111111"
-
-        );
-
-
-
-        setTargetOpacity(
-
-            targets,
-
-            0.35
-
-        );
-
-
-
-        Timeline timeline =
-
-            new Timeline(
-
-
-
-                new KeyFrame(
-
-                    Duration.millis(80),
-
-                    event -> {
-
-                        setTargetOpacity(
-
-                            targets,
-
-                            1.0
-
-                        );
-
-
-
-                        applyEffectStyle(
-
-                            targets,
-
-                            "#FFFFFF",
-
-                            "#2A7FA8"
-
-                        );
-
-                    }
-
-                ),
-
-
-
-                new KeyFrame(
-
-                    Duration.millis(160),
-
-                    event -> {
-
-                        setTargetOpacity(
-
-                            targets,
-
-                            0.45
-
-                        );
-
-
-
-                        applyEffectStyle(
-
-                            targets,
-
-                            "#66CCFF",
-
-                            "#111111"
-
-                        );
-
-                    }
-
-                ),
-
-
-
-                new KeyFrame(
-
-                    Duration.millis(240),
-
-                    event -> {
-
-                        setTargetOpacity(
-
-                            targets,
-
-                            1.0
-
-                        );
-
-
-
-                        restoreAnimationState(
-
-                            targets,
-
-                            originalStyles
-
-                        );
-
-
-
-                        restoreEffectStatus(
-
-                            previousText,
-
-                            previousStyle
-
-                        );
-
-
-
-                        finishAnimation(
-
-                            onFinished
-
-                        );
-
-                    }
-
-                )
-
-            );
-
-
-
-        timeline.play();
-
-    }
-
-
-
-    private Set<Label> collectAnimationTargets(
-
-        ClearResult result
-
-    ) {
-
-
-
-        Set<Label> targets =
-
-            new LinkedHashSet<>();
-
-
-
-        if (
-
-            result == null
-
-        ) {
-
-
-
-            return targets;
-
-        }
-
-
-
-        /*
-
-         * 삭제 행
-
-         */
-
-        if (
-
-            result.getRowsToDelete()
-
-                != null
-
-        ) {
-
-
-
-            for (
-
-                Integer boardRow :
-
-                result.getRowsToDelete()
-
-            ) {
-
-
-
-                if (
-
-                    boardRow != null
-
-                ) {
-
-
-
-                    addAnimationRow(
-
-                        targets,
-
-                        boardRow
-
-                    );
-
-                }
-
-            }
-
-        }
-
-
-
-        /*
-
-         * 삭제 셀
-
-         */
-
-        if (
-
-            result.getCellsToDelete()
-
-                != null
-
-        ) {
-
-
-
-            for (
-
-                Position position :
-
-                result.getCellsToDelete()
-
-            ) {
-
-
-
-                addAnimationCell(
-
-                    targets,
-
-                    position
-
-                );
-
-            }
-
-        }
-
-
-
-        /*
-
-         * D 압축 열
-
-         */
-
-        if (
-
-            result.getColumnsToCompact()
-
-                != null
-
-        ) {
-
-
-
-            int startRow =
-
-                result
-
-                    .getCompactStartRow();
-
-
-
-            for (
-
-                Integer col :
-
-                result
-
-                    .getColumnsToCompact()
-
-            ) {
-
-
-
-                if (
-
-                    col != null
-
-                ) {
-
-
-
-                    addAnimationColumn(
-
-                        targets,
-
-                        col,
-
-                        startRow
-
-                    );
-
-                }
-
-            }
-
-        }
-
-
-
-        return targets;
-
-    }
-
-
-
-    private Map<Label, String> rememberStyles(
-
-        Set<Label> targets
-
-    ) {
-
-
-
-        Map<Label, String>
-
-            originalStyles =
-
-                new IdentityHashMap<>();
-
-
-
-        for (
-
-            Label cell :
-
-            targets
-
-        ) {
-
-
-
-            originalStyles.put(
-
-                cell,
-
-                cell.getStyle()
-
-            );
-
-        }
-
-
-
-        return originalStyles;
-
-    }
-
-
-
-    private void applyEffectStyle(
-
-        Set<Label> targets,
-
-        String backgroundColor,
-
-        String textColor
-
-    ) {
-
-
-
-        if (
-
-            targets == null
-
-        ) {
-
-
-
-            return;
-
-        }
-
-
-
-        for (
-
-            Label cell :
-
-            targets
-
-        ) {
-
-
-
-            if (
-
-                cell == null
-
-            ) {
-
-
-
-                continue;
-
-            }
-
-
-
-            cell.setStyle(
-
-                baseCellStyle()
-
-                + "-fx-background-color: "
-
-                + backgroundColor
-
-                + ";"
-
-                + "-fx-text-fill: "
-
-                + textColor
-
-                + ";"
-
-                + "-fx-font-weight: bold;"
-
-            );
-
-        }
-
-    }
-
-
-
-    private void setTargetScale(
-
-        Set<Label> targets,
-
-        double scaleX,
-
-        double scaleY
-
-    ) {
-
-
-
-        if (
-
-            targets == null
-
-        ) {
-
-
-
-            return;
-
-        }
-
-
-
-        for (
-
-            Label cell :
-
-            targets
-
-        ) {
-
-
-
-            if (
-
-                cell == null
-
-            ) {
-
-
-
-                continue;
-
-            }
-
-
-
-            cell.setScaleX(
-
-                scaleX
-
-            );
-
-
-
-            cell.setScaleY(
-
-                scaleY
-
-            );
-
-        }
-
-    }
-
-
-
-    private void setTargetOpacity(
-
-        Set<Label> targets,
-
-        double opacity
-
-    ) {
-
-
-
-        if (
-
-            targets == null
-
-        ) {
-
-
-
-            return;
-
-        }
-
-
-
-        for (
-
-            Label cell :
-
-            targets
-
-        ) {
-
-
-
-            if (
-
-                cell != null
-
-            ) {
-
-
-
-                cell.setOpacity(
-
-                    opacity
-
-                );
-
-            }
-
-        }
-
-    }
-
-
-
-    private void restoreAnimationState(
-
-        Set<Label> targets,
-
-        Map<Label, String> originalStyles
-
-    ) {
-
-
-
-        if (
-
-            targets != null
-
-        ) {
-
-
-
-            for (
-
-                Label cell :
-
-                targets
-
-            ) {
-
-
-
-                if (
-
-                    cell == null
-
-                ) {
-
-
-
-                    continue;
-
-                }
-
-
-
-                cell.setScaleX(
-
-                    1.0
-
-                );
-
-
-
-                cell.setScaleY(
-
-                    1.0
-
-                );
-
-
-
-                cell.setOpacity(
-
-                    1.0
-
-                );
-
-            }
-
-        }
-
-
-
-        if (
-
-            originalStyles != null
-
-        ) {
-
-
-
-            for (
-
-                Map.Entry<Label, String> entry :
-
-                originalStyles.entrySet()
-
-            ) {
-
-
-
-                if (
-
-                    entry.getKey() != null
-
-                ) {
-
-
-
-                    entry
-
-                        .getKey()
-
-                        .setStyle(
-
-                            entry.getValue()
-
-                        );
-
-                }
-
-            }
-
-        }
-
-    }
-
-
-
-    private void showEffectStatus(
-
-        String text,
-
-        String color
-
-    ) {
-
-
-
-        statusLabel.setText(
-
-            text
-
-        );
-
-
-
-        statusLabel.setStyle(
-
-            "-fx-text-fill: "
-
-            + color
-
-            + ";"
-
-            + "-fx-font-family: 'Consolas';"
-
-            + "-fx-font-size: 15px;"
-
-            + "-fx-font-weight: bold;"
-
-        );
-
-    }
-
-
-
-    private void restoreEffectStatus(
-
-        String previousText,
-
-        String previousStyle
-
-    ) {
-
-
-
-        statusLabel.setText(
-
-            previousText == null
-
-                ? ""
-
-                : previousText
-
-        );
-
-
-
-        if (
-
-            previousStyle != null
-
-        ) {
-
-
-
-            statusLabel.setStyle(
-
-                previousStyle
-
-            );
-
-        }
-
-    }
-
-
-
-    private void finishAnimation(
-
-        Runnable onFinished
-
-    ) {
-
-
-
-        if (
-
-            onFinished != null
-
-        ) {
-
-
-
-            onFinished.run();
-
-        }
-
-    }
-
-
-
-    private void addAnimationRow(
-
-        Set<Label> targets,
-
-        int boardRow
-
-    ) {
-
-
-
-        int visibleRow =
-
-            toVisibleRow(
-
-                boardRow
-
-            );
-
-
-
-        if (
-
-            visibleRow < 0
-
-            || visibleRow
-
-                >= VISIBLE_ROWS
-
-        ) {
-
-
-
-            return;
-
-        }
-
-
-
-        for (
-
-            int col = 0;
-
-            col < COLS;
-
-            col++
-
-        ) {
-
-
-
-            targets.add(
-
-                boardCells
-
-                    [visibleRow]
-
-                    [col]
-
-            );
-
-        }
-
-    }
-
-
-
-    private void addAnimationCell(
-
-        Set<Label> targets,
-
-        Position position
-
-    ) {
-
-
-
-        if (
-
-            position == null
-
-        ) {
-
-
-
-            return;
-
-        }
-
-
-
-        int visibleRow =
-
-            toVisibleRow(
-
-                position.getRow()
-
-            );
-
-
-
-        int col =
-
-            position.getCol();
-
-
-
-        if (
-
-            visibleRow >= 0
-
-            && visibleRow < VISIBLE_ROWS
-
-            && col >= 0
-
-            && col < COLS
-
-        ) {
-
-
-
-            targets.add(
-
-                boardCells
-
-                    [visibleRow]
-
-                    [col]
-
-            );
-
-        }
-
-    }
-
-
-
-    private void addAnimationColumn(
-
-        Set<Label> targets,
-
-        int col,
-
-        int startBoardRow
-
-    ) {
-
-
-
-        if (
-
-            col < 0
-
-            || col >= COLS
-
-        ) {
-
-
-
-            return;
-
-        }
-
-
-
-        int firstVisibleBoardRow =
-
-            Math.max(
-
-                0,
-
-                Board.ROWS
-
-                - VISIBLE_ROWS
-
-            );
-
-
-
-        int start =
-
-            startBoardRow < 0
-
-                ? firstVisibleBoardRow
-
-                : Math.max(
-
-                    firstVisibleBoardRow,
-
-                    startBoardRow
-
-                );
-
-
-
-        for (
-
-            int boardRow = start;
-
-            boardRow < Board.ROWS;
-
-            boardRow++
-
-        ) {
-
-
-
-            int visibleRow =
-
-                toVisibleRow(
-
-                    boardRow
-
-                );
-
-
-
-            if (
-
-                visibleRow >= 0
-
-                && visibleRow
-
-                    < VISIBLE_ROWS
-
-            ) {
-
-
-
-                targets.add(
-
-                    boardCells
-
-                        [visibleRow]
-
-                        [col]
-
-                );
-
-            }
-
-        }
-
-    }
-
-
-
-    private int toVisibleRow(
-
-        int boardRow
-
-    ) {
-
-
-
-        int firstVisibleRow =
-
-            Math.max(
-
-                0,
-
-                Board.ROWS
-
-                - VISIBLE_ROWS
-
-            );
-
-
-
-        return
-
-            boardRow
-
-            - firstVisibleRow;
-
-    }
-
-
-
-    /*
-
-     * BOARD RESET
-
-     */
-
-    private void clearBoard() {
-
-
-
-        for (
-
-            int row = 0;
-
-            row < VISIBLE_ROWS;
-
-            row++
-
-        ) {
-
-
-
-            for (
-
-                int col = 0;
-
-                col < COLS;
-
-                col++
-
-            ) {
-
-
-
-                resetBoardCell(
-
-                    boardCells
-
-                        [row]
-
-                        [col]
-
-                );
-
-            }
-
-        }
-
-    }
-
-
-
-    private void resetBoardCell(
-
-        Label cell
-
-    ) {
-
-
-
-        cell.setText(".");
-
-
-
-        cell.setStyle(
-
-            baseCellStyle()
-
-            + "-fx-text-fill: #444444;"
-
-        );
-
-    }
-
-
-
-    /*
-
-     * NEXT RESET
-
-     */
-
-    private void clearNext() {
-
-
-
-        for (
-
-            int row = 0;
-
-            row < NEXT_SIZE;
-
-            row++
-
-        ) {
-
-
-
-            for (
-
-                int col = 0;
-
-                col < NEXT_SIZE;
-
-                col++
-
-            ) {
-
-
-
-                nextCells
-
-                    [row]
-
-                    [col]
-
-                    .setText(" ");
-
-
-
-                nextCells
-
-                    [row]
-
-                    [col]
-
-                    .setStyle(
-
-                        baseCellStyle()
-
-                    );
-
-            }
-
-        }
-
-    }
-
-
-
-    public Parent getRoot() {
-
-
-
-        return root;
-
-    }
-
-
-
-    public void updateScore(
-
-        int score
-
-    ) {
-
-
-
-        scoreLabel.setText(
-
-            String.valueOf(
-
-                score
-
-            )
-
-        );
-
-    }
-
-
-
-    /*
-
-     * 2차:
-
-     * 게임 모드 / 난이도 표시
-
-     */
-
-    public void setGameInfo(
-
-        GameMode mode,
-
-        Difficulty difficulty
-
-    ) {
-
-
-
-        modeLabel.setText(
-
-            "MODE: "
-
-            + (
-
-                mode == null
-
-                    ? "-"
-
-                    : mode.name()
-
-            )
-
-        );
-
-
-
-        difficultyLabel.setText(
-
-            "DIFFICULTY: "
-
-            + (
-
-                difficulty == null
-
-                    ? "-"
-
-                    : difficulty.name()
-
-            )
-
-        );
-
-
-        applyModeLayout(mode);
-
-    }
-
-
-
-    /*
-
-     * SKIP
-
-     */
-
-    public void updateSkipInfo(
-
-        String skipKey,
-
-        int remaining
-
-    ) {
-
-
-
-        skipKeyLabel.setText(
-
-            safeKey(
-
-                skipKey
-
-            )
-
-        );
-
-
-
-        skipRemainingLabel.setText(
-
-            remaining
-
-            + " / "
-
-            + MAX_SKIP_COUNT
-
-        );
-
-    }
-
-
-
-    /*
-
-     * CONTROL DISPLAY
-
-     */
-
-    public void setControlKeyGuide(
-
-        String moveLeft,
-
-        String moveRight,
-
-        String softDrop,
-
-        String rotate,
-
-        String hardDrop,
-
-        String skip
-
-    ) {
-
-
-
-        moveKeyLabel.setText(
-
-            safeKey(moveLeft)
-
-            + " "
-
-            + safeKey(moveRight)
-
-        );
-
-
-
-        softDropKeyLabel.setText(
-
-            safeKey(softDrop)
-
-        );
-
-
-
-        rotateKeyLabel.setText(
-
-            safeKey(rotate)
-
-        );
-
-
-
-        hardDropKeyLabel.setText(
-
-            safeKey(hardDrop)
-
-        );
-
-
-
-        skipKeyLabel.setText(
-
-            safeKey(skip)
-
-        );
-
-    }
-
-
-
-    private String safeKey(
-
-        String key
-
-    ) {
-
-
-
-        if (
-
-            key == null
-
-            || key.isBlank()
-
-        ) {
-
-
-
-            return "-";
-
-        }
-
-
-
-        return key;
-
-    }
-
-
-
-    public void applyColorBlindMode(
-
-        boolean enabled
-
-    ) {
-
-
-
-        colorBlindMode =
-
-            enabled;
-
-    }
-
-
-
-    public void setPaused(
-
-        boolean paused
-
-    ) {
-
-
-
-        statusLabel.setText(
-
-            paused
-
-                ? "PAUSED"
-
-                : ""
-
-        );
-
-    }
-
+private HBox createBattleLayout() {
+    HBox battle = new HBox(40, createBattlePlayer("PLAYER 1"), createBattlePlayer("PLAYER 2"));
+    battle.getStyleClass().add("battle-layout");
+    return battle;
+}
+
+private VBox createBattlePlayer(String name) {
+    Label player = new Label(name);
+    Label board = new Label();
+    Label next = new Label("NEXT");
+    Label score = new Label("SCORE : 0");
+    Label attack = new Label("INCOMING : 0 / 10");
+
+    player.getStyleClass().add("battle-player-title");
+    board.getStyleClass().add("battle-board");
+
+    VBox box = new VBox(10, player, board, next, score, attack);
+    box.getStyleClass().add("battle-player");
+    return box;
+}
 }

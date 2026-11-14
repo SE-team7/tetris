@@ -14,9 +14,11 @@ public class Board {
     public static final int COLS = 10;
 
     private final BlockType[][] cells;
+    private final boolean[][] attackCells;
 
     public Board() {
         cells = new BlockType[ROWS][COLS];
+        attackCells = new boolean[ROWS][COLS];
     }
     //이동가능 확인
     public boolean canMove(Block block, int deltaRow, int deltaCol) {
@@ -48,6 +50,7 @@ public class Board {
             int col = cell.getCol();
 
             cells[row][col] = block.getType();
+            attackCells[row][col] = false;
         }
     }
     //줄 삭제 +삭제한 줄 개수 반환
@@ -72,6 +75,7 @@ public class Board {
         for (int row = 0; row < ROWS; row++) {
             for (int col = 0; col < COLS; col++) {
                 cells[row][col] = null;
+                attackCells[row][col] = false;
             }
         }
     }
@@ -127,6 +131,49 @@ public class Board {
             case GAP_DESTROY -> new GapDestroyEffect().calculate(this, block);
         };
     }
+
+    // 폭탄 삭제 칸을 제거하고 같은 열의 위쪽 셀을 내려 채움
+    private void deleteBombCellsAndDrop(List<Position> cellsToDelete) {
+        boolean[][] deleted = new boolean[ROWS][COLS];
+        boolean[] affectedColumns = new boolean[COLS];
+
+        // 이동 전에 삭제 대상 좌표를 모두 표시
+        for (Position cell : cellsToDelete) {
+            int row = cell.getRow();
+            int col = cell.getCol();
+
+            deleted[row][col] = true;
+            affectedColumns[col] = true;
+        }
+
+        for (int col = 0; col < COLS; col++) {
+            if (!affectedColumns[col]) {
+                continue;
+            }
+
+            int writeRow = ROWS - 1;
+
+            for (int readRow = ROWS - 1; readRow >= 0; readRow--) {
+                if (deleted[readRow][col]) {
+                    continue;
+                }
+
+                // 빈칸도 함께 옮겨 기존 빈칸 구조 유지
+                if (writeRow != readRow) {
+                    cells[writeRow][col] = cells[readRow][col];
+                    attackCells[writeRow][col] = attackCells[readRow][col];
+                }
+
+                writeRow--;
+            }
+
+            // 내려온 만큼 위쪽 비우기
+            for (int row = writeRow; row >= 0; row--) {
+                cells[row][col] = null;
+                attackCells[row][col] = false;
+            }
+        }
+    }
     // 해당 줄이 꽉 찼는지 확인
     private boolean isLineFull(int row) {
         for (int col = 0; col < COLS; col++) {
@@ -135,6 +182,114 @@ public class Board {
             }
         }
         return true;
+    }
+
+    // 반드시 applyClear() 전에 호출
+    public AttackRows createAttackRows(
+            ClearResult result,
+            Position[] lastLockedCells
+    ) {
+        if (result == null || lastLockedCells == null) {
+            throw new IllegalArgumentException(
+                    "result and lastLockedCells must not be null"
+            );
+        }
+
+        List<Integer> rowIndexes = result.getAttackRowIndexes();
+
+        if (rowIndexes.size() < 2) {
+            return AttackRows.empty();
+        }
+
+        boolean[][] excluded = new boolean[ROWS][COLS];
+
+        // 마지막으로 고정한 블록의 칸은 공격 행에서 비우기
+        for (Position cell : lastLockedCells) {
+            int row = cell.getRow();
+            int col = cell.getCol();
+
+            if (isInside(row, col)) {
+                excluded[row][col] = true;
+            }
+        }
+
+        BlockType[][] rows = new BlockType[rowIndexes.size()][COLS];
+
+        for (int index = 0; index < rowIndexes.size(); index++) {
+            int sourceRow = rowIndexes.get(index);
+
+            for (int col = 0; col < COLS; col++) {
+                if (!excluded[sourceRow][col]) {
+                    rows[index][col] = cells[sourceRow][col];
+                }
+            }
+        }
+
+        return new AttackRows(rows);
+    }
+
+    // 공격 행 삽입. 위로 밀려나간 고정 셀이 있으면 true
+    public boolean insertAttackRows(AttackRows attackRows) {
+        if (attackRows == null) {
+            throw new IllegalArgumentException(
+                    "attackRows must not be null"
+            );
+        }
+
+        int rowCount = attackRows.getRowCount();
+
+        if (rowCount > ROWS) {
+            throw new IllegalArgumentException(
+                    "attack row count must not exceed " + ROWS
+            );
+        }
+
+        if (rowCount == 0) {
+            return false;
+        }
+
+        boolean overflow = false;
+
+        // 위로 밀려나갈 구간 확인
+        for (int row = 0; row < rowCount; row++) {
+            for (int col = 0; col < COLS; col++) {
+                if (cells[row][col] != null) {
+                    overflow = true;
+                }
+            }
+        }
+
+        // 기존 보드를 위로 이동
+        for (int row = 0; row < ROWS - rowCount; row++) {
+            copyRow(row + rowCount, row);
+        }
+
+        BlockType[][] incomingRows = attackRows.getRows();
+
+        // 보드 아래에 공격 행 추가
+        for (int index = 0; index < rowCount; index++) {
+            int targetRow = ROWS - rowCount + index;
+
+            System.arraycopy(
+                    incomingRows[index], 0,
+                    cells[targetRow], 0,
+                    COLS
+            );
+
+            for (int col = 0; col < COLS; col++) {
+                attackCells[targetRow][col] =
+                        cells[targetRow][col] != null;
+            }
+        }
+
+        return overflow;
+    }
+
+    // 공격으로 들어온 고정 셀인지 확인
+    public boolean isAttackCell(int row, int col) {
+        return isInside(row, col)
+                && cells[row][col] != null
+                && attackCells[row][col];
     }
 
     public void applyClear(ClearResult result) {
@@ -146,9 +301,14 @@ public class Board {
             return;
         }
 
-        // 1. 효과 적용 전 좌표를 기준으로 개별 셀 삭제
-        for (Position cell : result.getCellsToDelete()) {
-            cells[cell.getRow()][cell.getCol()] = null;
+        // 1. 폭탄은 삭제한 칸 위의 셀을 내리고, 나머지는 셀만 삭제
+        if (result.getItemType() == ItemType.BOMB) {
+            deleteBombCellsAndDrop(result.getCellsToDelete());
+        } else {
+            for (Position cell : result.getCellsToDelete()) {
+                cells[cell.getRow()][cell.getCol()] = null;
+                attackCells[cell.getRow()][cell.getCol()] = false;
+            }
         }
 
         // 2. 지정된 열의 아래쪽 구간 압축
@@ -167,9 +327,14 @@ public class Board {
         for (int readRow = ROWS - 1; readRow >= startRow; readRow--) {
             if (cells[readRow][col] != null) {
                 BlockType type = cells[readRow][col];
+                boolean attack = attackCells[readRow][col];
 
                 cells[readRow][col] = null;
+                attackCells[readRow][col] = false;
+
                 cells[writeRow][col] = type;
+                attackCells[writeRow][col] = attack;
+
                 writeRow--;
             }
         }
@@ -177,6 +342,7 @@ public class Board {
         // 압축 후 위에 남은 구간 비우기
         for (int row = writeRow; row >= startRow; row--) {
             cells[row][col] = null;
+            attackCells[row][col] = false;
         }
     }
 
@@ -199,11 +365,7 @@ public class Board {
             }
 
             if (writeRow != readRow) {
-                System.arraycopy(
-                        cells[readRow], 0,
-                        cells[writeRow], 0,
-                        COLS
-                );
+                copyRow(readRow, writeRow);
             }
 
             writeRow--;
@@ -212,8 +374,23 @@ public class Board {
         for (int row = writeRow; row >= 0; row--) {
             for (int col = 0; col < COLS; col++) {
                 cells[row][col] = null;
+                attackCells[row][col] = false; 
             }
         }
+    }
+
+    private void copyRow(int sourceRow, int targetRow) {
+        System.arraycopy(
+                cells[sourceRow], 0,
+                cells[targetRow], 0,
+                COLS
+        );
+
+        System.arraycopy(
+                attackCells[sourceRow], 0,
+                attackCells[targetRow], 0,
+                COLS
+        );
     }
 
 }
