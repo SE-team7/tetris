@@ -232,7 +232,8 @@ public class Block implements Serializable {
             };
             //아이템 블록
             case WEIGHT -> new int[][]{
-                    {0, -1}, {0, 0}, {0, 1}, {0, 2}, {-1,0}, {-1,1}
+                    {0, -1}, {0, 0}, {0, 1}, {0, 2},
+                    {-1, -1}, {-1, 0}, {-1, 1}, {-1, 2}
             };
             case BOMB, CROSS -> new int[][]{
                     {0, 0}

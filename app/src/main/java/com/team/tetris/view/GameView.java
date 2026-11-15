@@ -1,8 +1,11 @@
 package com.team.tetris.view;
+import java.net.URL;
+import java.util.EnumMap;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
+
 import com.team.tetris.domain.Block;
 import com.team.tetris.domain.BlockType;
 import com.team.tetris.domain.Board;
@@ -11,17 +14,24 @@ import com.team.tetris.domain.Difficulty;
 import com.team.tetris.domain.GameMode;
 import com.team.tetris.domain.ItemType;
 import com.team.tetris.domain.Position;
+
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Parent;
 import javafx.scene.control.Label;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
+import javafx.scene.transform.Scale;
 import javafx.util.Duration;
+
+
 public class GameView {
     private static final int VISIBLE_ROWS = 20;
     private static final int COLS = 10;
@@ -30,6 +40,14 @@ public class GameView {
     private static final String NORMAL_FRAME_COLOR = "#FFFFFF";
     private static final String ITEM_FRAME_COLOR = "#D6C2FF";
     private static final String ITEM_FRAME_GLOW_COLOR = "#7C4DFF";
+
+    // 아이템 이미지는 한 번만 불러와 재사용
+    private final Map<ItemType, Image> itemImages = loadItemImages();
+
+    // 여러 칸에 걸쳐 표시하는 얼굴 이미지 영역
+    private Pane boardFacePane;
+    private Pane nextFacePane;
+
     private final BorderPane root;
     private final GridPane boardGrid;
     private final Label[][] boardCells;
@@ -53,6 +71,8 @@ public class GameView {
     private final Label exitKeyLabel;
     private boolean colorBlindMode;
     private GameMode currentGameMode = GameMode.NORMAL;
+
+
     public GameView() {
         root = new BorderPane();
         root.setPadding(new Insets(20));
@@ -108,7 +128,8 @@ public class GameView {
         VBox rightContent = new VBox(12,  infoBox,  itemInfoBox,  controlsBox);
         rightContent.setAlignment(Pos.TOP_CENTER);
         sidePanel = new BorderPane();
-        sidePanel.setTop(rightContent);
+        sidePanel.setMinHeight(0);
+        sidePanel.setCenter(createFittedSidePanel(rightContent));
         BorderPane.setAlignment(rightContent,  Pos.TOP_CENTER);
         sidePanel.setPadding(new Insets(8,  10,  8,  18));
         sidePanel.setPrefWidth(225);
@@ -181,6 +202,8 @@ public class GameView {
         addControlEntry(grid,  row,  0,  actionText,  keyLabel);
     }
     public void render(BlockType[][] board,  Block currentBlock,  Block nextBlock,  int score,  int level,  boolean paused) {
+        removeLargeFaces();
+        
         clearBoard();
         clearNext();
         if (board != null) {
@@ -214,6 +237,51 @@ public class GameView {
         int boardRows = board == null ? Board.ROWS : board.length;
         int firstVisibleRow = Math.max(0,  boardRows - VISIBLE_ROWS);
         ItemType itemType = currentBlock.getItemType();
+
+        // 무게추·압축은 전체 직사각형에 얼굴 하나 표시
+        if ((itemType == ItemType.WEIGHT || itemType == ItemType.GAP_DESTROY)
+                && itemImages.containsKey(itemType)) {
+
+            Position[] cells = currentBlock.getCells();
+            int minRow = Integer.MAX_VALUE;
+            int maxRow = Integer.MIN_VALUE;
+            int minCol = Integer.MAX_VALUE;
+            int maxCol = Integer.MIN_VALUE;
+
+            for (Position position : cells) {
+                minRow = Math.min(minRow, position.getRow());
+                maxRow = Math.max(maxRow, position.getRow());
+                minCol = Math.min(minCol, position.getCol());
+                maxCol = Math.max(maxCol, position.getCol());
+            }
+
+            int top = minRow - firstVisibleRow;
+            int bottom = maxRow - firstVisibleRow;
+
+            if (bottom >= 0 && top < VISIBLE_ROWS) {
+                int visibleTop = Math.max(0, top);
+                int visibleBottom = Math.min(VISIBLE_ROWS - 1, bottom);
+
+                boardFacePane = createLargeFace(
+                        itemType,
+                        visibleTop - top,
+                        visibleBottom - visibleTop + 1,
+                        maxRow - minRow + 1,
+                        false
+                );
+
+                boardGrid.add(
+                        boardFacePane,
+                        minCol + 1,
+                        visibleTop + 1,
+                        maxCol - minCol + 1,
+                        visibleBottom - visibleTop + 1
+                );
+            }
+
+            return;
+        }
+
         Position itemPosition = currentBlock.getItemPosition();
         for (Position position : currentBlock.getCells()) {
             int visibleRow = position.getRow() - firstVisibleRow;
@@ -231,6 +299,22 @@ public class GameView {
         }
     }
     private void renderNextBlock(Block nextBlock) {
+        ItemType previewType = nextBlock.getItemType();
+
+        // 모든 아이템은 NEXT 안쪽 4×4 영역에 큰 얼굴 하나 표시
+        if (previewType != null
+                && previewType != ItemType.NONE
+                && previewType != ItemType.LINE_CLEAR
+                && itemImages.containsKey(previewType)) {
+
+            nextFacePane = createLargeFace(
+                    previewType, 0, NEXT_SIZE, NEXT_SIZE, true
+            );
+
+            nextGrid.add(nextFacePane, 1, 1, NEXT_SIZE, NEXT_SIZE);
+            return;
+        }
+
         Position[] cells = nextBlock.getCells();
         if (cells == null || cells.length == 0) {
             return;
@@ -272,28 +356,57 @@ public class GameView {
         GridPane infoGrid = new GridPane();
         infoGrid.setAlignment(Pos.CENTER);
         infoGrid.setHgap(10);
-        infoGrid.setVgap(3);
-        addItemInfoRow(infoGrid,  0,  "W",  "아래 블록 제거",  "#FFFFFF");
-        addItemInfoRow(infoGrid,  1,  "L",  "해당 줄 삭제",  "#F0E442");
-        addItemInfoRow(infoGrid,  2,  "B",  "중심 3×3 제거",  "#D55E00");
-        addItemInfoRow(infoGrid,  3,  "+",  "행·열 제거",  "#CC79A7");
-        addItemInfoRow(infoGrid,  4,  "D",  "아래 두 열 압축",  "#56B4E9");
+        infoGrid.setVgap(4);
+        addItemInfoRow(infoGrid,  0,   ItemType.WEIGHT,  "아래 4열 블록 제거");
+        addItemInfoRow(infoGrid, 1,ItemType.LINE_CLEAR,  "해당 줄 삭제" );
+        addItemInfoRow(infoGrid,  2,   ItemType.BOMB,  "중심 3×3 제거");
+        addItemInfoRow(infoGrid,  3,   ItemType.CROSS,  "행·열 제거");
+        addItemInfoRow(infoGrid,  4,   ItemType.GAP_DESTROY,  "아래 2열 압축");
         VBox box = new VBox(6,  title,  infoGrid);
         box.setAlignment(Pos.CENTER);
         box.setPadding(new Insets(8,  12,  8,  12));
         box.getStyleClass().add("item-info-box");
         return box;
     }
-    private void addItemInfoRow(GridPane grid,  int row,  String symbol,  String description,  String color) {
-        Label symbolLabel = new Label(symbol);
-        symbolLabel.setMinWidth(24);
-        symbolLabel.setAlignment(Pos.CENTER);
-        symbolLabel.setStyle("-fx-text-fill: " + color + ";" + "-fx-font-family: 'Consolas';" + "-fx-font-size: 13px;" + "-fx-font-weight: bold;");
+
+    private void addItemInfoRow(
+        GridPane grid,
+        int row,
+        ItemType itemType,
+        String description
+    ) {
+        Label imageLabel = new Label();
+        imageLabel.setAlignment(Pos.CENTER);
+        imageLabel.setMinSize(36, 36);
+        imageLabel.setPrefSize(36, 36);
+        imageLabel.setMaxSize(36, 36);
+
+        Image image = itemImages.get(itemType);
+
+        if (image != null) {
+            ImageView imageView = new ImageView(image);
+            imageView.setFitWidth(34);
+            imageView.setFitHeight(34);
+            imageView.setPreserveRatio(true);
+            imageView.setSmooth(true);
+
+            imageLabel.setGraphic(imageView);
+        } else {
+            imageLabel.setText(getItemText(itemType));
+            imageLabel.setStyle(
+                    "-fx-text-fill: " + getItemColor(itemType) + ";"
+                    + "-fx-font-size: 16px;"
+                    + "-fx-font-weight: bold;"
+            );
+        }
+
         Label descriptionLabel = new Label(description);
         descriptionLabel.getStyleClass().add("item-info-description");
-        grid.add(symbolLabel,  0,  row);
-        grid.add(descriptionLabel,  1,  row);
+
+        grid.add(imageLabel, 0, row);
+        grid.add(descriptionLabel, 1, row);
     }
+
     private void configureControls(GameMode mode) {
         controlsGrid.getChildren().clear();
         boolean itemMode = mode == GameMode.ITEM;
@@ -352,6 +465,41 @@ public class GameView {
         }
         return first.getRow() == second.getRow() && first.getCol() == second.getCol();
     }
+
+    private Map<ItemType, Image> loadItemImages() {
+        Map<ItemType, Image> images = new EnumMap<>(ItemType.class);
+
+        loadItemImage(images, ItemType.WEIGHT, "weight.png");
+        loadItemImage(images, ItemType.LINE_CLEAR, "lineclear.png");
+        loadItemImage(images, ItemType.BOMB, "bomb.png");
+        loadItemImage(images, ItemType.CROSS, "cross.png");
+        loadItemImage(images, ItemType.GAP_DESTROY, "gapdestroy.png");
+
+        return images;
+    }
+
+    private void loadItemImage(
+            Map<ItemType, Image> images,
+            ItemType itemType,
+            String fileName
+    ) {
+        URL resource = GameView.class.getResource("/image/item/" + fileName);
+
+        // 이미지가 없으면 기존 아이템 문자로 표시
+        if (resource == null) {
+            System.err.println("아이템 이미지를 찾을 수 없습니다: " + fileName);
+            return;
+        }
+
+        Image image = new Image(resource.toExternalForm());
+
+        if (image.isError()) {
+            System.err.println("아이템 이미지를 불러올 수 없습니다: " + fileName);
+            return;
+        }
+        
+        images.put(itemType, image);
+    }
     private void drawBlockCell(Label cell,  BlockType type) {
         if (type == null) {
             return;
@@ -376,6 +524,8 @@ public class GameView {
             default -> {
             }
         }
+        cell.setGraphic(null);
+
         if (colorBlindMode) {
             if (type == BlockType.L) {
                 cell.setText("G");
@@ -387,12 +537,43 @@ public class GameView {
         }
         cell.setStyle(baseCellStyle() + "-fx-background-color: " + getBlockColor(type) + ";" + "-fx-text-fill: white;" + "-fx-font-weight: bold;");
     }
-    private void drawItemCell(Label cell,  ItemType itemType) {
+    private void drawItemCell(Label cell, ItemType itemType) {
         if (itemType == null || itemType == ItemType.NONE) {
             return;
         }
-        cell.setText(getItemText(itemType));
-        cell.setStyle(baseCellStyle() + "-fx-text-fill: " + getItemColor(itemType) + ";" + "-fx-font-weight: bold;");
+
+        cell.setStyle(
+                baseCellStyle()
+                + "-fx-padding: 0;"
+                + "-fx-text-fill: " + getItemColor(itemType) + ";"
+                + "-fx-font-weight: bold;"
+        );
+
+        Image image = itemImages.get(itemType);
+
+        if (image == null) {
+            cell.setGraphic(null);
+            cell.setText(getItemText(itemType));
+            return;
+        }
+
+        // 각 Label은 별도의 ImageView를 사용하고 Image 데이터만 공유
+        ImageView imageView;
+        if (cell.getGraphic() instanceof ImageView existingImageView) {
+            imageView = existingImageView;
+        } else {
+            imageView = new ImageView();
+        }
+
+        imageView.setImage(image);
+        imageView.setFitWidth(20);
+        imageView.setFitHeight(20);
+        imageView.setPreserveRatio(true);
+        imageView.setSmooth(true);
+        imageView.setMouseTransparent(true);
+
+        cell.setText("");
+        cell.setGraphic(imageView);
     }
     private String getItemText(ItemType itemType) {
         return switch (itemType) {
@@ -733,14 +914,17 @@ public class GameView {
         }
     }
     private void resetBoardCell(Label cell) {
+        cell.setGraphic(null);
         cell.setText(".");
         cell.setStyle(baseCellStyle() + "-fx-text-fill: #444444;");
     }
     private void clearNext() {
         for (int row = 0; row < NEXT_SIZE; row++) {
             for (int col = 0; col < NEXT_SIZE; col++) {
-                nextCells[row][col].setText(" ");
-                nextCells[row][col].setStyle(baseCellStyle());
+                Label cell = nextCells[row][col];
+                cell.setGraphic(null);
+                cell.setText(" ");
+                cell.setStyle(baseCellStyle());
             }
         }
     }
@@ -802,5 +986,140 @@ private VBox createBattlePlayer(String name) {
     VBox box = new VBox(10, player, board, next, score, attack);
     box.getStyleClass().add("battle-player");
     return box;
-}
+    }
+
+    private void removeLargeFaces() {
+        if (boardFacePane != null) {
+            boardGrid.getChildren().remove(boardFacePane);
+            boardFacePane = null;
+        }
+
+        if (nextFacePane != null) {
+            nextGrid.getChildren().remove(nextFacePane);
+            nextFacePane = null;
+        }
+    }
+
+    private Pane createLargeFace(
+            ItemType itemType,
+            int hiddenTopRows,
+            int visibleRows,
+            int totalRows,
+            boolean preserveRatio
+    ) {
+        Image image = itemImages.get(itemType);
+
+        ImageView face = new ImageView(image);
+        face.setPreserveRatio(preserveRatio);
+        face.setSmooth(true);
+        face.setMouseTransparent(true);
+
+        Pane pane = new Pane(face);
+
+        // 이미지가 GridPane의 기존 칸 크기를 밀어 늘리지 않도록 설정
+        pane.setMinSize(0, 0);
+        pane.setPrefSize(0, 0);
+        pane.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+        pane.setMouseTransparent(true);
+        pane.setStyle("-fx-background-color: #111111;");
+
+        // 보드 위쪽에 걸친 부분은 잘라서 표시
+        javafx.scene.shape.Rectangle clip =
+                new javafx.scene.shape.Rectangle();
+
+        clip.widthProperty().bind(pane.widthProperty());
+        clip.heightProperty().bind(pane.heightProperty());
+        pane.setClip(clip);
+
+        Runnable resizeFace = () -> {
+            double width = pane.getWidth();
+            double height = pane.getHeight();
+
+            if (width <= 0 || height <= 0) {
+                return;
+            }
+
+            if (preserveRatio) {
+                // NEXT: 비율을 유지하면서 최대한 크게, 중앙에 표시
+                double scale = Math.min(
+                        width / image.getWidth(),
+                        height / image.getHeight()
+                );
+
+                double faceWidth = image.getWidth() * scale;
+                double faceHeight = image.getHeight() * scale;
+
+                face.setFitWidth(faceWidth);
+                face.setFitHeight(faceHeight);
+                face.setX((width - faceWidth) / 2);
+                face.setY((height - faceHeight) / 2);
+            } else {
+                // 보드: 무게추 2×4, 압축 2×2 전체를 얼굴 하나로 채움
+                double fullHeight = height * totalRows / visibleRows;
+
+                face.setFitWidth(width);
+                face.setFitHeight(fullHeight);
+                face.setX(0);
+                face.setY(-fullHeight * hiddenTopRows / totalRows);
+            }
+        };
+
+        pane.widthProperty().addListener(
+                (observable, oldValue, newValue) -> resizeFace.run()
+        );
+        pane.heightProperty().addListener(
+                (observable, oldValue, newValue) -> resizeFace.run()
+        );
+
+        return pane;
+    }
+
+    private Pane createFittedSidePanel(VBox content) {
+        Scale scale = new Scale(1, 1, 0, 0);
+        content.getTransforms().add(scale);
+        content.setManaged(false);
+
+        Pane container = new Pane(content) {
+            @Override
+            protected void layoutChildren() {
+                double availableWidth = getWidth();
+                double availableHeight = getHeight();
+
+                if (availableWidth <= 0 || availableHeight <= 0) {
+                    return;
+                }
+
+                double naturalWidth = Math.max(
+                        availableWidth,
+                        content.prefWidth(-1)
+                );
+                double naturalHeight = content.prefHeight(naturalWidth);
+
+                if (naturalHeight <= 0) {
+                    return;
+                }
+
+                double ratio = Math.min(
+                        1,
+                        Math.min(
+                                availableWidth / naturalWidth,
+                                availableHeight / naturalHeight
+                        )
+                );
+
+                content.resize(naturalWidth, naturalHeight);
+
+                scale.setX(ratio);
+                scale.setY(ratio);
+
+                content.relocate(
+                        (availableWidth - naturalWidth * ratio) / 2,
+                        0
+                );
+            }
+        };
+
+        container.setMinSize(0, 0);
+        return container;
+    }
 }
