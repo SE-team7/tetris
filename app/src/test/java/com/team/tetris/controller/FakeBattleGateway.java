@@ -36,8 +36,15 @@ class FakeBattleGateway implements BattleGateway {
         return (int) calls.stream().filter(call::equals).count();
     }
 
+    /** true면 시작·상태 조회에서 예외 (오류 처리 테스트용) */
+    volatile boolean failStart;
+    volatile boolean failSnapshot;
+
     @Override
     public void startNetworkBattle(MessagePayload.Config config, boolean localIsHost) {
+        if (failStart) {
+            throw new IllegalArgumentException("unsupported config");
+        }
         startedConfig = config;
         startedAsHost = localIsHost;
         calls.add("start");
@@ -56,6 +63,9 @@ class FakeBattleGateway implements BattleGateway {
 
     @Override
     public MessagePayload.Snapshot getLocalSnapshot() {
+        if (failSnapshot) {
+            throw new IllegalStateException("snapshot failed");
+        }
         return localSnapshot;
     }
 

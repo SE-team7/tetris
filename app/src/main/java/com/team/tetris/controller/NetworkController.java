@@ -8,14 +8,21 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
+import com.team.tetris.domain.AttackRows;
+import com.team.tetris.domain.BattleConfig;
+import com.team.tetris.domain.BattleResult;
+import com.team.tetris.domain.GameSnapshot;
 import com.team.tetris.network.BattleGateway;
+import com.team.tetris.network.BattleServiceGateway;
 import com.team.tetris.network.MessagePayload;
 import com.team.tetris.network.MessageType;
 import com.team.tetris.network.NetworkEvents;
 import com.team.tetris.network.NetworkListener;
 import com.team.tetris.network.NetworkMessage;
 import com.team.tetris.network.NetworkService;
+import com.team.tetris.network.PayloadMapper;
 import com.team.tetris.network.RecentHostStore;
+import com.team.tetris.service.BattleService;
 
 import javafx.application.Platform;
 
@@ -100,6 +107,11 @@ public class NetworkController {
     private ScheduledFuture<?> startTask;
     private ScheduledFuture<?> snapshotTask;
 
+    /** 앱에서 쓰는 생성자: 2번 BattleService에 연결하고, 화면 통지는 JavaFX Application Thread로 */
+    public NetworkController(NetworkService network, BattleService battleService, RecentHostStore recentHosts) {
+        this(network, new BattleServiceGateway(battleService), recentHosts);
+    }
+
     /** 화면 통지를 JavaFX Application Thread로 보내는 기본 생성자 */
     public NetworkController(NetworkService network, BattleGateway battle, RecentHostStore recentHosts) {
         this(network, battle, recentHosts, Platform::runLater, Timing.DEFAULT);
@@ -180,6 +192,12 @@ public class NetworkController {
         notifyConfig(newConfig);
     }
 
+    /** 명세 시그니처: BattleConfig로 설정 전달 */
+    public void sendBattleConfig(BattleConfig newConfig) {
+        Objects.requireNonNull(newConfig, "config must not be null");
+        sendBattleConfig(PayloadMapper.toPayload(newConfig));
+    }
+
     /** 자신의 준비 상태 전달. 양쪽 준비 완료 시 서버가 공통 시작 절차 진행 */
     public synchronized void setReady(boolean ready) {
         requireState(State.CONNECTED);
@@ -218,7 +236,17 @@ public class NetworkController {
         paused = false;
         battle.setOutgoingAttackListener(this::sendAttack);
         battle.setLocalGameOverListener(this::sendGameOver);
-        battle.startNetworkBattle(config, host);
+        try {
+            battle.startNetworkBattle(config, host);
+        } catch (RuntimeException e) {
+            // 받은 설정이 잘못된 경우 등: 대전을 시작하지 않고 대기 상태로 돌아간다
+            stopTasks();
+            localReady = false;
+            peerReady = false;
+            changeState(State.CONNECTED);
+            ui(() -> events.showError("대전을 시작할 수 없습니다: " + e.getMessage()));
+            return;
+        }
         battleStartNanos = System.nanoTime();
         changeState(State.IN_BATTLE);
         long interval = timing.snapshotIntervalMillis();
@@ -272,6 +300,26 @@ public class NetworkController {
         if (state == State.IN_BATTLE) {
             network.send(NetworkMessage.of(MessageType.SNAPSHOT, battleId, snapshot));
         }
+    }
+
+    /** 명세 시그니처: AttackRows로 공격 전달. 빈 공격은 보내지 않음 */
+    public void sendAttack(AttackRows attackRows) {
+        MessagePayload.Attack attack = PayloadMapper.toPayload(attackRows);
+        if (attack != null) {
+            sendAttack(attack);
+        }
+    }
+
+    /** 명세 시그니처: GameSnapshot으로 상태 전달 */
+    public void sendSnapshot(GameSnapshot snapshot) {
+        Objects.requireNonNull(snapshot, "snapshot must not be null");
+        sendSnapshot(PayloadMapper.toPayload(snapshot));
+    }
+
+    /** 명세 시그니처: BattleResult로 결과 전달 (서버만) */
+    public void sendBattleResult(BattleResult result) {
+        Objects.requireNonNull(result, "result must not be null");
+        sendBattleResult(PayloadMapper.toPayload(result));
     }
 
     /** 로컬 게임오버와 판정에 필요한 진행 시점(경과 시간·점수) 전달 */

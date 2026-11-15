@@ -8,6 +8,7 @@ import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
 
@@ -16,17 +17,28 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.io.TempDir;
 
+import com.team.tetris.FxTestSupport;
 import com.team.tetris.controller.NetworkController.State;
+import com.team.tetris.domain.AttackRows;
+import com.team.tetris.domain.BattleConfig;
+import com.team.tetris.domain.BattleEndReason;
+import com.team.tetris.domain.BattleResult;
 import com.team.tetris.domain.BlockType;
 import com.team.tetris.domain.Board;
 import com.team.tetris.domain.Difficulty;
+import com.team.tetris.domain.GameSnapshot;
+import com.team.tetris.domain.PlayerId;
 import com.team.tetris.network.MessageCodec;
 import com.team.tetris.network.MessagePayload;
 import com.team.tetris.network.MessageType;
 import com.team.tetris.network.NetworkMessage;
 import com.team.tetris.network.NetworkService;
+import com.team.tetris.network.NetworkEvents;
 import com.team.tetris.network.RecentHostStore;
+import com.team.tetris.service.BattleService;
 import com.team.tetris.util.FileManager;
+
+import javafx.application.Platform;
 
 /**
  * [요구사항 테스트] P2P 대전 진행 테스트.
@@ -225,7 +237,7 @@ class NetworkControllerTest {
         side.controller.host(0);
 
         assertThrows(IllegalStateException.class, () -> side.controller.sendBattleConfig(NORMAL));
-        assertThrows(NullPointerException.class, () -> side.controller.sendBattleConfig(null));
+        assertThrows(NullPointerException.class, () -> side.controller.sendBattleConfig((MessagePayload.Config) null));
     }
 
     @Test
@@ -797,6 +809,130 @@ class NetworkControllerTest {
         assertTrue(controller.getRecentHosts().isEmpty());
     }
 
+    // ================================================================ 명세 시그니처 (2번 도메인 타입)
+
+    @Test
+    void sendBattleConfig_withBattleConfigDeliversSameSettings() throws InterruptedException {
+        connect();
+
+        server.controller.sendBattleConfig(BattleConfig.timeLimit(Difficulty.EASY, 600));
+
+        waitUntil(() -> client.controller.getConfig() != null);
+        assertEquals(new MessagePayload.Config("TIME_LIMIT", Difficulty.EASY, 600), client.controller.getConfig());
+        assertThrows(NullPointerException.class, () -> server.controller.sendBattleConfig((BattleConfig) null));
+    }
+
+    @Test
+    void sendAttack_withAttackRowsSkipsEmptyAttack() throws InterruptedException {
+        startBattle(NORMAL);
+
+        client.controller.sendAttack(AttackRows.empty());
+        client.controller.sendAttack(new AttackRows(attackRows(2)));
+
+        waitUntil(() -> server.battle.receivedAttacks.size() == 1);
+        Thread.sleep(100);
+        assertEquals(1, server.battle.receivedAttacks.size(), "빈 공격은 보내지 않음");
+        assertEquals(2, server.battle.receivedAttacks.get(0).rowCount());
+    }
+
+    @Test
+    void sendSnapshot_withGameSnapshotIsShownToOpponent() throws InterruptedException {
+        startBattle(NORMAL);
+        client.battle.localSnapshot = null;   // 자동 전송 대신 직접 전송
+        GameSnapshot snapshot = new GameSnapshot(new BlockType[Board.ROWS][Board.COLS],
+                new boolean[Board.ROWS][Board.COLS], null, null, 777, 2, 5, null, false);
+
+        client.controller.sendSnapshot(snapshot);
+
+        waitUntil(() -> server.battle.remoteSnapshots.stream().anyMatch(s -> s.score() == 777));
+        assertThrows(NullPointerException.class, () -> client.controller.sendSnapshot((GameSnapshot) null));
+    }
+
+    @Test
+    void sendBattleResult_withBattleResultIsAppliedByClient() throws InterruptedException {
+        startBattle(NORMAL);
+
+        server.controller.sendBattleResult(BattleResult.draw(BattleEndReason.TIME_UP));
+
+        waitUntil(() -> client.battle.appliedResults.size() == 1);
+        assertEquals(new MessagePayload.Result(null, true, "TIME_UP"), client.battle.appliedResults.get(0));
+        assertThrows(NullPointerException.class, () -> server.controller.sendBattleResult((BattleResult) null));
+        assertThrows(IllegalStateException.class, () -> client.controller.sendBattleResult(
+                BattleResult.win(PlayerId.PLAYER2, BattleEndReason.GAME_OVER)));
+    }
+
+    // ================================================================ 오류 상황
+
+    @Test
+    void snapshotErrorIsShownAndSyncKeepsRunning() throws InterruptedException {
+        connect();
+        server.controller.sendBattleConfig(NORMAL);
+        waitUntil(() -> client.controller.getConfig() != null);
+        server.battle.failSnapshot = true;   // 엔진 상태 조회 중 예외
+        readyBothAndWaitForBattle();
+
+        waitUntil(() -> server.events.errors.stream().anyMatch(e -> e.contains("동기화")));
+        server.battle.failSnapshot = false;
+        server.battle.localSnapshot = snapshot(31);
+        waitUntil(() -> client.battle.remoteSnapshots.stream().anyMatch(s -> s.score() == 31));
+        assertEquals(State.IN_BATTLE, server.controller.getState(), "예외 후에도 대전 유지");
+    }
+
+    @Test
+    void battleStartFailure_returnsToWaitingWithError() throws InterruptedException {
+        connect();
+        server.controller.sendBattleConfig(NORMAL);
+        waitUntil(() -> client.controller.getConfig() != null);
+        client.battle.failStart = true;
+
+        client.controller.setReady(true);
+        waitUntil(server.controller::isPeerReady);
+        server.controller.setReady(true);
+
+        waitUntil(() -> client.events.errors.stream().anyMatch(e -> e.contains("시작할 수 없습니다")));
+        waitUntil(() -> client.controller.getState() == State.CONNECTED);
+        assertFalse(client.controller.isLocalReady(), "다시 준비해야 함");
+        assertNull(client.battle.attackListener, "시작 실패 시 콜백 해제");
+    }
+
+    // ================================================================ 접속 과정 메시지
+
+    @Test
+    void connectionProgressMessagesAreShownInOrder() throws InterruptedException {
+        connect();
+        server.controller.sendBattleConfig(NORMAL);
+        waitUntil(() -> client.controller.getConfig() != null);
+        client.controller.setReady(true);
+        waitUntil(server.controller::isPeerReady);
+
+        assertOrder(server.events.statuses, "접속 대기", "상대가 접속", "대전 설정", "상대 준비 완료");
+        assertOrder(client.events.statuses, "연결 중", "서버에 연결", "대전 설정", "상대 준비를 기다리는 중");
+        assertOrder(client.events.states, State.CONNECTING, State.CONNECTED);
+        assertOrder(server.events.states, State.HOSTING, State.CONNECTED);
+    }
+
+    // ================================================================ 앱 연결 (JavaFX)
+
+    @Test
+    void appConstructor_usesBattleServiceAndNotifiesOnJavaFxThread() throws Exception {
+        FxTestSupport.startJavaFx();
+        NetworkController app = new NetworkController(new NetworkService(NET), new BattleService(), null);
+        controllers.add(app);
+        List<Boolean> onFxThread = new CopyOnWriteArrayList<>();
+        app.setEvents(new NetworkEvents() {
+            @Override
+            public void showConnectionStatus(String status) {
+                onFxThread.add(Platform.isFxApplicationThread());
+            }
+        });
+
+        app.host(0);
+
+        waitUntil(() -> !onFxThread.isEmpty());
+        assertTrue(onFxThread.stream().allMatch(Boolean::booleanValue), "화면 통지는 JavaFX Application Thread에서");
+        assertEquals(State.HOSTING, app.getState());
+    }
+
     // ================================================================ 도우미
 
     private NetworkService getNetwork(NetworkController controller) {
@@ -831,6 +967,21 @@ class NetworkControllerTest {
         return new MessagePayload.Snapshot(new BlockType[Board.ROWS][Board.COLS],
                 new boolean[Board.ROWS][Board.COLS], null, null, score, 1, 7,
                 new BlockType[0][Board.COLS], false);
+    }
+
+    /** expected 항목들이 이 순서대로 나타나는지 (문자열은 포함 여부로 비교) */
+    private static void assertOrder(List<?> actual, Object... expected) {
+        int index = 0;
+        for (Object item : actual) {
+            if (index < expected.length && matches(item, expected[index])) {
+                index++;
+            }
+        }
+        assertEquals(expected.length, index, "순서대로 나타나야 함: " + List.of(expected) + " / 실제 " + actual);
+    }
+
+    private static boolean matches(Object item, Object expected) {
+        return expected instanceof String text ? String.valueOf(item).contains(text) : expected.equals(item);
     }
 
     private static void waitUntil(BooleanSupplier condition) throws InterruptedException {
