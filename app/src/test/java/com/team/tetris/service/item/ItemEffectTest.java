@@ -232,23 +232,24 @@ class ItemEffectTest {
     }
 
     @Test
-    void weightCalculatesAllSixMovedCells() {
+    void weightCalculatesAllEightMovedCells() {
         Block block = new Block(BlockType.WEIGHT, new Position(10, 4));
 
         ClearResult result = new WeightEffect().calculate(board, block);
 
         assertEquals(ItemType.WEIGHT, result.getItemType());
-        assertEquals(6, result.getCellsToDelete().size());
+        assertEquals(8, result.getCellsToDelete().size());
         assertEquals(Set.of(
                 "11,3", "11,4", "11,5", "11,6",
-                "10,4", "10,5"
+                "10,3", "10,4", "10,5", "10,6"
         ), coordinates(result.getCellsToDelete()));
+
         assertTrue(result.getRowsToDelete().isEmpty());
         assertTrue(result.getColumnsToCompact().isEmpty());
         assertEquals(-1, result.getCompactStartRow());
         assertCounts(result, 0, 0);
 
-        // 계산만 수행하며 블록을 실제로 이동시키지 않음
+        // 효과 계산으로 실제 위치가 바뀌지는 않음
         assertEquals(10, block.getPosition().getRow());
         assertEquals(4, block.getPosition().getCol());
     }
@@ -260,11 +261,15 @@ class ItemEffectTest {
 
         ClearResult result = new WeightEffect().calculate(board, block);
 
-        assertEquals(2, result.getCellsToDelete().size());
+        // 아래쪽 4칸은 보드를 벗어나고, 위쪽 4칸만 보드 안에 남음
+        assertEquals(4, result.getCellsToDelete().size());
         assertEquals(Set.of(
+                (Board.ROWS - 1) + ",3",
                 (Board.ROWS - 1) + ",4",
-                (Board.ROWS - 1) + ",5"
+                (Board.ROWS - 1) + ",5",
+                (Board.ROWS - 1) + ",6"
         ), coordinates(result.getCellsToDelete()));
+
         assertCounts(result, 0, 0);
     }
 }
