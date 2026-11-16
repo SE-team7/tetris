@@ -1,6 +1,10 @@
 package com.team.tetris.domain;
 
-public class Block {
+import java.io.Serializable;
+
+public class Block implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     private final BlockType type;
     private Position position;
     private int rotation;
@@ -60,6 +64,13 @@ public class Block {
         this.rotation = 0;
         this.itemType = itemType;
         this.itemCellIndex = itemCellIndex;
+    }
+
+    // 위치·회전·아이템 정보까지 같은 복사본 (대전 상태 스냅샷용)
+    public Block copy() {
+        Block copy = new Block(type, position, itemType, itemCellIndex);
+        copy.rotation = rotation;
+        return copy;
     }
 
     //블록 종류에 따른 기본 아이템 종류 결정
@@ -221,7 +232,8 @@ public class Block {
             };
             //아이템 블록
             case WEIGHT -> new int[][]{
-                    {0, -1}, {0, 0}, {0, 1}, {0, 2}, {-1,0}, {-1,1}
+                    {0, -1}, {0, 0}, {0, 1}, {0, 2},
+                    {-1, -1}, {-1, 0}, {-1, 1}, {-1, 2}
             };
             case BOMB, CROSS -> new int[][]{
                     {0, 0}

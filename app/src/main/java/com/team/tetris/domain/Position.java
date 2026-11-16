@@ -1,6 +1,10 @@
 package com.team.tetris.domain;
 
-public final class Position {
+import java.io.Serializable;
+
+public final class Position implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     private final int row;
     private final int col;
 

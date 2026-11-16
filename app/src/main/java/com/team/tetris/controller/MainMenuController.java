@@ -2,9 +2,8 @@ package com.team.tetris.controller;
 
 import com.team.tetris.domain.Difficulty;
 import com.team.tetris.domain.GameMode;
-import com.team.tetris.util.SceneManager;
 import com.team.tetris.domain.Settings;
-import com.team.tetris.service.SettingsService;
+import com.team.tetris.util.SceneManager;
 import com.team.tetris.view.MainMenuView;
 import com.team.tetris.view.MainMenuView.MainMenuItem;
 
@@ -13,155 +12,70 @@ import javafx.scene.input.KeyCode;
 
 public class MainMenuController {
 
-    private final MainMenuView mainMenuView;
-    private final SceneManager sceneManager;
-
+    private final MainMenuView view;
+    private final SceneManager scenes;
     private final GameController gameController;
     private final ScoreboardController scoreboardController;
     private final Settings settings;
 
-    private MainMenuItem selectedMenu;
+    private MainMenuItem selected = MainMenuItem.START_GAME;
 
     public MainMenuController(
-        MainMenuView mainMenuView,
-        SceneManager sceneManager,
+        MainMenuView view,
+        SceneManager scenes,
         GameController gameController,
         ScoreboardController scoreboardController,
         Settings settings
     ) {
-        this.mainMenuView = mainMenuView;
-        this.sceneManager = sceneManager;
+        this.view = view;
+        this.scenes = scenes;
         this.gameController = gameController;
         this.scoreboardController = scoreboardController;
         this.settings = settings;
-
-        this.selectedMenu =
-            MainMenuItem.START_GAME;
     }
 
     public void show() {
-
-        selectedMenu =
-            MainMenuItem.START_GAME;
-
-        mainMenuView.render(
-            selectedMenu
-        );
-
-        mainMenuView.showKeyGuide(
-            "↑/↓",
-            "ENTER"
-        );
-
-        sceneManager.showMainMenu();
+        selected = MainMenuItem.START_GAME;
+        view.render(selected);
+        view.showKeyGuide("↑/↓", "ENTER");
+        scenes.showMainMenu();
     }
 
-    public void handleKey(
-        KeyCode key
-    ) {
+    public void handleKey(KeyCode key) {
+        if (key == null) return;
 
-        if (
-            key == KeyCode.UP
-        ) {
-
-            moveSelection(-1);
-            return;
-        }
-
-        if (
-            key == KeyCode.DOWN
-        ) {
-
-            moveSelection(1);
-            return;
-        }
-
-        if (
-            key == KeyCode.ENTER
-        ) {
-
-            selectMenu(
-                selectedMenu
-            );
+        switch (key) {
+            case UP -> move(-1);
+            case DOWN -> move(1);
+            case ENTER -> select();
+            default -> {}
         }
     }
 
-    private void moveSelection(
-        int direction
-    ) {
-
-        MainMenuItem[] items =
-            MainMenuItem.values();
-
-        int nextIndex =
-            (
-                selectedMenu.ordinal()
-                + direction
-                + items.length
-            )
-            % items.length;
-
-        selectedMenu =
-            items[nextIndex];
-
-        mainMenuView.render(
-            selectedMenu
-        );
+    private void move(int direction) {
+        MainMenuItem[] items = MainMenuItem.values();
+        selected = items[Math.floorMod(selected.ordinal() + direction, items.length)];
+        view.render(selected);
     }
 
-    public void selectMenu(
-        MainMenuItem menuItem
-    ) {
-
-        switch (menuItem) {
-
-            /*
-             * 일반 모드
-             * Settings에 저장된 난이도 사용
-             */
-            case START_GAME:
-
-                gameController.startGame(
-                    GameMode.NORMAL,
-                    settings.getDifficulty()
-                );
-                sceneManager.showGame();
-
-                break;
-
-            /*
-             * 아이템 모드
-             * 난이도 EASY 고정
-             */
-            case START_ITEM_GAME:
-
-                gameController.startGame(
-                    GameMode.ITEM,
-                    Difficulty.EASY
-                );
-                sceneManager.showGame();
-
-                break;
-
-            case SETTINGS:
-
-                sceneManager.showSettings();
-                break;
-
-            case SCOREBOARD:
-
-                scoreboardController.show();
-                break;
-
-            case EXIT:
-
-                Platform.exit();
-                break;
+    private void select() {
+        switch (selected) {
+            case START_GAME -> {
+                gameController.startGame(GameMode.NORMAL, settings.getDifficulty());
+                scenes.showGame();
+            }
+            case START_ITEM_GAME -> {
+                gameController.startGame(GameMode.ITEM, Difficulty.EASY);
+                scenes.showGame();
+            }
+            case BATTLE_MODE -> scenes.showBattleType();
+            case SETTINGS -> scenes.showSettings();
+            case SCOREBOARD -> scoreboardController.show();
+            case EXIT -> Platform.exit();
         }
     }
 
     public MainMenuItem getSelectedMenu() {
-
-        return selectedMenu;
+        return selected;
     }
 }
