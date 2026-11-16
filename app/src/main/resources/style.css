@@ -432,3 +432,125 @@
 .battle-block-t { -fx-background-color: #AB47BC; }
 .battle-block-z { -fx-background-color: #EF5350; }
 .battle-block-attack { -fx-background-color: #777777; }
+.theme-light {
+    -fx-background-color: #F7F7F7;
+}
+
+.theme-dark {
+    -fx-background-color: #111111;
+}
+
+.theme-light .main-menu-title-main,
+.theme-light .settings-title,
+.theme-light .settings-section-title,
+.theme-light .settings-label,
+.theme-light .scoreboard-title,
+.theme-light .scoreboard-header,
+.theme-light .scoreboard-cell-normal,
+.theme-light .battle-mode-title,
+.theme-light .battle-type-title,
+.theme-light .time-limit-title,
+.theme-light .p2p-title,
+.theme-light .p2p-waiting-title,
+.theme-light .p2p-waiting-ready {
+    -fx-text-fill: #222222;
+}
+
+.theme-light .main-menu-title-sub {
+    -fx-text-fill: #555555;
+}
+
+.theme-light .menu-item-unselected,
+.theme-light .battle-mode-unselected,
+.theme-light .battle-type-unselected,
+.theme-light .time-limit-unselected,
+.theme-light .p2p-unselected {
+    -fx-text-fill: #333333;
+}
+
+.theme-light .menu-item-selected,
+.theme-light .battle-mode-selected,
+.theme-light .battle-type-selected,
+.theme-light .time-limit-selected,
+.theme-light .p2p-selected {
+    -fx-background-color: #EEEEEE;
+    -fx-text-fill: #222222;
+    -fx-border-color: #4A90E2;
+}
+
+.theme-light .fixed-key-notice,
+.theme-light .scoreboard-key-guide,
+.theme-light .scoreboard-cell-dim,
+.theme-light .p2p-status,
+.theme-light .p2p-waiting-info,
+.theme-light .p2p-waiting-back {
+    -fx-text-fill: #666666;
+}
+
+.theme-dark .main-menu-title-main,
+.theme-dark .settings-title,
+.theme-dark .settings-section-title,
+.theme-dark .settings-label,
+.theme-dark .scoreboard-title,
+.theme-dark .scoreboard-header,
+.theme-dark .scoreboard-cell-normal,
+.theme-dark .battle-mode-title,
+.theme-dark .battle-type-title,
+.theme-dark .time-limit-title,
+.theme-dark .p2p-title,
+.theme-dark .p2p-waiting-title,
+.theme-dark .p2p-waiting-ready {
+    -fx-text-fill: #F4F4F4;
+}
+
+.theme-dark .main-menu-title-sub,
+.theme-dark .fixed-key-notice,
+.theme-dark .scoreboard-key-guide,
+.theme-dark .scoreboard-cell-dim,
+.theme-dark .p2p-status,
+.theme-dark .p2p-waiting-info,
+.theme-dark .p2p-waiting-back {
+    -fx-text-fill: #BBBBBB;
+}
+
+.theme-dark .menu-item-unselected,
+.theme-dark .battle-mode-unselected,
+.theme-dark .battle-type-unselected,
+.theme-dark .time-limit-unselected,
+.theme-dark .p2p-unselected {
+    -fx-text-fill: #BBBBBB;
+}
+
+.theme-dark .menu-item-selected,
+.theme-dark .battle-mode-selected,
+.theme-dark .battle-type-selected,
+.theme-dark .time-limit-selected,
+.theme-dark .p2p-selected {
+    -fx-background-color: #333333;
+    -fx-text-fill: white;
+    -fx-border-color: #FFD54F;
+}
+
+/* GAME SCREENS ALWAYS DARK */
+
+.game-root,
+.battle-root,
+.theme-light.game-root,
+.theme-light.battle-root,
+.theme-dark.game-root,
+.theme-dark.battle-root {
+    -fx-background-color: #111111;
+}
+.theme-dark .settings-root,
+.theme-dark .settings-root .label,
+.theme-dark .settings-root .settings-label,
+.theme-dark .settings-root .settings-section-title,
+.theme-dark .settings-root .fixed-key-notice,
+.theme-dark .settings-root .settings-message {
+    -fx-text-fill: #F4F4F4;
+}
+
+.theme-dark .settings-root .button,
+.theme-dark .settings-root .combo-box {
+    -fx-text-fill: #111111;
+}

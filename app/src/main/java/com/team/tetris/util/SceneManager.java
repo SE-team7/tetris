@@ -1,17 +1,8 @@
 package com.team.tetris.util;
 
 import com.team.tetris.domain.Settings.ScreenSize;
-import com.team.tetris.view.BattleModeView;
-import com.team.tetris.view.BattleTypeView;
-import com.team.tetris.view.BattleView;
-import com.team.tetris.view.GameOverView;
-import com.team.tetris.view.GameView;
-import com.team.tetris.view.MainMenuView;
-import com.team.tetris.view.P2PConnectionView;
-import com.team.tetris.view.P2PWaitingView;
-import com.team.tetris.view.ScoreboardView;
-import com.team.tetris.view.SettingsView;
-import com.team.tetris.view.TimeLimitView;
+import com.team.tetris.domain.Settings.Theme;
+import com.team.tetris.view.*;
 
 import javafx.application.Platform;
 import javafx.scene.Parent;
@@ -22,18 +13,18 @@ public class SceneManager {
 
     private final Stage stage;
 
-    private final MainMenuView mainMenuView;
-    private final SettingsView settingsView;
-    private final ScoreboardView scoreboardView;
-    private final GameView gameView;
-    private final GameOverView gameOverView;
+    private final Parent mainMenuRoot;
+    private final Parent settingsRoot;
+    private final Parent scoreboardRoot;
+    private final Parent gameRoot;
+    private final Parent gameOverRoot;
 
-    private final BattleModeView battleModeView;
-    private final BattleTypeView battleTypeView;
-    private final TimeLimitView timeLimitView;
-    private final P2PConnectionView p2pConnectionView;
-    private final P2PWaitingView p2pWaitingView;
-    private final BattleView battleView;
+    private final Parent battleModeRoot;
+    private final Parent battleTypeRoot;
+    private final Parent timeLimitRoot;
+    private final Parent p2pConnectionRoot;
+    private final Parent p2pWaitingRoot;
+    private final Parent battleRoot;
 
     private final Scene mainMenuScene;
     private final Scene settingsScene;
@@ -48,21 +39,23 @@ public class SceneManager {
     private final Scene p2pWaitingScene;
     private final Scene battleScene;
 
+    private Theme theme = Theme.LIGHT;
+
     public SceneManager(
         Stage stage,
-        MainMenuView mainMenuView,
-        SettingsView settingsView,
-        ScoreboardView scoreboardView,
-        GameView gameView,
-        GameOverView gameOverView
+        MainMenuView mainMenu,
+        SettingsView settings,
+        ScoreboardView scoreboard,
+        GameView game,
+        GameOverView gameOver
     ) {
         this(
             stage,
-            mainMenuView,
-            settingsView,
-            scoreboardView,
-            gameView,
-            gameOverView,
+            mainMenu,
+            settings,
+            scoreboard,
+            game,
+            gameOver,
             new BattleModeView(),
             new BattleTypeView(),
             new TimeLimitView(),
@@ -74,125 +67,157 @@ public class SceneManager {
 
     public SceneManager(
         Stage stage,
-        MainMenuView mainMenuView,
-        SettingsView settingsView,
-        ScoreboardView scoreboardView,
-        GameView gameView,
-        GameOverView gameOverView,
-        BattleView battleView
+        MainMenuView mainMenu,
+        SettingsView settings,
+        ScoreboardView scoreboard,
+        GameView game,
+        GameOverView gameOver,
+        BattleView battle
     ) {
         this(
             stage,
-            mainMenuView,
-            settingsView,
-            scoreboardView,
-            gameView,
-            gameOverView,
+            mainMenu,
+            settings,
+            scoreboard,
+            game,
+            gameOver,
             new BattleModeView(),
             new BattleTypeView(),
             new TimeLimitView(),
             new P2PConnectionView(),
             new P2PWaitingView(),
-            battleView
+            battle
         );
     }
 
     public SceneManager(
         Stage stage,
-        MainMenuView mainMenuView,
-        SettingsView settingsView,
-        ScoreboardView scoreboardView,
-        GameView gameView,
-        GameOverView gameOverView,
-        BattleModeView battleModeView,
-        BattleTypeView battleTypeView,
-        TimeLimitView timeLimitView,
-        P2PConnectionView p2pConnectionView,
-        P2PWaitingView p2pWaitingView,
-        BattleView battleView
+        MainMenuView mainMenu,
+        SettingsView settings,
+        ScoreboardView scoreboard,
+        GameView game,
+        GameOverView gameOver,
+        BattleModeView battleMode,
+        BattleTypeView battleType,
+        TimeLimitView timeLimit,
+        P2PConnectionView p2pConnection,
+        P2PWaitingView p2pWaiting,
+        BattleView battle
     ) {
         this.stage = stage;
 
-        this.mainMenuView = mainMenuView;
-        this.settingsView = settingsView;
-        this.scoreboardView = scoreboardView;
-        this.gameView = gameView;
-        this.gameOverView = gameOverView;
+        mainMenuRoot = mainMenu.getRoot();
+        settingsRoot = settings.getRoot();
+        scoreboardRoot = scoreboard.getRoot();
+        gameRoot = game.getRoot();
+        gameOverRoot = gameOver.getRoot();
 
-        this.battleModeView = battleModeView;
-        this.battleTypeView = battleTypeView;
-        this.timeLimitView = timeLimitView;
-        this.p2pConnectionView = p2pConnectionView;
-        this.p2pWaitingView = p2pWaitingView;
-        this.battleView = battleView;
+        battleModeRoot = battleMode.getRoot();
+        battleTypeRoot = battleType.getRoot();
+        timeLimitRoot = timeLimit.getRoot();
+        p2pConnectionRoot = p2pConnection.getRoot();
+        p2pWaitingRoot = p2pWaiting.getRoot();
+        battleRoot = battle.getRoot();
 
-        mainMenuScene = createScene(mainMenuView.getRoot());
-        settingsScene = createScene(settingsView.getRoot());
-        scoreboardScene = createScene(scoreboardView.getRoot());
-        gameScene = createScene(gameView.getRoot());
-        gameOverScene = createScene(gameOverView.getRoot());
+        mainMenuScene = scene(mainMenuRoot);
+        settingsScene = scene(settingsRoot);
+        scoreboardScene = scene(scoreboardRoot);
+        gameScene = scene(gameRoot);
+        gameOverScene = scene(gameOverRoot);
 
-        battleModeScene = createScene(battleModeView.getRoot());
-        battleTypeScene = createScene(battleTypeView.getRoot());
-        timeLimitScene = createScene(timeLimitView.getRoot());
-        p2pConnectionScene = createScene(p2pConnectionView.getRoot());
-        p2pWaitingScene = createScene(p2pWaitingView.getRoot());
-        battleScene = createScene(battleView.getRoot());
+        battleModeScene = scene(battleModeRoot);
+        battleTypeScene = scene(battleTypeRoot);
+        timeLimitScene = scene(timeLimitRoot);
+        p2pConnectionScene = scene(p2pConnectionRoot);
+        p2pWaitingScene = scene(p2pWaitingRoot);
+        battleScene = scene(battleRoot);
+
+        applyTheme(Theme.LIGHT);
     }
 
     public void showMainMenu() {
-        show(mainMenuScene, mainMenuView.getRoot());
+        show(mainMenuScene, mainMenuRoot);
     }
 
     public void showSettings() {
-        show(settingsScene, settingsView.getRoot());
+        show(settingsScene, settingsRoot);
     }
 
     public void showScoreboard() {
-        show(scoreboardScene, scoreboardView.getRoot());
+        show(scoreboardScene, scoreboardRoot);
     }
 
     public void showGame() {
-        show(gameScene, gameView.getRoot());
+        dark(gameRoot);
+        show(gameScene, gameRoot);
     }
 
     public void showGameOver() {
-        show(gameOverScene, gameOverView.getRoot());
+        dark(gameOverRoot);
+        show(gameOverScene, gameOverRoot);
     }
 
     public void showBattleMode() {
-        show(battleModeScene, battleModeView.getRoot());
+        menuTheme(battleModeRoot);
+        show(battleModeScene, battleModeRoot);
     }
 
     public void showBattleType() {
-        show(battleTypeScene, battleTypeView.getRoot());
+        menuTheme(battleTypeRoot);
+        show(battleTypeScene, battleTypeRoot);
     }
 
     public void showTimeLimit() {
-        show(timeLimitScene, timeLimitView.getRoot());
+        menuTheme(timeLimitRoot);
+        show(timeLimitScene, timeLimitRoot);
     }
 
     public void showP2PConnection() {
-        show(p2pConnectionScene, p2pConnectionView.getRoot());
+        menuTheme(p2pConnectionRoot);
+        show(p2pConnectionScene, p2pConnectionRoot);
     }
 
     public void showP2PWaiting() {
-        show(p2pWaitingScene, p2pWaitingView.getRoot());
+        menuTheme(p2pWaitingRoot);
+        show(p2pWaitingScene, p2pWaitingRoot);
     }
 
     public void showBattle() {
-        show(battleScene, battleView.getRoot());
+        dark(battleRoot);
+        show(battleScene, battleRoot);
     }
 
-    private void show(Scene scene, Parent root) {
-        stage.setScene(scene);
-        stage.show();
-        Platform.runLater(root::requestFocus);
+    public void applyTheme(Theme value) {
+        theme = value == null ? Theme.LIGHT : value;
+
+        menuTheme(mainMenuRoot);
+        menuTheme(settingsRoot);
+        menuTheme(scoreboardRoot);
+        menuTheme(battleModeRoot);
+        menuTheme(battleTypeRoot);
+        menuTheme(timeLimitRoot);
+        menuTheme(p2pConnectionRoot);
+        menuTheme(p2pWaitingRoot);
+
+        dark(gameRoot);
+        dark(gameOverRoot);
+        dark(battleRoot);
     }
 
-    private Scene createScene(Parent root) {
+    private void menuTheme(Parent root) {
+        root.getStyleClass().removeAll("theme-light", "theme-dark");
+        root.getStyleClass().add(
+            theme == Theme.DARK ? "theme-dark" : "theme-light"
+        );
+    }
+
+    private void dark(Parent root) {
+        root.getStyleClass().removeAll("theme-light", "theme-dark");
+        root.getStyleClass().add("theme-dark");
+    }
+
+    private Scene scene(Parent root) {
         Scene scene = new Scene(root);
-
         var css = getClass().getResource("/style.css");
 
         if (css != null) {
@@ -202,13 +227,17 @@ public class SceneManager {
         return scene;
     }
 
-    public void applyScreenSize(ScreenSize screenSize) {
-        if (screenSize == null) {
-            return;
-        }
+    private void show(Scene scene, Parent root) {
+        stage.setScene(scene);
+        stage.show();
+        Platform.runLater(root::requestFocus);
+    }
 
-        stage.setWidth(screenSize.getWidth());
-        stage.setHeight(screenSize.getHeight());
+    public void applyScreenSize(ScreenSize size) {
+        if (size == null) return;
+
+        stage.setWidth(size.getWidth());
+        stage.setHeight(size.getHeight());
         stage.centerOnScreen();
     }
 

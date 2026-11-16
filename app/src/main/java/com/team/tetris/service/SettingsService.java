@@ -13,15 +13,16 @@ import com.team.tetris.domain.PlayerId;
 import com.team.tetris.domain.Settings;
 import com.team.tetris.domain.Settings.KeyAction;
 import com.team.tetris.domain.Settings.ScreenSize;
+import com.team.tetris.domain.Settings.Theme;
 import com.team.tetris.util.FileManager;
 
 import javafx.scene.input.KeyCode;
 
 public class SettingsService {
 
-    private static final String FILE_NAME = "settings.properties";
-    private static final String KEY_PREFIX = "key.";
-    private static final String BATTLE_PREFIX = "battle.";
+    private static final String FILE = "settings.properties";
+    private static final String KEY = "key.";
+    private static final String BATTLE = "battle.";
 
     private final FileManager fileManager;
 
@@ -31,118 +32,111 @@ public class SettingsService {
 
     public Settings load() {
         Settings settings = new Settings();
-        Properties props = new Properties();
+        Properties p = new Properties();
 
         try {
-            props.load(new StringReader(fileManager.readFile(FILE_NAME)));
+            p.load(new StringReader(fileManager.readFile(FILE)));
         } catch (IOException | UncheckedIOException | IllegalArgumentException e) {
             return settings;
         }
 
         try {
             settings.setScreenSize(
-                ScreenSize.valueOf(props.getProperty("screenSize", ""))
+                ScreenSize.valueOf(p.getProperty("screenSize", "MEDIUM"))
+            );
+        } catch (IllegalArgumentException ignored) {}
+
+        try {
+            settings.setTheme(
+                Theme.valueOf(p.getProperty("theme", "LIGHT"))
+            );
+        } catch (IllegalArgumentException ignored) {}
+
+        try {
+            settings.setDifficulty(
+                Difficulty.valueOf(p.getProperty("difficulty", "NORMAL"))
             );
         } catch (IllegalArgumentException ignored) {}
 
         settings.setColorBlindMode(
-            Boolean.parseBoolean(props.getProperty("colorBlindMode"))
+            Boolean.parseBoolean(p.getProperty("colorBlindMode", "false"))
         );
 
-        try {
-            settings.setDifficulty(
-                Difficulty.valueOf(props.getProperty("difficulty", ""))
-            );
-        } catch (IllegalArgumentException ignored) {}
-
-        loadGameKeys(settings, props);
-        loadBattleKeys(settings, props);
+        loadNormalKeys(settings, p);
+        loadBattleKeys(settings, p);
 
         return settings;
     }
 
-    private void loadGameKeys(Settings settings, Properties props) {
+    private void loadNormalKeys(Settings settings, Properties p) {
         Map<KeyAction, KeyCode> saved = new EnumMap<>(KeyAction.class);
 
         for (KeyAction action : KeyAction.values()) {
             if (action.isFixed()) continue;
 
-            KeyCode key = readKey(props, KEY_PREFIX + action.name());
-            if (key != null && !Settings.isFixedKey(key)) {
-                saved.put(action, key);
-            }
+            String value = p.getProperty(KEY + action.name());
+            if (value == null) continue;
+
+            try {
+                KeyCode key = KeyCode.valueOf(value);
+                if (!Settings.isFixedKey(key)) saved.put(action, key);
+            } catch (IllegalArgumentException ignored) {}
         }
 
-        if (!saved.isEmpty() && !settings.setKeys(saved)) {
-            for (Map.Entry<KeyAction, KeyCode> entry : saved.entrySet()) {
+        if (!settings.setKeys(saved)) {
+            for (var entry : saved.entrySet()) {
                 settings.setKey(entry.getKey(), entry.getValue());
             }
         }
     }
 
-    private void loadBattleKeys(Settings settings, Properties props) {
+    private void loadBattleKeys(Settings settings, Properties p) {
         for (PlayerId player : PlayerId.values()) {
-            Map<KeyAction, KeyCode> saved =
-                new EnumMap<>(KeyAction.class);
-
-            for (KeyAction action : battleActions()) {
-                KeyCode key = readKey(
-                    props,
-                    BATTLE_PREFIX + player.name() + "." + action.name()
+            for (KeyAction action : KeyAction.values()) {
+                String value = p.getProperty(
+                    BATTLE + player.name() + "." + action.name()
                 );
 
-                if (key != null) saved.put(action, key);
+                if (value == null) continue;
+
+                try {
+                    settings.setBattleKey(
+                        player,
+                        action,
+                        KeyCode.valueOf(value)
+                    );
+                } catch (IllegalArgumentException ignored) {}
             }
-
-            if (!saved.isEmpty()) {
-                settings.setBattleKeys(player, saved);
-            }
-        }
-    }
-
-    private KeyCode readKey(Properties props, String name) {
-        String value = props.getProperty(name);
-        if (value == null) return null;
-
-        try {
-            return KeyCode.valueOf(value);
-        } catch (IllegalArgumentException e) {
-            return null;
         }
     }
 
     public boolean save(Settings settings) {
-        Properties props = new Properties();
+        Properties p = new Properties();
 
-        props.setProperty("screenSize", settings.getScreenSize().name());
-        props.setProperty(
+        p.setProperty("screenSize", settings.getScreenSize().name());
+        p.setProperty("theme", settings.getTheme().name());
+        p.setProperty(
             "colorBlindMode",
             String.valueOf(settings.isColorBlindMode())
         );
-        props.setProperty(
-            "difficulty",
-            settings.getDifficulty().name()
-        );
+        p.setProperty("difficulty", settings.getDifficulty().name());
 
         for (KeyAction action : KeyAction.values()) {
             if (!action.isFixed()) {
-                props.setProperty(
-                    KEY_PREFIX + action.name(),
+                p.setProperty(
+                    KEY + action.name(),
                     settings.getKey(action).name()
                 );
             }
         }
 
         for (PlayerId player : PlayerId.values()) {
-            for (KeyAction action : battleActions()) {
+            for (KeyAction action : KeyAction.values()) {
                 KeyCode key = settings.getBattleKey(player, action);
 
                 if (key != null) {
-                    props.setProperty(
-                        BATTLE_PREFIX
-                            + player.name()
-                            + "."
-                            + action.name(),
+                    p.setProperty(
+                        BATTLE + player.name() + "." + action.name(),
                         key.name()
                     );
                 }
@@ -151,11 +145,10 @@ public class SettingsService {
 
         try {
             StringWriter writer = new StringWriter();
-            props.store(writer, "Tetris settings");
-            fileManager.writeFile(FILE_NAME, writer.toString());
+            p.store(writer, "Tetris settings");
+            fileManager.writeFile(FILE, writer.toString());
             return true;
         } catch (IOException | UncheckedIOException e) {
-            System.err.println("설정 저장 실패: " + e.getMessage());
             return false;
         }
     }
@@ -164,16 +157,5 @@ public class SettingsService {
         Settings settings = new Settings();
         save(settings);
         return settings;
-    }
-
-    private static KeyAction[] battleActions() {
-        return new KeyAction[] {
-            KeyAction.MOVE_LEFT,
-            KeyAction.MOVE_RIGHT,
-            KeyAction.SOFT_DROP,
-            KeyAction.ROTATE,
-            KeyAction.HARD_DROP,
-            KeyAction.SKIP
-        };
     }
 }

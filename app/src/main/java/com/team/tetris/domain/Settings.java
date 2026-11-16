@@ -10,7 +10,9 @@ import javafx.scene.input.KeyCode;
 public class Settings {
 
     public enum ScreenSize {
-        SMALL(640, 720), MEDIUM(800, 800), LARGE(1000, 900);
+        SMALL(640, 720),
+        MEDIUM(800, 800),
+        LARGE(1000, 900);
 
         private final int width;
         private final int height;
@@ -22,6 +24,11 @@ public class Settings {
 
         public int getWidth() { return width; }
         public int getHeight() { return height; }
+    }
+
+    public enum Theme {
+        LIGHT,
+        DARK
     }
 
     public enum KeyAction {
@@ -41,7 +48,9 @@ public class Settings {
             this.defaultKey = defaultKey;
         }
 
-        public KeyCode getDefaultKey() { return defaultKey; }
+        public KeyCode getDefaultKey() {
+            return defaultKey;
+        }
 
         public boolean isFixed() {
             return this == PAUSE || this == QUIT || this == EXIT;
@@ -49,6 +58,7 @@ public class Settings {
     }
 
     private ScreenSize screenSize = ScreenSize.MEDIUM;
+    private Theme theme = Theme.LIGHT;
     private boolean colorBlindMode;
     private Difficulty difficulty = Difficulty.NORMAL;
 
@@ -63,53 +73,72 @@ public class Settings {
             keys.put(action, action.getDefaultKey());
         }
 
-        Map<KeyAction, KeyCode> p1 = new EnumMap<>(KeyAction.class);
-        p1.put(KeyAction.MOVE_LEFT, KeyCode.A);
-        p1.put(KeyAction.MOVE_RIGHT, KeyCode.D);
-        p1.put(KeyAction.SOFT_DROP, KeyCode.S);
-        p1.put(KeyAction.ROTATE, KeyCode.W);
-        p1.put(KeyAction.HARD_DROP, KeyCode.SPACE);
-        p1.put(KeyAction.SKIP, KeyCode.CONTROL);
-
-        Map<KeyAction, KeyCode> p2 = new EnumMap<>(KeyAction.class);
-        p2.put(KeyAction.MOVE_LEFT, KeyCode.LEFT);
-        p2.put(KeyAction.MOVE_RIGHT, KeyCode.RIGHT);
-        p2.put(KeyAction.SOFT_DROP, KeyCode.DOWN);
-        p2.put(KeyAction.ROTATE, KeyCode.UP);
-        p2.put(KeyAction.HARD_DROP, KeyCode.ENTER);
-        p2.put(KeyAction.SKIP, KeyCode.P);
-
-        battleKeys.put(PlayerId.PLAYER1, p1);
-        battleKeys.put(PlayerId.PLAYER2, p2);
+        battleKeys.put(PlayerId.PLAYER1, createP1Keys());
+        battleKeys.put(PlayerId.PLAYER2, createP2Keys());
     }
 
-    public ScreenSize getScreenSize() { return screenSize; }
-
-    public void setScreenSize(ScreenSize screenSize) {
-        if (screenSize != null) this.screenSize = screenSize;
+    private Map<KeyAction, KeyCode> createP1Keys() {
+        Map<KeyAction, KeyCode> map = new EnumMap<>(KeyAction.class);
+        map.put(KeyAction.MOVE_LEFT, KeyCode.A);
+        map.put(KeyAction.MOVE_RIGHT, KeyCode.D);
+        map.put(KeyAction.SOFT_DROP, KeyCode.S);
+        map.put(KeyAction.ROTATE, KeyCode.W);
+        map.put(KeyAction.HARD_DROP, KeyCode.SPACE);
+        map.put(KeyAction.SKIP, KeyCode.CONTROL);
+        map.put(KeyAction.PAUSE, KeyCode.SHIFT);
+        map.put(KeyAction.QUIT, KeyCode.TAB);
+        map.put(KeyAction.EXIT, KeyCode.ESCAPE);
+        return map;
     }
 
-    public boolean isColorBlindMode() { return colorBlindMode; }
-
-    public void setColorBlindMode(boolean enabled) {
-        colorBlindMode = enabled;
+    private Map<KeyAction, KeyCode> createP2Keys() {
+        Map<KeyAction, KeyCode> map = new EnumMap<>(KeyAction.class);
+        map.put(KeyAction.MOVE_LEFT, KeyCode.LEFT);
+        map.put(KeyAction.MOVE_RIGHT, KeyCode.RIGHT);
+        map.put(KeyAction.SOFT_DROP, KeyCode.DOWN);
+        map.put(KeyAction.ROTATE, KeyCode.UP);
+        map.put(KeyAction.HARD_DROP, KeyCode.ENTER);
+        map.put(KeyAction.SKIP, KeyCode.P);
+        map.put(KeyAction.PAUSE, KeyCode.SHIFT);
+        map.put(KeyAction.QUIT, KeyCode.TAB);
+        map.put(KeyAction.EXIT, KeyCode.ESCAPE);
+        return map;
     }
 
-    public Difficulty getDifficulty() { return difficulty; }
+    public ScreenSize getScreenSize() {
+        return screenSize;
+    }
 
-    public void setDifficulty(Difficulty difficulty) {
-        if (difficulty != null) this.difficulty = difficulty;
+    public void setScreenSize(ScreenSize value) {
+        if (value != null) screenSize = value;
+    }
+
+    public Theme getTheme() {
+        return theme;
+    }
+
+    public void setTheme(Theme value) {
+        if (value != null) theme = value;
+    }
+
+    public boolean isColorBlindMode() {
+        return colorBlindMode;
+    }
+
+    public void setColorBlindMode(boolean value) {
+        colorBlindMode = value;
+    }
+
+    public Difficulty getDifficulty() {
+        return difficulty;
+    }
+
+    public void setDifficulty(Difficulty value) {
+        if (value != null) difficulty = value;
     }
 
     public KeyCode getKey(KeyAction action) {
         return keys.get(action);
-    }
-
-    public static boolean isFixedKey(KeyCode key) {
-        for (KeyAction action : KeyAction.values()) {
-            if (action.isFixed() && action.getDefaultKey() == key) return true;
-        }
-        return false;
     }
 
     public boolean setKey(KeyAction action, KeyCode key) {
@@ -121,9 +150,11 @@ public class Settings {
     }
 
     public boolean setKeys(Map<KeyAction, KeyCode> newKeys) {
+        if (newKeys == null) return false;
+
         Map<KeyAction, KeyCode> result = new EnumMap<>(keys);
 
-        for (Map.Entry<KeyAction, KeyCode> entry : newKeys.entrySet()) {
+        for (var entry : newKeys.entrySet()) {
             KeyAction action = entry.getKey();
             KeyCode key = entry.getValue();
 
@@ -148,9 +179,24 @@ public class Settings {
             }
         }
 
-        keys.clear();
         keys.putAll(result);
         return true;
+    }
+
+    public static boolean isFixedKey(KeyCode key) {
+        return key == KeyCode.SHIFT
+            || key == KeyCode.TAB
+            || key == KeyCode.ESCAPE;
+    }
+
+    public KeyAction findGameAction(KeyCode key) {
+        if (key == null) return null;
+
+        for (var entry : keys.entrySet()) {
+            if (entry.getValue() == key) return entry.getKey();
+        }
+
+        return null;
     }
 
     public KeyCode getBattleKey(PlayerId player, KeyAction action) {
@@ -158,94 +204,36 @@ public class Settings {
         return map == null ? null : map.get(action);
     }
 
+    public KeyAction findBattleAction(PlayerId player, KeyCode key) {
+        Map<KeyAction, KeyCode> map = battleKeys.get(player);
+        if (map == null || key == null) return null;
+
+        for (var entry : map.entrySet()) {
+            if (entry.getValue() == key) return entry.getKey();
+        }
+
+        return null;
+    }
+
     public boolean setBattleKey(
         PlayerId player,
         KeyAction action,
         KeyCode key
     ) {
-        if (!isBattleAction(action) || player == null || key == null) {
-            return false;
-        }
-
-        Map<KeyAction, KeyCode> changed =
-            new EnumMap<>(battleKeys.get(player));
-
-        changed.put(action, key);
-        return setBattleKeys(player, changed);
-    }
-
-    public boolean setBattleKeys(
-        PlayerId player,
-        Map<KeyAction, KeyCode> newKeys
-    ) {
-        if (player == null || newKeys == null) return false;
-
-        Map<KeyAction, KeyCode> result =
-            new EnumMap<>(battleKeys.get(player));
-
-        for (Map.Entry<KeyAction, KeyCode> entry : newKeys.entrySet()) {
-            if (!isBattleAction(entry.getKey()) || entry.getValue() == null) {
-                return false;
-            }
-            result.put(entry.getKey(), entry.getValue());
-        }
-
-        Set<KeyCode> used = EnumSet.noneOf(KeyCode.class);
-
-        for (KeyAction action : battleActions()) {
-            KeyCode key = result.get(action);
-
-            if (key == null || isFixedKey(key) || !used.add(key)) {
-                return false;
-            }
-        }
-
-        battleKeys.put(player, result);
-        return true;
-    }
-
-    public boolean isBattleKeyAvailable(
-        PlayerId player,
-        KeyAction action,
-        KeyCode key
-    ) {
-        if (player == null || !isBattleAction(action) || key == null) {
-            return false;
-        }
-
-        for (KeyAction other : battleActions()) {
-            if (other != action && getBattleKey(player, other) == key) {
-                return false;
-            }
-        }
-
-        return !isFixedKey(key);
-    }
-
-    public KeyAction findBattleAction(PlayerId player, KeyCode key) {
-        if (player == null || key == null) return null;
+        if (player == null || action == null || key == null) return false;
 
         Map<KeyAction, KeyCode> map = battleKeys.get(player);
-        if (map == null) return null;
+        if (map == null) return false;
 
-        for (Map.Entry<KeyAction, KeyCode> entry : map.entrySet()) {
-            if (entry.getValue() == key) return entry.getKey();
-        }
-
-        return null;
-    }
-
-    public KeyAction findGameAction(KeyCode key) {
-        for (Map.Entry<KeyAction, KeyCode> entry : keys.entrySet()) {
-            if (entry.getValue() == key) return entry.getKey();
-        }
-        return null;
+        map.put(action, key);
+        return true;
     }
 
     public void copyFrom(Settings source) {
         if (source == null) return;
 
         screenSize = source.screenSize;
+        theme = source.theme;
         colorBlindMode = source.colorBlindMode;
         difficulty = source.difficulty;
 
@@ -254,33 +242,11 @@ public class Settings {
 
         battleKeys.clear();
 
-        for (PlayerId player : PlayerId.values()) {
-            Map<KeyAction, KeyCode> sourceMap =
-                source.battleKeys.get(player);
-
-            if (sourceMap != null) {
-                battleKeys.put(player, new EnumMap<>(sourceMap));
-            }
+        for (var entry : source.battleKeys.entrySet()) {
+            battleKeys.put(
+                entry.getKey(),
+                new EnumMap<>(entry.getValue())
+            );
         }
-    }
-
-    private static boolean isBattleAction(KeyAction action) {
-        return action == KeyAction.MOVE_LEFT
-            || action == KeyAction.MOVE_RIGHT
-            || action == KeyAction.SOFT_DROP
-            || action == KeyAction.ROTATE
-            || action == KeyAction.HARD_DROP
-            || action == KeyAction.SKIP;
-    }
-
-    private static KeyAction[] battleActions() {
-        return new KeyAction[] {
-            KeyAction.MOVE_LEFT,
-            KeyAction.MOVE_RIGHT,
-            KeyAction.SOFT_DROP,
-            KeyAction.ROTATE,
-            KeyAction.HARD_DROP,
-            KeyAction.SKIP
-        };
     }
 }
