@@ -22,9 +22,7 @@ class MainMenuViewTest {
     static void startJavaFx() throws Exception {
         try {
             Platform.startup(() -> {});
-        } catch (IllegalStateException ignored) {
-            // JavaFX already running
-        }
+        } catch (IllegalStateException ignored) {}
     }
 
     @Test
@@ -32,7 +30,6 @@ class MainMenuViewTest {
         runFx(() -> {
             MainMenuView view = new MainMenuView();
             Parent root = view.getRoot();
-
             assertNotNull(root);
             return null;
         });
@@ -45,28 +42,9 @@ class MainMenuViewTest {
             List<Label> labels = getMenuLabels(view);
 
             assertEquals(6, labels.size());
-
-            assertEquals(
-                "▶ 일반 모드 시작",
-                labels.get(0).getText()
-            );
-
-            assertTrue(
-                labels.get(0)
-                    .getStyleClass()
-                    .contains("menu-item-selected")
-            );
-
-            assertEquals(
-                "   아이템 모드 시작",
-                labels.get(1).getText()
-            );
-
-            assertTrue(
-                labels.get(1)
-                    .getStyleClass()
-                    .contains("menu-item-unselected")
-            );
+            assertEquals("▶ 일반 모드 시작", labels.get(0).getText());
+            assertTrue(labels.get(0).getStyleClass().contains("menu-item-selected"));
+            assertEquals("   아이템 모드 시작", labels.get(1).getText());
 
             return null;
         });
@@ -81,14 +59,13 @@ class MainMenuViewTest {
             String[] texts = {
                 "일반 모드 시작",
                 "아이템 모드 시작",
-                "대전 모드",
+                "대전 모드 시작",
                 "설정",
                 "스코어보드",
                 "종료"
             };
 
             MainMenuItem[] items = MainMenuItem.values();
-
             assertEquals(6, items.length);
             assertEquals(6, labels.size());
 
@@ -99,25 +76,11 @@ class MainMenuViewTest {
                     Label label = labels.get(i);
 
                     if (i == selected) {
-                        assertEquals(
-                            "▶ " + texts[i],
-                            label.getText()
-                        );
-
-                        assertTrue(
-                            label.getStyleClass()
-                                .contains("menu-item-selected")
-                        );
+                        assertEquals("▶ " + texts[i], label.getText());
+                        assertTrue(label.getStyleClass().contains("menu-item-selected"));
                     } else {
-                        assertEquals(
-                            "   " + texts[i],
-                            label.getText()
-                        );
-
-                        assertTrue(
-                            label.getStyleClass()
-                                .contains("menu-item-unselected")
-                        );
+                        assertEquals("   " + texts[i], label.getText());
+                        assertTrue(label.getStyleClass().contains("menu-item-unselected"));
                     }
                 }
             }
@@ -130,13 +93,7 @@ class MainMenuViewTest {
     void battleModeExists() throws Exception {
         runFx(() -> {
             MainMenuView view = new MainMenuView();
-            List<Label> labels = getMenuLabels(view);
-
-            assertEquals(
-                "   대전 모드",
-                labels.get(2).getText()
-            );
-
+            assertEquals("   대전 모드 시작", getMenuLabels(view).get(2).getText());
             return null;
         });
     }
@@ -145,14 +102,9 @@ class MainMenuViewTest {
     void menuLabelsHaveMenuItemStyleClass() throws Exception {
         runFx(() -> {
             MainMenuView view = new MainMenuView();
-
             for (Label label : getMenuLabels(view)) {
-                assertTrue(
-                    label.getStyleClass()
-                        .contains("menu-item")
-                );
+                assertTrue(label.getStyleClass().contains("menu-item"));
             }
-
             return null;
         });
     }
@@ -161,27 +113,11 @@ class MainMenuViewTest {
     void keyGuideCanBeDisplayed() throws Exception {
         runFx(() -> {
             MainMenuView view = new MainMenuView();
+            view.showKeyGuide("↑/↓", "ENTER");
 
-            view.showKeyGuide(
-                "↑/↓",
-                "ENTER"
-            );
-
-            Label keyGuideLabel = getField(
-                view,
-                "keyGuideLabel",
-                Label.class
-            );
-
-            assertEquals(
-                "↑/↓: 이동   ENTER: 선택",
-                keyGuideLabel.getText()
-            );
-
-            assertTrue(
-                keyGuideLabel.getStyleClass()
-                    .contains("key-guide")
-            );
+            Label label = getField(view, "keyGuideLabel", Label.class);
+            assertEquals("↑/↓: 이동   ENTER: 선택", label.getText());
+            assertTrue(label.getStyleClass().contains("key-guide"));
 
             return null;
         });
@@ -191,62 +127,33 @@ class MainMenuViewTest {
     void keyGuideUsesPassedKeys() throws Exception {
         runFx(() -> {
             MainMenuView view = new MainMenuView();
+            view.showKeyGuide("LEFT/RIGHT", "SPACE");
 
-            view.showKeyGuide(
-                "LEFT/RIGHT",
-                "SPACE"
-            );
-
-            Label keyGuideLabel = getField(
-                view,
-                "keyGuideLabel",
-                Label.class
-            );
-
-            assertEquals(
-                "LEFT/RIGHT: 이동   SPACE: 선택",
-                keyGuideLabel.getText()
-            );
+            Label label = getField(view, "keyGuideLabel", Label.class);
+            assertEquals("LEFT/RIGHT: 이동   SPACE: 선택", label.getText());
 
             return null;
         });
     }
 
     @SuppressWarnings("unchecked")
-    private static List<Label> getMenuLabels(
-        MainMenuView view
-    ) throws Exception {
-        Field field =
-            MainMenuView.class.getDeclaredField("menuLabels");
-
+    private static List<Label> getMenuLabels(MainMenuView view) throws Exception {
+        Field field = MainMenuView.class.getDeclaredField("menuLabels");
         field.setAccessible(true);
-
         return (List<Label>) field.get(view);
     }
 
-    private static <T> T getField(
-        Object target,
-        String fieldName,
-        Class<T> type
-    ) throws Exception {
-        Field field =
-            target.getClass().getDeclaredField(fieldName);
-
+    private static <T> T getField(Object target, String name, Class<T> type) throws Exception {
+        Field field = target.getClass().getDeclaredField(name);
         field.setAccessible(true);
-
         return type.cast(field.get(target));
     }
 
-    private static <T> T runFx(
-        Callable<T> action
-    ) throws Exception {
-        if (Platform.isFxApplicationThread()) {
-            return action.call();
-        }
+    private static <T> T runFx(Callable<T> action) throws Exception {
+        if (Platform.isFxApplicationThread()) return action.call();
 
         FutureTask<T> task = new FutureTask<>(action);
         Platform.runLater(task);
-
         return task.get();
     }
 }

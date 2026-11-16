@@ -30,54 +30,61 @@ public class P2PConnectionController {
 
     public void show() {
         selected = P2PItem.HOST;
-        view.render(selected);
+        view.clearIp();
+        view.setHostIp("");
         view.setStatus("연결 대기 중");
+        view.render(selected);
     }
 
     public void handleKey(KeyCode key) {
-        if (key == KeyCode.UP) {
-            move(-1);
-        } else if (key == KeyCode.DOWN) {
-            move(1);
-        } else if (key == KeyCode.ENTER) {
-            select();
-        } else if (key == KeyCode.ESCAPE) {
-            onBack.run();
+        if (key == null) return;
+
+        if (view.isIpFocused()) {
+            if (key == KeyCode.ENTER) {
+                join();
+            } else if (key == KeyCode.ESCAPE) {
+                view.getRoot().requestFocus();
+            }
+            return;
+        }
+
+        switch (key) {
+            case UP -> move(-1);
+            case DOWN -> move(1);
+            case ENTER -> select();
+            case ESCAPE -> onBack.run();
+            default -> {}
         }
     }
 
     private void move(int direction) {
         P2PItem[] items = P2PItem.values();
-
-        int index =
-            (selected.ordinal()
-                + direction
-                + items.length)
-                % items.length;
-
-        selected = items[index];
+        selected = items[Math.floorMod(selected.ordinal() + direction, items.length)];
         view.render(selected);
     }
 
     private void select() {
         switch (selected) {
             case HOST -> onHost.run();
-
-            case JOIN ->
-                onJoin.accept(
-                    view.getIp()
-                );
-
-            case BACK ->
-                onBack.run();
+            case JOIN -> view.focusIp();
+            case BACK -> onBack.run();
         }
+    }
+
+    private void join() {
+        String ip = view.getIp();
+
+        if (ip.isBlank()) {
+            view.setStatus("IP 주소를 입력해주세요.");
+            return;
+        }
+
+        onJoin.accept(ip);
     }
 
     public void showHostIp(String ip) {
         view.setHostIp(ip);
-        view.setStatus(
-            "상대방의 접속을 기다리는 중..."
-        );
+        view.setStatus("상대방의 접속을 기다리는 중...");
     }
 
     public void showConnecting() {
@@ -89,8 +96,6 @@ public class P2PConnectionController {
     }
 
     public void showError(String message) {
-        view.setStatus(
-            "오류: " + message
-        );
+        view.setStatus("오류: " + message);
     }
 }

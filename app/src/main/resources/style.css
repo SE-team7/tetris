@@ -490,3 +490,72 @@
     -fx-border-color: transparent;
     -fx-border-width: 2px;
 }
+/* RESTORED BATTLE GRID */
+
+.battle-board-grid,
+.battle-next-grid {
+    -fx-hgap: 0;
+    -fx-vgap: 0;
+}
+
+.battle-frame-cell,
+.battle-board-cell,
+.battle-next-cell {
+    -fx-min-width: 17px;
+    -fx-min-height: 17px;
+    -fx-pref-width: 17px;
+    -fx-pref-height: 17px;
+    -fx-max-width: 17px;
+    -fx-max-height: 17px;
+    -fx-border-color: #333333;
+    -fx-border-width: 1px;
+}
+
+.battle-frame-cell {
+    -fx-background-color: #777777;
+    -fx-border-color: #111111;
+}
+
+.battle-board-cell,
+.battle-next-cell {
+    -fx-background-color: #111111;
+}
+
+.battle-score {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+}
+
+.battle-info-small {
+    -fx-font-size: 11px;
+}
+
+.battle-controls {
+    -fx-font-size: 10px;
+    -fx-text-fill: #BBBBBB;
+}
+
+.battle-rematch {
+    -fx-font-size: 12px;
+    -fx-text-fill: #AAAAAA;
+}
+
+.battle-result {
+    -fx-font-size: 26px;
+    -fx-font-weight: bold;
+}
+
+.battle-block-i { -fx-background-color: #00BCD4; }
+.battle-block-j { -fx-background-color: #42A5F5; }
+.battle-block-l { -fx-background-color: #FFA726; }
+.battle-block-o { -fx-background-color: #FDD835; }
+.battle-block-s { -fx-background-color: #66BB6A; }
+.battle-block-t { -fx-background-color: #AB47BC; }
+.battle-block-z { -fx-background-color: #EF5350; }
+.battle-block-attack { -fx-background-color: #777777; }
+
+.battle-item-mode .battle-frame-cell {
+    -fx-background-color: #D6C2FF;
+    -fx-border-color: #4B0082;
+    -fx-effect: dropshadow(gaussian, #B39DDB, 4, 0.25, 0, 0);
+}

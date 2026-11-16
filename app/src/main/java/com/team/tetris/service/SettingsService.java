@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Properties;
 
 import com.team.tetris.domain.Difficulty;
+import com.team.tetris.domain.PlayerId;
 import com.team.tetris.domain.Settings;
 import com.team.tetris.domain.Settings.KeyAction;
 import com.team.tetris.domain.Settings.ScreenSize;
@@ -16,17 +17,11 @@ import com.team.tetris.util.FileManager;
 
 import javafx.scene.input.KeyCode;
 
-/**
- * 설정 파일 저장·불러오기 담당.
- * 파일 형식: Properties (screenSize=MEDIUM, colorBlindMode=false, difficulty=NORMAL, key.MOVE_LEFT=A ...)
- */
 public class SettingsService {
 
     private static final String FILE_NAME = "settings.properties";
-    private static final String SCREEN_SIZE = "screenSize";
-    private static final String COLOR_BLIND_MODE = "colorBlindMode";
-    private static final String DIFFICULTY = "difficulty";
     private static final String KEY_PREFIX = "key.";
+    private static final String BATTLE_PREFIX = "battle.";
 
     private final FileManager fileManager;
 
@@ -34,76 +29,128 @@ public class SettingsService {
         this.fileManager = fileManager;
     }
 
-    /** 저장된 설정을 불러온다. 파일이 없거나 값이 잘못되면 그 항목은 기본값을 쓴다. */
     public Settings load() {
         Settings settings = new Settings();
         Properties props = new Properties();
+
         try {
             props.load(new StringReader(fileManager.readFile(FILE_NAME)));
         } catch (IOException | UncheckedIOException | IllegalArgumentException e) {
-            // 읽기 실패 시 기본 설정으로 시작 (게임은 계속 진행)
-            System.err.println("설정 불러오기 실패: " + e.getMessage());
             return settings;
         }
 
         try {
-            settings.setScreenSize(ScreenSize.valueOf(props.getProperty(SCREEN_SIZE, "")));
-        } catch (IllegalArgumentException ignored) {
-            // 기본값 유지
-        }
-        settings.setColorBlindMode(Boolean.parseBoolean(props.getProperty(COLOR_BLIND_MODE)));
-        try {
-            settings.setDifficulty(Difficulty.valueOf(props.getProperty(DIFFICULTY, "")));
-        } catch (IllegalArgumentException ignored) {
-            // 기본값 유지
-        }
+            settings.setScreenSize(
+                ScreenSize.valueOf(props.getProperty("screenSize", ""))
+            );
+        } catch (IllegalArgumentException ignored) {}
 
-        Map<KeyAction, KeyCode> savedKeys = new EnumMap<>(KeyAction.class);
-        for (KeyAction action : KeyAction.values()) {
-            // 고정키는 저장 파일 값을 무시하고 기본값 유지
-            if (action.isFixed()) {
-                continue;
-            }
-            String value = props.getProperty(KEY_PREFIX + action.name());
-            if (value == null) {
-                continue;
-            }
-            try {
-                KeyCode key = KeyCode.valueOf(value);
-                // 고정키가 적혀 있으면 그 항목만 무시 (나머지 키는 그대로 적용되도록 미리 걸러냄)
-                if (!Settings.isFixedKey(key)) {
-                    savedKeys.put(action, key);
-                }
-            } catch (IllegalArgumentException ignored) {
-                // 기본값 유지
-            }
-        }
-        // 키를 서로 바꾼 설정도 불러올 수 있게 한꺼번에 적용하고,
-        // 파일이 잘못돼 전체 적용이 안 되면 규칙에 맞는 키만 하나씩 적용
-        if (!settings.setKeys(savedKeys)) {
-            for (Map.Entry<KeyAction, KeyCode> entry : savedKeys.entrySet()) {
-                settings.setKey(entry.getKey(), entry.getValue());
-            }
-        }
+        settings.setColorBlindMode(
+            Boolean.parseBoolean(props.getProperty("colorBlindMode"))
+        );
+
+        try {
+            settings.setDifficulty(
+                Difficulty.valueOf(props.getProperty("difficulty", ""))
+            );
+        } catch (IllegalArgumentException ignored) {}
+
+        loadGameKeys(settings, props);
+        loadBattleKeys(settings, props);
+
         return settings;
     }
 
-    /** 설정을 파일에 저장한다. 저장에 실패해도 예외를 던지지 않는다. (현재 실행 중에는 설정이 유지됨) */
-    public boolean save(Settings settings) {
-        Properties props = new Properties();
-        props.setProperty(SCREEN_SIZE, settings.getScreenSize().name());
-        props.setProperty(COLOR_BLIND_MODE, String.valueOf(settings.isColorBlindMode()));
-        props.setProperty(DIFFICULTY, settings.getDifficulty().name());
+    private void loadGameKeys(Settings settings, Properties props) {
+        Map<KeyAction, KeyCode> saved = new EnumMap<>(KeyAction.class);
+
         for (KeyAction action : KeyAction.values()) {
-            // 고정키는 저장 파일 값을 무시하고 기본값 유지
-            if (action.isFixed()) {
-                continue;
+            if (action.isFixed()) continue;
+
+            KeyCode key = readKey(props, KEY_PREFIX + action.name());
+            if (key != null && !Settings.isFixedKey(key)) {
+                saved.put(action, key);
             }
-            props.setProperty(KEY_PREFIX + action.name(), settings.getKey(action).name());
         }
 
-        StringWriter writer = new StringWriter();
+        if (!saved.isEmpty() && !settings.setKeys(saved)) {
+            for (Map.Entry<KeyAction, KeyCode> entry : saved.entrySet()) {
+                settings.setKey(entry.getKey(), entry.getValue());
+            }
+        }
+    }
+
+    private void loadBattleKeys(Settings settings, Properties props) {
+        for (PlayerId player : PlayerId.values()) {
+            Map<KeyAction, KeyCode> saved =
+                new EnumMap<>(KeyAction.class);
+
+            for (KeyAction action : battleActions()) {
+                KeyCode key = readKey(
+                    props,
+                    BATTLE_PREFIX + player.name() + "." + action.name()
+                );
+
+                if (key != null) saved.put(action, key);
+            }
+
+            if (!saved.isEmpty()) {
+                settings.setBattleKeys(player, saved);
+            }
+        }
+    }
+
+    private KeyCode readKey(Properties props, String name) {
+        String value = props.getProperty(name);
+        if (value == null) return null;
+
         try {
+            return KeyCode.valueOf(value);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    public boolean save(Settings settings) {
+        Properties props = new Properties();
+
+        props.setProperty("screenSize", settings.getScreenSize().name());
+        props.setProperty(
+            "colorBlindMode",
+            String.valueOf(settings.isColorBlindMode())
+        );
+        props.setProperty(
+            "difficulty",
+            settings.getDifficulty().name()
+        );
+
+        for (KeyAction action : KeyAction.values()) {
+            if (!action.isFixed()) {
+                props.setProperty(
+                    KEY_PREFIX + action.name(),
+                    settings.getKey(action).name()
+                );
+            }
+        }
+
+        for (PlayerId player : PlayerId.values()) {
+            for (KeyAction action : battleActions()) {
+                KeyCode key = settings.getBattleKey(player, action);
+
+                if (key != null) {
+                    props.setProperty(
+                        BATTLE_PREFIX
+                            + player.name()
+                            + "."
+                            + action.name(),
+                        key.name()
+                    );
+                }
+            }
+        }
+
+        try {
+            StringWriter writer = new StringWriter();
             props.store(writer, "Tetris settings");
             fileManager.writeFile(FILE_NAME, writer.toString());
             return true;
@@ -113,10 +160,20 @@ public class SettingsService {
         }
     }
 
-    /** 모든 설정을 기본값으로 되돌려 저장하고, 기본 설정을 반환한다. */
     public Settings resetToDefault() {
         Settings settings = new Settings();
         save(settings);
         return settings;
+    }
+
+    private static KeyAction[] battleActions() {
+        return new KeyAction[] {
+            KeyAction.MOVE_LEFT,
+            KeyAction.MOVE_RIGHT,
+            KeyAction.SOFT_DROP,
+            KeyAction.ROTATE,
+            KeyAction.HARD_DROP,
+            KeyAction.SKIP
+        };
     }
 }
