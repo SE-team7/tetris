@@ -1,6 +1,5 @@
 package com.team.tetris.view;
 
-import javafx.application.Platform;
 import javafx.geometry.Pos;
 import javafx.scene.Parent;
 import javafx.scene.control.Label;
@@ -9,15 +8,19 @@ import javafx.scene.layout.VBox;
 
 public class P2PConnectionView {
 
-    public enum P2PItem { HOST, JOIN, BACK }
+    public enum P2PItem {
+        HOST,
+        JOIN,
+        BACK
+    }
 
     private final VBox root = new VBox(16);
+
     private final Label hostLabel = new Label("서버 만들기");
     private final Label joinLabel = new Label("서버 접속");
     private final Label backLabel = new Label("뒤로가기");
+
     private final TextField ipField = new TextField();
-    private final Label statusLabel = new Label("연결 대기 중");
-    private final Label hostIpLabel = new Label("");
 
     public P2PConnectionView() {
         root.setAlignment(Pos.CENTER);
@@ -34,14 +37,15 @@ public class P2PConnectionView {
         ipField.getStyleClass().add("p2p-ip-field");
         ipField.setMaxWidth(260);
 
-        statusLabel.getStyleClass().add("p2p-status");
-        hostIpLabel.getStyleClass().add("p2p-host-ip");
-
         root.getChildren().addAll(
-            title, hostLabel, joinLabel, ipField,
-            hostIpLabel, statusLabel, backLabel
+            title,
+            hostLabel,
+            joinLabel,
+            ipField,
+            backLabel
         );
 
+        showIpField(false);
         render(P2PItem.HOST);
     }
 
@@ -61,40 +65,46 @@ public class P2PConnectionView {
         ipField.clear();
     }
 
+    public void showIpField(boolean visible) {
+        ipField.setVisible(visible);
+        ipField.setManaged(visible);
+    }
+
     public void focusIp() {
-        Platform.runLater(ipField::requestFocus);
+        showIpField(true);
+        ipField.requestFocus();
+        ipField.positionCaret(ipField.getText().length());
     }
 
     public boolean isIpFocused() {
         return ipField.isFocused();
     }
 
-    public void setHostIp(String ip) {
-        hostIpLabel.setText(
-            ip == null || ip.isBlank() ? "" : "HOST IP : " + ip
-        );
-    }
-
-    public void setStatus(String status) {
-        statusLabel.setText(status == null ? "" : status);
-    }
-
     public void render(P2PItem selected) {
-        Label[] items = { hostLabel, joinLabel, backLabel };
+        Label[] items = {
+            hostLabel,
+            joinLabel,
+            backLabel
+        };
 
         for (int i = 0; i < items.length; i++) {
-            items[i].getStyleClass().removeAll("p2p-selected", "p2p-unselected");
+            items[i].getStyleClass().removeAll(
+                "p2p-selected",
+                "p2p-unselected"
+            );
+
             items[i].getStyleClass().add(
-                i == selected.ordinal() ? "p2p-selected" : "p2p-unselected"
+                i == selected.ordinal()
+                    ? "p2p-selected"
+                    : "p2p-unselected"
             );
         }
+    }
 
-        boolean joining = selected == P2PItem.JOIN;
-        ipField.setVisible(joining);
-        ipField.setManaged(joining);
+   
+    public void setStatus(String text) {
+    }
 
-        if (!joining) {
-            root.requestFocus();
-        }
+    public void setHostIp(String ip) {
     }
 }
