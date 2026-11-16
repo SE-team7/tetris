@@ -79,7 +79,7 @@ public class GameView {
         root.getStyleClass().add("game-root");
         boardGrid = new GridPane();
         boardGrid.setAlignment(Pos.CENTER);
-        boardGrid.setHgap(1);
+        boardGrid.setHgap(0);
         boardGrid.setVgap(0);
         boardCells = new Label[VISIBLE_ROWS][COLS];
         createTextBoard();
@@ -179,7 +179,12 @@ public class GameView {
         return label;
     }
     private String baseCellStyle() {
-        return "-fx-font-family: 'Consolas';" + "-fx-font-size: 18px;" + "-fx-background-color: #111111;" + "-fx-text-fill: white;";
+    return "-fx-font-family: 'Consolas';"
+        + "-fx-font-size: 18px;"
+        + "-fx-background-color: #111111;"
+        + "-fx-text-fill: white;"
+        + "-fx-border-color: #333333;"
+        + "-fx-border-width: 1px;";
     }
     private Label createSectionTitle(String text) {
         Label label = new Label(text);
@@ -915,8 +920,8 @@ public class GameView {
     }
     private void resetBoardCell(Label cell) {
         cell.setGraphic(null);
-        cell.setText(".");
-        cell.setStyle(baseCellStyle() + "-fx-text-fill: #444444;");
+        cell.setText("");
+        cell.setStyle(baseCellStyle());
     }
     private void clearNext() {
         for (int row = 0; row < NEXT_SIZE; row++) {
