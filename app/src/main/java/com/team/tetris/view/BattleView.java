@@ -1,20 +1,11 @@
 package com.team.tetris.view;
 
-import com.team.tetris.domain.Block;
-import com.team.tetris.domain.BlockType;
-import com.team.tetris.domain.Board;
-import com.team.tetris.domain.GameSnapshot;
-import com.team.tetris.domain.PlayerId;
-import com.team.tetris.domain.Position;
+import com.team.tetris.domain.*;
 
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Parent;
 import javafx.scene.control.Label;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.VBox;
+import javafx.scene.layout.*;
 
 public class BattleView {
 
@@ -23,38 +14,30 @@ public class BattleView {
     private static final int NEXT = 4;
 
     private final BorderPane root = new BorderPane();
-    private final Label timerLabel = new Label("TIME --:--");
-    private final Label statusLabel = new Label("READY");
-    private final Label resultLabel = new Label();
-    private final Label rematchLabel = new Label();
+    private final Label timer = new Label("TIME --:--");
+    private final Label status = new Label("");
+    private final Label result = new Label();
+    private final Label rematch = new Label();
 
-    private final PlayerArea p1 = new PlayerArea("PLAYER 1");
-    private final PlayerArea p2 = new PlayerArea("PLAYER 2");
+    private final PlayerArea p1 = new PlayerArea("PLAYER 1", true);
+    private final PlayerArea p2 = new PlayerArea("PLAYER 2", false);
 
     private Runnable onBackAction;
 
     public BattleView() {
         root.getStyleClass().add("battle-root");
-        root.setPadding(new Insets(16));
 
         Label title = new Label("BATTLE MODE");
         title.getStyleClass().add("battle-title");
+        timer.getStyleClass().add("battle-timer");
+        status.getStyleClass().add("battle-status");
+        result.getStyleClass().add("battle-result");
+        rematch.getStyleClass().add("battle-rematch");
 
-        timerLabel.getStyleClass().add("battle-timer");
-        statusLabel.getStyleClass().add("battle-status");
-        resultLabel.getStyleClass().add("battle-result");
-        rematchLabel.getStyleClass().add("battle-rematch");
-
-        Label back = new Label("ESC : 뒤로가기");
-        back.getStyleClass().add("battle-back");
-
-        VBox top = new VBox(
-            4, title, timerLabel, statusLabel,
-            resultLabel, rematchLabel, back
-        );
+        VBox top = new VBox(2, title, timer, status, result, rematch);
         top.setAlignment(Pos.CENTER);
 
-        HBox players = new HBox(45, p1.root, p2.root);
+        HBox players = new HBox(30, p1.root, p2.root);
         players.setAlignment(Pos.CENTER);
 
         root.setTop(top);
@@ -67,26 +50,25 @@ public class BattleView {
     }
 
     public void renderPlayer(PlayerId player, GameSnapshot snapshot) {
-        PlayerArea area = player == PlayerId.PLAYER1 ? p1 : p2;
-        area.render(snapshot);
+        (player == PlayerId.PLAYER1 ? p1 : p2).render(snapshot);
     }
 
     public void setTimer(String text) {
-        timerLabel.setText(text == null ? "" : text);
+        timer.setText(text == null ? "" : text);
     }
 
     public void setStatus(String text) {
-        statusLabel.setText(text == null ? "" : text);
+        status.setText(text == null ? "" : text);
     }
 
-    public void showResult(String result, String rematch) {
-        resultLabel.setText(result == null ? "" : result);
-        rematchLabel.setText(rematch == null ? "" : rematch);
+    public void showResult(String text, String rematchText) {
+        result.setText(text == null ? "" : text);
+        rematch.setText(rematchText == null ? "" : rematchText);
     }
 
     public void clearResult() {
-        resultLabel.setText("");
-        rematchLabel.setText("");
+        result.setText("");
+        rematch.setText("");
     }
 
     public void setItemMode(boolean enabled) {
@@ -106,58 +88,47 @@ public class BattleView {
         root.requestFocus();
     }
 
-    private static final class PlayerArea {
+    private static class PlayerArea {
 
         final VBox root;
-        final Label[][] boardCells = new Label[ROWS][COLS];
-        final Label[][] nextCells = new Label[NEXT][NEXT];
+        final Label[][] board = new Label[ROWS][COLS];
+        final Label[][] next = new Label[NEXT][NEXT];
 
         final Label score = new Label("0");
         final Label level = new Label("LEVEL : 1");
         final Label skip = new Label("SKIP : 7");
         final Label incoming = new Label("INCOMING : 0 / 10");
 
-        PlayerArea(String name) {
+        PlayerArea(String name, boolean first) {
             Label player = new Label(name);
             player.getStyleClass().add("battle-player-name");
 
-            GridPane board = createBoard();
-            GridPane next = createNext();
-
             Label nextTitle = new Label("NEXT");
-            nextTitle.getStyleClass().add("battle-info-title");
+            nextTitle.getStyleClass().add("battle-next-title");
+
+            GridPane nextGrid = createNext();
+            VBox nextBox = new VBox(2, nextTitle, nextGrid);
+            nextBox.setAlignment(Pos.CENTER);
+
+            HBox header = new HBox(14, player, nextBox);
+            header.setAlignment(Pos.CENTER);
+
+            GridPane boardGrid = createBoard();
 
             Label scoreTitle = new Label("SCORE");
             scoreTitle.getStyleClass().add("battle-score-title");
-
             score.getStyleClass().add("battle-score");
-            level.getStyleClass().add("battle-info-small");
-            skip.getStyleClass().add("battle-info-small");
+            level.getStyleClass().add("battle-info-value");
+            skip.getStyleClass().add("battle-info-value");
             incoming.getStyleClass().add("battle-attack");
 
-            VBox side = new VBox(
-                5,
-                nextTitle,
-                next,
-                scoreTitle,
-                score,
-                level,
-                skip,
-                incoming
-            );
-            side.setAlignment(Pos.TOP_CENTER);
+            VBox info = new VBox(5, scoreTitle, score, level, skip, incoming);
+            info.setAlignment(Pos.TOP_CENTER);
 
-            HBox game = new HBox(12, board, side);
+            HBox game = new HBox(10, boardGrid, info);
             game.setAlignment(Pos.CENTER);
 
-            Label controls = new Label(
-                name.equals("PLAYER 1")
-                    ? "A/D 이동   S 아래   W 회전   SPACE 하드드랍   CTRL 스킵"
-                    : "←/→ 이동   ↓ 아래   ↑ 회전   ENTER 하드드랍   P 스킵"
-            );
-            controls.getStyleClass().add("battle-controls");
-
-            root = new VBox(8, player, game, controls);
+            root = new VBox(6, header, game, createControls(first));
             root.setAlignment(Pos.CENTER);
             root.getStyleClass().add("battle-player");
         }
@@ -166,22 +137,19 @@ public class BattleView {
             GridPane grid = new GridPane();
             grid.getStyleClass().add("battle-board-grid");
 
-            for (int row = 0; row < ROWS + 2; row++) {
-                for (int col = 0; col < COLS + 2; col++) {
-                    Label cell = cell();
+            for (int r = 0; r < ROWS + 2; r++) {
+                for (int c = 0; c < COLS + 2; c++) {
+                    Label cell = new Label();
+                    boolean frame = r == 0 || c == 0 || r == ROWS + 1 || c == COLS + 1;
 
-                    if (row == 0 || row == ROWS + 1
-                        || col == 0 || col == COLS + 1) {
-                        cell.getStyleClass().add("battle-frame-cell");
-                    } else {
-                        cell.getStyleClass().add("battle-board-cell");
-                        boardCells[row - 1][col - 1] = cell;
-                    }
+                    cell.getStyleClass().add(
+                        frame ? "battle-frame-cell" : "battle-board-cell"
+                    );
 
-                    grid.add(cell, col, row);
+                    if (!frame) board[r - 1][c - 1] = cell;
+                    grid.add(cell, c, r);
                 }
             }
-
             return grid;
         }
 
@@ -189,98 +157,119 @@ public class BattleView {
             GridPane grid = new GridPane();
             grid.getStyleClass().add("battle-next-grid");
 
-            for (int row = 0; row < NEXT; row++) {
-                for (int col = 0; col < NEXT; col++) {
-                    Label cell = cell();
+            for (int r = 0; r < NEXT; r++) {
+                for (int c = 0; c < NEXT; c++) {
+                    Label cell = new Label();
                     cell.getStyleClass().add("battle-next-cell");
-                    nextCells[row][col] = cell;
-                    grid.add(cell, col, row);
+                    next[r][c] = cell;
+                    grid.add(cell, c, r);
                 }
             }
-
             return grid;
         }
 
-        private Label cell() {
-            Label cell = new Label();
-            cell.setMinSize(17, 17);
-            cell.setPrefSize(17, 17);
-            cell.setMaxSize(17, 17);
-            return cell;
+        private VBox createControls(boolean first) {
+            Label title = new Label("CONTROLS");
+            title.getStyleClass().add("game-info-title");
+
+            GridPane grid = new GridPane();
+            grid.setAlignment(Pos.CENTER);
+            grid.setHgap(7);
+            grid.setVgap(3);
+
+            if (first) {
+                addControl(grid, 0, 0, "이동", "A / D");
+                addControl(grid, 1, 0, "아래", "S");
+                addControl(grid, 2, 0, "회전", "W");
+                addControl(grid, 0, 2, "하드드랍", "SPACE");
+                addControl(grid, 1, 2, "스킵", "CTRL");
+                addControl(grid, 2, 2, "일시정지", "SHIFT");
+            } else {
+                addControl(grid, 0, 0, "이동", "← / →");
+                addControl(grid, 1, 0, "아래", "↓");
+                addControl(grid, 2, 0, "회전", "↑");
+                addControl(grid, 0, 2, "하드드랍", "ENTER");
+                addControl(grid, 1, 2, "스킵", "P");
+                addControl(grid, 2, 2, "일시정지", "SHIFT");
+            }
+
+            VBox box = new VBox(3, title, grid);
+            box.setAlignment(Pos.CENTER);
+            return box;
+        }
+
+        private void addControl(
+            GridPane grid, int row, int col, String action, String key
+        ) {
+            Label actionLabel = new Label(action);
+            actionLabel.getStyleClass().add("item-info-action");
+
+            Label keyLabel = new Label(key);
+            keyLabel.setAlignment(Pos.CENTER);
+            keyLabel.setMinWidth(58);
+            keyLabel.getStyleClass().add("game-small-bordered-label");
+
+            grid.add(actionLabel, col, row);
+            grid.add(keyLabel, col + 1, row);
         }
 
         void render(GameSnapshot snapshot) {
-            clear(boardCells, "battle-board-cell");
-            clear(nextCells, "battle-next-cell");
+            clear(board);
+            clear(next);
 
             if (snapshot == null) return;
 
-            BlockType[][] board = snapshot.getBoard();
-            boolean[][] attack = snapshot.getAttackCells();
-
-            int firstRow = Math.max(0, board.length - ROWS);
+            BlockType[][] data = snapshot.getBoard();
+            boolean[][] attacks = snapshot.getAttackCells();
+            int first = Math.max(0, data.length - ROWS);
 
             for (int r = 0; r < ROWS; r++) {
-                int sourceRow = firstRow + r;
-                if (sourceRow >= board.length) continue;
+                int source = first + r;
+                if (source >= data.length) continue;
 
-                for (int c = 0; c < COLS; c++) {
-                    BlockType type = board[sourceRow][c];
+                for (int c = 0; c < COLS && c < data[source].length; c++) {
+                    BlockType type = data[source][c];
+                    if (type == null) continue;
 
-                    if (type != null) {
-                        applyBlock(
-                            boardCells[r][c],
-                            type,
-                            attack != null
-                                && sourceRow < attack.length
-                                && c < attack[sourceRow].length
-                                && attack[sourceRow][c]
-                        );
-                    }
+                    boolean attack = attacks != null
+                        && source < attacks.length
+                        && c < attacks[source].length
+                        && attacks[source][c];
+
+                    draw(board[r][c], type, attack);
                 }
             }
 
-            renderCurrent(snapshot.getCurrentBlock(), firstRow);
+            renderCurrent(snapshot.getCurrentBlock(), first);
             renderNext(snapshot.getNextBlock());
 
             score.setText(String.valueOf(snapshot.getScore()));
             level.setText("LEVEL : " + snapshot.getLevel());
             skip.setText("SKIP : " + snapshot.getRemainingSkips());
             incoming.setText(
-                "INCOMING : "
-                    + snapshot.getPendingAttack().getRowCount()
-                    + " / 10"
+                "INCOMING : " + snapshot.getPendingAttack().getRowCount() + " / 10"
             );
         }
 
-        private void renderCurrent(Block block, int firstRow) {
+        private void renderCurrent(Block block, int first) {
             if (block == null) return;
 
-            for (Position position : block.getCells()) {
-                int row = position.getRow() - firstRow;
-                int col = position.getCol();
+            for (Position p : block.getCells()) {
+                int r = p.getRow() - first;
+                int c = p.getCol();
 
-                if (row >= 0 && row < ROWS
-                    && col >= 0 && col < COLS) {
-                    applyBlock(
-                        boardCells[row][col],
-                        block.getType(),
-                        false
-                    );
+                if (r >= 0 && r < ROWS && c >= 0 && c < COLS) {
+                    draw(board[r][c], block.getType(), false);
                 }
             }
         }
 
         private void renderNext(Block block) {
-            if (block == null) return;
+            if (block == null || block.getCells().length == 0) return;
 
             Position[] cells = block.getCells();
-            if (cells == null || cells.length == 0) return;
-
-            int minR = cells[0].getRow();
-            int maxR = minR;
-            int minC = cells[0].getCol();
-            int maxC = minC;
+            int minR = cells[0].getRow(), maxR = minR;
+            int minC = cells[0].getCol(), maxC = minC;
 
             for (Position p : cells) {
                 minR = Math.min(minR, p.getRow());
@@ -293,54 +282,30 @@ public class BattleView {
             int startC = (NEXT - (maxC - minC + 1)) / 2;
 
             for (Position p : cells) {
-                int row = startR + p.getRow() - minR;
-                int col = startC + p.getCol() - minC;
+                int r = startR + p.getRow() - minR;
+                int c = startC + p.getCol() - minC;
 
-                if (row >= 0 && row < NEXT
-                    && col >= 0 && col < NEXT) {
-                    applyBlock(
-                        nextCells[row][col],
-                        block.getType(),
-                        false
-                    );
+                if (r >= 0 && r < NEXT && c >= 0 && c < NEXT) {
+                    draw(next[r][c], block.getType(), false);
                 }
             }
         }
 
-        private void clear(Label[][] cells, String base) {
+        private void clear(Label[][] cells) {
             for (Label[] row : cells) {
                 for (Label cell : row) {
-                    cell.setText("");
-                    cell.getStyleClass().removeIf(
-                        style -> style.startsWith("battle-block-")
-                    );
-
-                    if (!cell.getStyleClass().contains(base)) {
-                        cell.getStyleClass().add(base);
-                    }
+                    cell.getStyleClass().removeIf(s -> s.startsWith("battle-block-"));
                 }
             }
         }
 
-        private void applyBlock(
-            Label cell,
-            BlockType type,
-            boolean attack
-        ) {
-            cell.getStyleClass().removeIf(
-                style -> style.startsWith("battle-block-")
+        private void draw(Label cell, BlockType type, boolean attack) {
+            cell.getStyleClass().removeIf(s -> s.startsWith("battle-block-"));
+            cell.getStyleClass().add(
+                attack
+                    ? "battle-block-attack"
+                    : "battle-block-" + type.name().toLowerCase()
             );
-
-            if (attack) {
-                cell.getStyleClass().add("battle-block-attack");
-                return;
-            }
-
-            if (type != null) {
-                cell.getStyleClass().add(
-                    "battle-block-" + type.name().toLowerCase()
-                );
-            }
         }
     }
 }

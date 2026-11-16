@@ -1,3 +1,5 @@
+/* ---------- SETTINGS ---------- */
+
 .settings-title {
     -fx-font-size: 36px;
     -fx-font-weight: bold;
@@ -5,6 +7,11 @@
 
 .settings-section-title {
     -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}
+
+.settings-label {
+    -fx-font-size: 15px;
     -fx-font-weight: bold;
 }
 
@@ -18,10 +25,8 @@
     -fx-font-size: 12px;
 }
 
-.settings-label {
-    -fx-font-size: 15px;
-    -fx-font-weight: bold;
-}
+
+/* ---------- GAME OVER ---------- */
 
 .game-over-title {
     -fx-font-size: 28px;
@@ -29,7 +34,7 @@
 }
 
 .game-over-highlight {
-    -fx-text-fill: #f5c542;
+    -fx-text-fill: #F5C542;
     -fx-font-weight: bold;
 }
 
@@ -37,12 +42,15 @@
     -fx-font-size: 20px;
 }
 
+
+/* ---------- MAIN MENU ---------- */
+
 .main-menu-title-main {
     -fx-font-family: "Georgia";
     -fx-font-size: 54px;
     -fx-font-weight: bold;
     -fx-text-fill: #222222;
-    -fx-effect: dropshadow(gaussian, #b8b8b8, 5, 0.2, 1, 2);
+    -fx-effect: dropshadow(gaussian, #B8B8B8, 5, 0.2, 1, 2);
 }
 
 .main-menu-title-sub {
@@ -50,7 +58,6 @@
     -fx-font-size: 32px;
     -fx-font-style: italic;
     -fx-text-fill: #555555;
-    -fx-effect: dropshadow(gaussian, #c8c8c8, 4, 0.2, 1, 1);
 }
 
 .main-menu-key-guide {
@@ -66,18 +73,19 @@
     -fx-font-size: 22px;
     -fx-font-weight: bold;
     -fx-text-fill: #222222;
-    -fx-background-color: #eeeeee;
+    -fx-background-color: #EEEEEE;
     -fx-border-color: #4A90E2;
 }
 
 .menu-item-unselected {
     -fx-font-size: 20px;
-    -fx-font-weight: normal;
     -fx-text-fill: #333333;
     -fx-background-color: transparent;
     -fx-border-color: transparent;
 }
 
+
+/* ---------- SCOREBOARD ---------- */
 
 .scoreboard-root {
     -fx-background-color: #F4F4F4;
@@ -89,9 +97,13 @@
     -fx-text-fill: #222222;
 }
 
+.scoreboard-key-guide,
+.scoreboard-cell-dim {
+    -fx-text-fill: #AAAAAA;
+}
+
 .scoreboard-key-guide {
     -fx-font-size: 13px;
-    -fx-text-fill: #AAAAAA;
 }
 
 .scoreboard-header {
@@ -102,8 +114,8 @@
 
 .scoreboard-mode-button {
     -fx-font-size: 14px;
-    -fx-padding: 7 14 7 14;
-    -fx-background-radius: 3;
+    -fx-padding: 7px 14px;
+    -fx-background-radius: 3px;
 }
 
 .scoreboard-mode-selected {
@@ -129,52 +141,58 @@
 
 .scoreboard-cell-normal {
     -fx-text-fill: #222222;
-    -fx-font-weight: normal;
 }
 
-.scoreboard-cell-dim {
-    -fx-text-fill: #AAAAAA;
-}
+
+/* ---------- NORMAL / ITEM GAME ---------- */
 
 .game-root {
     -fx-background-color: #111111;
 }
 
+.game-score-label,
+.game-status-label,
+.game-skip-label,
+.game-info-title,
+.game-info-small,
+.item-info-title,
+.item-info-description,
+.item-info-action,
+.game-small-bordered-label {
+    -fx-font-family: "Consolas";
+}
+
 .game-score-label {
     -fx-text-fill: white;
-    -fx-font-family: "Consolas";
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
 }
 
 .game-status-label {
     -fx-text-fill: #FFD54F;
-    -fx-font-family: "Consolas";
 }
 
-.game-skip-label {
+.game-skip-label,
+.game-info-title {
     -fx-text-fill: white;
-    -fx-font-family: "Consolas";
 }
 
 .game-info-title {
-    -fx-text-fill: white;
-    -fx-font-family: "Consolas";
     -fx-font-size: 17px;
     -fx-font-weight: bold;
 }
 
 .game-info-small {
     -fx-text-fill: #BBBBBB;
-    -fx-font-family: "Consolas";
     -fx-font-size: 11px;
     -fx-font-weight: bold;
 }
 
 .item-info-title {
     -fx-text-fill: #E8DEFF;
-    -fx-font-family: "Consolas";
     -fx-font-size: 17px;
     -fx-font-weight: bold;
-    -fx-effect: dropshadow(gaussian, #7C4DFF, 6, 0.40, 0, 0);
+    -fx-effect: dropshadow(gaussian, #7C4DFF, 6, 0.4, 0, 0);
 }
 
 .item-info-box {
@@ -187,162 +205,100 @@
 
 .item-info-description {
     -fx-text-fill: #E6E6E6;
-    -fx-font-family: "Consolas";
     -fx-font-size: 11px;
 }
 
 .item-info-action {
     -fx-text-fill: #BBBBBB;
-    -fx-font-family: "Consolas";
     -fx-font-size: 11px;
 }
 
 .game-small-bordered-label {
-    -fx-text-fill: #FFFFFF;
-    -fx-font-family: "Consolas";
+    -fx-text-fill: white;
     -fx-font-size: 11px;
     -fx-font-weight: bold;
-
     -fx-background-color: #222222;
     -fx-border-color: #BDBDBD;
     -fx-border-width: 1px;
     -fx-border-radius: 3px;
     -fx-background-radius: 3px;
-
     -fx-padding: 2px 6px;
 }
 
-.battle-mode-root {
+
+/* ---------- COMMON BATTLE MENUS ---------- */
+
+.battle-mode-root,
+.battle-type-root,
+.p2p-root,
+.p2p-waiting-root,
+.time-limit-root {
     -fx-background-color: #111111;
 }
 
-.battle-mode-title {
+.battle-mode-title,
+.battle-type-title,
+.p2p-title,
+.p2p-waiting-title,
+.time-limit-title {
     -fx-text-fill: white;
     -fx-font-size: 32px;
     -fx-font-weight: bold;
-    -fx-padding: 0 0 20 0;
+    -fx-padding: 0 0 20px 0;
 }
 
-.battle-mode-item {
+.battle-mode-item,
+.battle-type-item,
+.p2p-item,
+.time-limit-item {
     -fx-min-width: 240px;
     -fx-alignment: center;
     -fx-padding: 10px 20px;
     -fx-font-size: 18px;
 }
 
-.battle-mode-selected {
+.battle-mode-selected,
+.battle-type-selected,
+.p2p-selected,
+.time-limit-selected {
     -fx-text-fill: white;
     -fx-background-color: #333333;
     -fx-border-color: #FFD54F;
     -fx-border-width: 2px;
 }
 
-.battle-mode-unselected {
+.battle-mode-unselected,
+.battle-type-unselected,
+.p2p-unselected,
+.time-limit-unselected {
     -fx-text-fill: #BBBBBB;
     -fx-background-color: transparent;
     -fx-border-color: transparent;
     -fx-border-width: 2px;
 }
 
-.battle-type-root {
-    -fx-background-color: #111111;
-}
 
-.battle-type-title {
-    -fx-text-fill: white;
-    -fx-font-size: 32px;
-    -fx-font-weight: bold;
-    -fx-padding: 0 0 20 0;
-}
-
-.battle-type-item {
-    -fx-min-width: 240px;
-    -fx-alignment: center;
-    -fx-padding: 10px 20px;
-    -fx-font-size: 18px;
-}
-
-.battle-type-selected {
-    -fx-text-fill: white;
-    -fx-background-color: #333333;
-    -fx-border-color: #FFD54F;
-    -fx-border-width: 2px;
-}
-
-.battle-type-unselected {
-    -fx-text-fill: #BBBBBB;
-    -fx-background-color: transparent;
-    -fx-border-color: transparent;
-    -fx-border-width: 2px;
-}
-.p2p-root {
-    -fx-background-color: #111111;
-}
-
-.p2p-title {
-    -fx-text-fill: white;
-    -fx-font-size: 32px;
-    -fx-font-weight: bold;
-    -fx-padding: 0 0 20 0;
-}
-
-.p2p-item {
-    -fx-min-width: 240px;
-    -fx-alignment: center;
-    -fx-padding: 10px 20px;
-    -fx-font-size: 18px;
-}
-
-.p2p-selected {
-    -fx-text-fill: white;
-    -fx-background-color: #333333;
-    -fx-border-color: #FFD54F;
-    -fx-border-width: 2px;
-}
-
-.p2p-unselected {
-    -fx-text-fill: #BBBBBB;
-    -fx-background-color: transparent;
-    -fx-border-color: transparent;
-    -fx-border-width: 2px;
-}
+/* ---------- P2P ---------- */
 
 .p2p-ip-field {
     -fx-font-size: 16px;
     -fx-padding: 8px;
 }
 
-.p2p-status {
+.p2p-status,
+.p2p-waiting-info {
     -fx-text-fill: #BBBBBB;
     -fx-font-size: 14px;
 }
 
-.p2p-host-ip {
+.p2p-host-ip,
+.p2p-waiting-status {
     -fx-text-fill: #FFD54F;
-    -fx-font-size: 14px;
     -fx-font-weight: bold;
-}
-
-.p2p-waiting-root {
-    -fx-background-color: #111111;
-}
-
-.p2p-waiting-title {
-    -fx-text-fill: white;
-    -fx-font-size: 32px;
-    -fx-font-weight: bold;
-    -fx-padding: 0 0 20 0;
 }
 
 .p2p-waiting-status {
-    -fx-text-fill: #FFD54F;
     -fx-font-size: 20px;
-    -fx-font-weight: bold;
-}
-
-.p2p-waiting-info {
-    -fx-text-fill: #BBBBBB;
-    -fx-font-size: 15px;
 }
 
 .p2p-waiting-ready {
@@ -356,26 +312,35 @@
     -fx-font-size: 13px;
 }
 
+
+/* ---------- BATTLE GAME ---------- */
+
 .battle-root {
     -fx-background-color: #111111;
-    -fx-padding: 18px;
+    -fx-padding: 12px;
 }
 
 .battle-title {
     -fx-text-fill: white;
-    -fx-font-size: 28px;
+    -fx-font-size: 24px;
     -fx-font-weight: bold;
 }
 
 .battle-timer {
-    -fx-text-fill: #ffd54f;
-    -fx-font-size: 18px;
+    -fx-text-fill: #FFD54F;
+    -fx-font-size: 17px;
     -fx-font-weight: bold;
 }
 
 .battle-status {
-    -fx-text-fill: #dddddd;
-    -fx-font-size: 15px;
+    -fx-text-fill: #DDDDDD;
+    -fx-font-size: 12px;
+}
+
+.battle-back,
+.battle-rematch {
+    -fx-text-fill: #AAAAAA;
+    -fx-font-size: 11px;
 }
 
 .battle-player {
@@ -384,113 +349,45 @@
 
 .battle-player-name {
     -fx-text-fill: white;
-    -fx-font-size: 17px;
+    -fx-font-size: 18px;
     -fx-font-weight: bold;
 }
 
-.battle-board {
-    -fx-background-color: #222222;
-    -fx-border-color: #777777;
-    -fx-border-width: 2px;
-}
-
-.battle-cell {
-    -fx-min-width: 18px;
-    -fx-min-height: 18px;
-    -fx-pref-width: 18px;
-    -fx-pref-height: 18px;
-    -fx-border-color: #292929;
-    -fx-border-width: 0.5px;
-    -fx-background-color: #151515;
-}
-
-.battle-info-title {
-    -fx-text-fill: #aaaaaa;
-    -fx-font-size: 11px;
-}
-
-.battle-next {
+.battle-next-title {
     -fx-text-fill: white;
-    -fx-font-size: 18px;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}
+
+.battle-score-title {
+    -fx-text-fill: white;
+    -fx-font-size: 13px;
     -fx-font-weight: bold;
 }
 
 .battle-score {
     -fx-text-fill: white;
-    -fx-font-size: 14px;
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+}
+
+.battle-info-value {
+    -fx-text-fill: white;
+    -fx-font-size: 11px;
     -fx-font-weight: bold;
 }
 
 .battle-attack {
-    -fx-text-fill: #ff8a80;
-    -fx-font-size: 13px;
+    -fx-text-fill: #FF8A80;
+    -fx-font-size: 11px;
     -fx-font-weight: bold;
 }
 
-.battle-block-i {
-    -fx-background-color: #00bcd4;
-}
-
-.battle-block-o {
-    -fx-background-color: #fdd835;
-}
-
-.battle-block-t {
-    -fx-background-color: #ab47bc;
-}
-
-.battle-block-s {
-    -fx-background-color: #66bb6a;
-}
-
-.battle-block-z {
-    -fx-background-color: #ef5350;
-}
-
-.battle-block-j {
-    -fx-background-color: #42a5f5;
-}
-
-.battle-block-l {
-    -fx-background-color: #ffa726;
-}
-
-.battle-block-attack {
-    -fx-background-color: #777777;
-}
-
-.time-limit-root {
-    -fx-background-color: #111111;
-}
-
-.time-limit-title {
-    -fx-text-fill: white;
-    -fx-font-size: 32px;
+.battle-result {
+    -fx-text-fill: #D6C2FF;
+    -fx-font-size: 24px;
     -fx-font-weight: bold;
-    -fx-padding: 0 0 20 0;
 }
-
-.time-limit-item {
-    -fx-min-width: 220px;
-    -fx-alignment: center;
-    -fx-padding: 10px 20px;
-    -fx-font-size: 18px;
-}
-
-.time-limit-selected {
-    -fx-text-fill: white;
-    -fx-background-color: #333333;
-    -fx-border-color: #FFD54F;
-    -fx-border-width: 2px;
-}
-
-.time-limit-unselected {
-    -fx-text-fill: #BBBBBB;
-    -fx-background-color: transparent;
-    -fx-border-color: transparent;
-    -fx-border-width: 2px;
-}
-/* RESTORED BATTLE GRID */
 
 .battle-board-grid,
 .battle-next-grid {
@@ -507,7 +404,6 @@
     -fx-pref-height: 17px;
     -fx-max-width: 17px;
     -fx-max-height: 17px;
-    -fx-border-color: #333333;
     -fx-border-width: 1px;
 }
 
@@ -519,30 +415,13 @@
 .battle-board-cell,
 .battle-next-cell {
     -fx-background-color: #111111;
+    -fx-border-color: #333333;
 }
 
-.battle-score {
-    -fx-font-size: 24px;
-    -fx-font-weight: bold;
-}
-
-.battle-info-small {
-    -fx-font-size: 11px;
-}
-
-.battle-controls {
-    -fx-font-size: 10px;
-    -fx-text-fill: #BBBBBB;
-}
-
-.battle-rematch {
-    -fx-font-size: 12px;
-    -fx-text-fill: #AAAAAA;
-}
-
-.battle-result {
-    -fx-font-size: 26px;
-    -fx-font-weight: bold;
+.battle-item-mode .battle-frame-cell {
+    -fx-background-color: #D6C2FF;
+    -fx-border-color: #4B0082;
+    -fx-effect: dropshadow(gaussian, #B39DDB, 4, 0.25, 0, 0);
 }
 
 .battle-block-i { -fx-background-color: #00BCD4; }
@@ -553,9 +432,3 @@
 .battle-block-t { -fx-background-color: #AB47BC; }
 .battle-block-z { -fx-background-color: #EF5350; }
 .battle-block-attack { -fx-background-color: #777777; }
-
-.battle-item-mode .battle-frame-cell {
-    -fx-background-color: #D6C2FF;
-    -fx-border-color: #4B0082;
-    -fx-effect: dropshadow(gaussian, #B39DDB, 4, 0.25, 0, 0);
-}
