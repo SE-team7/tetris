@@ -12,97 +12,70 @@ import javafx.scene.input.KeyCode;
 
 public class MainMenuController {
 
-    private final MainMenuView mainMenuView;
-    private final SceneManager sceneManager;
+    private final MainMenuView view;
+    private final SceneManager scenes;
     private final GameController gameController;
     private final ScoreboardController scoreboardController;
     private final Settings settings;
 
-    private MainMenuItem selectedMenu = MainMenuItem.START_GAME;
+    private MainMenuItem selected = MainMenuItem.START_GAME;
 
     public MainMenuController(
-        MainMenuView mainMenuView,
-        SceneManager sceneManager,
+        MainMenuView view,
+        SceneManager scenes,
         GameController gameController,
         ScoreboardController scoreboardController,
         Settings settings
     ) {
-        this.mainMenuView = mainMenuView;
-        this.sceneManager = sceneManager;
+        this.view = view;
+        this.scenes = scenes;
         this.gameController = gameController;
         this.scoreboardController = scoreboardController;
         this.settings = settings;
     }
 
     public void show() {
-        selectedMenu = MainMenuItem.START_GAME;
-        mainMenuView.render(selectedMenu);
-        mainMenuView.showKeyGuide("↑/↓", "ENTER");
-        sceneManager.showMainMenu();
+        selected = MainMenuItem.START_GAME;
+        view.render(selected);
+        view.showKeyGuide("↑/↓", "ENTER");
+        scenes.showMainMenu();
     }
 
     public void handleKey(KeyCode key) {
-        if (key == null) {
-            return;
-        }
+        if (key == null) return;
 
         switch (key) {
-            case UP -> moveSelection(-1);
-            case DOWN -> moveSelection(1);
-            case ENTER -> selectMenu(selectedMenu);
-            default -> {
-            }
+            case UP -> move(-1);
+            case DOWN -> move(1);
+            case ENTER -> select();
+            default -> {}
         }
     }
 
-    private void moveSelection(int direction) {
+    private void move(int direction) {
         MainMenuItem[] items = MainMenuItem.values();
-
-        int index =
-            (selectedMenu.ordinal()
-                + direction
-                + items.length)
-                % items.length;
-
-        selectedMenu = items[index];
-        mainMenuView.render(selectedMenu);
+        selected = items[Math.floorMod(selected.ordinal() + direction, items.length)];
+        view.render(selected);
     }
 
-    private void selectMenu(MainMenuItem menuItem) {
-        switch (menuItem) {
+    private void select() {
+        switch (selected) {
             case START_GAME -> {
-                gameController.startGame(
-                    GameMode.NORMAL,
-                    settings.getDifficulty()
-                );
-
-                sceneManager.showGame();
+                gameController.startGame(GameMode.NORMAL, settings.getDifficulty());
+                scenes.showGame();
             }
-
             case START_ITEM_GAME -> {
-                gameController.startGame(
-                    GameMode.ITEM,
-                    Difficulty.EASY
-                );
-
-                sceneManager.showGame();
+                gameController.startGame(GameMode.ITEM, Difficulty.EASY);
+                scenes.showGame();
             }
-
-            case BATTLE_MODE ->
-                sceneManager.showBattleMode();
-
-            case SETTINGS ->
-                sceneManager.showSettings();
-
-            case SCOREBOARD ->
-                scoreboardController.show();
-
-            case EXIT ->
-                Platform.exit();
+            case BATTLE_MODE -> scenes.showBattleType();
+            case SETTINGS -> scenes.showSettings();
+            case SCOREBOARD -> scoreboardController.show();
+            case EXIT -> Platform.exit();
         }
     }
 
     public MainMenuItem getSelectedMenu() {
-        return selectedMenu;
+        return selected;
     }
 }
