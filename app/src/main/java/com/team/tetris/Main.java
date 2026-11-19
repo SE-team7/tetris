@@ -5,20 +5,19 @@ import java.util.function.Consumer;
 import com.team.tetris.controller.*;
 import com.team.tetris.domain.*;
 import com.team.tetris.network.NetworkService;
+import com.team.tetris.network.NetworkEvents;
+import com.team.tetris.network.MessagePayload;
 import com.team.tetris.service.*;
 import com.team.tetris.util.*;
 import com.team.tetris.view.*;
 import com.team.tetris.view.BattleModeView.BattleModeItem;
 import com.team.tetris.view.BattleTypeView.BattleTypeItem;
 
-import javafx.animation.KeyFrame;
-import javafx.animation.Timeline;
 import javafx.application.Application;
 import javafx.scene.Parent;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.stage.Stage;
-import javafx.util.Duration;
 
 public class Main extends Application {
 
@@ -181,6 +180,7 @@ public class Main extends Application {
             },
             () -> {
                 if (battleType == BattleTypeItem.P2P && hostFlow) {
+                    networkController.leave();
                     p2pConnectionController.show();
                     scenes.showP2PConnection();
                 } else {
@@ -221,8 +221,10 @@ public class Main extends Application {
                     networkController.host(NetworkService.DEFAULT_PORT);
                     hostFlow = true;
                     battleType = BattleTypeItem.P2P;
-                    battleModeController.show();
-                    scenes.showBattleMode();
+                    p2pWaitingController.showHost(
+                        String.join(", ", networkController.getHostAddresses()), ""
+                    );
+                    scenes.showP2PWaiting();
                 } catch (RuntimeException e) {
                     p2pConnectionController.showError(e.getMessage());
                 }
@@ -250,13 +252,9 @@ public class Main extends Application {
             () -> {
                 networkController.leave();
 
-                if (hostFlow) {
-                    battleModeController.show();
-                    scenes.showBattleMode();
-                } else {
-                    p2pConnectionController.show();
-                    scenes.showP2PConnection();
-                }
+                p2pBattleShown = false;
+                p2pConnectionController.show();
+                scenes.showP2PConnection();
             },
             ready -> {
                 try {
@@ -305,33 +303,34 @@ public class Main extends Application {
         );
 
         bindMenu(
-            battleModeView.getRoot(),
-            battleModeController::handleKey,
-            mainMenuController::show
+            battleModeView.getRoot(), battleModeController::handleKey,
+            () -> { if (battleType == BattleTypeItem.P2P) networkController.leave(); mainMenuController.show(); }
         );
 
         bindMenu(
-            timeLimitView.getRoot(),
-            timeLimitController::handleKey,
-            mainMenuController::show
+            timeLimitView.getRoot(), timeLimitController::handleKey,
+            () -> { if (battleType == BattleTypeItem.P2P) networkController.leave(); mainMenuController.show(); }
         );
 
         bindMenu(
-            p2pConnectionView.getRoot(),
-            p2pConnectionController::handleKey,
-            mainMenuController::show
+            p2pConnectionView.getRoot(), p2pConnectionController::handleKey,
+            () -> { networkController.leave(); mainMenuController.show(); }
         );
 
         bindMenu(
-            p2pWaitingView.getRoot(),
-            p2pWaitingController::handleKey,
-            mainMenuController::show
+            p2pWaitingView.getRoot(), p2pWaitingController::handleKey,
+            () -> { networkController.leave(); p2pBattleShown = false; mainMenuController.show(); }
         );
 
         battleView.getRoot().addEventFilter(
             KeyEvent.KEY_PRESSED,
             e -> {
-                battleController.handleKeyPressed(e.getCode());
+                if (e.getCode() == KeyCode.TAB && battleType == BattleTypeItem.P2P
+                    && networkController.getState() == NetworkController.State.CONNECTED) {
+                    p2pWaitingController.show();
+                    p2pWaitingController.setStartEnabled(networkController.getConfig() != null);
+                    scenes.showP2PWaiting();
+                } else battleController.handleKeyPressed(e.getCode());
                 e.consume();
             }
         );
@@ -350,20 +349,52 @@ public class Main extends Application {
             }
         );
 
-        Timeline networkWatcher = new Timeline(
-            new KeyFrame(
-                Duration.millis(100),
-                e -> updateP2P(
-                    battleController,
-                    battleView,
-                    scenes,
-                    settings
-                )
-            )
-        );
-        networkWatcher.setCycleCount(Timeline.INDEFINITE);
-        networkWatcher.play();
+        networkController.setEvents(new NetworkEvents() {
+            @Override public void onStateChanged(NetworkController.State state) {
+                if (state == NetworkController.State.CONNECTED) {
+                    if (hostFlow && networkController.getConfig() == null) {
+                        battleModeController.show();
+                        scenes.showBattleMode();
+                    } else {
+                        p2pWaitingController.showConnected();
+                        p2pWaitingController.setStartEnabled(networkController.getConfig() != null);
+                    }
+                }
+            }
+            @Override public void onConfigChanged(MessagePayload.Config config) {
+                p2pWaitingController.showConnected();
+                p2pWaitingController.setStartEnabled(true);
+            }
+            @Override public void onPeerReadyChanged(boolean ready) {
+                if (ready) p2pWaitingController.showOpponentReady();
+            }
+            @Override public void onLagChanged(long ms, boolean lagging) {
+                p2pWaitingController.showLag(ms, lagging);
+            }
+            @Override public void onBattleStarted() {
+                showP2PBattle(battleController, battleView, scenes);
+            }
+            @Override public void onBattleFinished(MessagePayload.Result result) {
+                p2pBattleShown = false;
+                viewResultAfterBattle(battleView);
+            }
+            @Override public void onConnectionClosed(String reason, boolean peerLeft) {
+                p2pBattleShown = false;
+                p2pConnectionController.show();
+                p2pConnectionController.showError(reason);
+                scenes.showP2PConnection();
+            }
+            @Override public void showError(String message) {
+                if (networkController.getState() != NetworkController.State.DISCONNECTED)
+                    p2pWaitingController.showError(message);
+            }
+        });
 
+        battleBack[0] = () -> {
+            if (battleType == BattleTypeItem.P2P) networkController.leave();
+            p2pBattleShown = false;
+            mainMenuController.show();
+        };
         mainMenuController.show();
     }
 
@@ -407,52 +438,19 @@ public class Main extends Application {
         scenes.showP2PWaiting();
     }
 
-    private void updateP2P(
-        BattleController controller,
-        BattleView view,
-        SceneManager scenes,
-        Settings settings
-    ) {
-        if (battleType != BattleTypeItem.P2P) return;
+    private void viewResultAfterBattle(BattleView view) {
+        view.setStatus("P2P BATTLE FINISHED");
+        // BattleController renders the winner; TAB returns to the waiting room.
+    }
 
-        if (hostFlow
-            && networkController.getState() == NetworkController.State.CONNECTED
-            && networkController.getConfig() == null
-            && battleMode != BattleModeItem.BACK) {
-
-            try {
-                networkController.sendBattleConfig(getBattleConfig(settings));
-            } catch (RuntimeException ignored) {}
-        }
-
-        if (networkController.isPeerReady()) {
-            p2pWaitingController.showOpponentReady();
-        }
-
-        if (networkController.getState() == NetworkController.State.IN_BATTLE
-            && !p2pBattleShown) {
-
-            p2pBattleShown = true;
-
-            BattleConfig config = battleService.getConfig();
-            BattleModeItem mode = modeFrom(config);
-
-            prepareBattleView(
-                view,
-                mode,
-                config != null && config.isTimeLimited()
-                    ? config.getTimeLimitSeconds() / 60
-                    : 0,
-                true
-            );
-
-            controller.startRendering();
-            scenes.showBattle();
-        }
-
-        if (networkController.getState() != NetworkController.State.IN_BATTLE) {
-            p2pBattleShown = false;
-        }
+    private void showP2PBattle(BattleController controller, BattleView view, SceneManager scenes) {
+        if (p2pBattleShown) return;
+        p2pBattleShown = true;
+        BattleConfig config = battleService.getConfig();
+        prepareBattleView(view, modeFrom(config),
+            config != null && config.isTimeLimited() ? config.getTimeLimitSeconds() / 60 : 0, true);
+        controller.startRendering();
+        scenes.showBattle();
     }
 
     private BattleModeItem modeFrom(BattleConfig config) {
@@ -497,7 +495,7 @@ public class Main extends Application {
         view.setTimer(
             minutes > 0
                 ? String.format("TIME %02d:00", minutes)
-                : "TIME --:--"
+                : ""
         );
     }
 

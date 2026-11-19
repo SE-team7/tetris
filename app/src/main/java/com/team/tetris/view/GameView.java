@@ -12,6 +12,7 @@ import com.team.tetris.domain.Board;
 import com.team.tetris.domain.ClearResult;
 import com.team.tetris.domain.Difficulty;
 import com.team.tetris.domain.GameMode;
+import com.team.tetris.domain.GameSnapshot;
 import com.team.tetris.domain.ItemType;
 import com.team.tetris.domain.Position;
 
@@ -1126,5 +1127,29 @@ private VBox createBattlePlayer(String name) {
 
         container.setMinSize(0, 0);
         return container;
+    }
+
+    // Shared battle rendering: the same board, NEXT and item visuals as Single.
+    public GridPane detachBattleBoard() {
+        root.setCenter(null);
+        return boardGrid;
+    }
+
+    public GridPane detachBattleNext() {
+        ((Pane) nextGrid.getParent()).getChildren().remove(nextGrid);
+        return nextGrid;
+    }
+
+    public void renderBattle(GameSnapshot snapshot) {
+        if (snapshot == null) return;
+        render(snapshot.getBoard(), snapshot.getCurrentBlock(), snapshot.getNextBlock(),
+               snapshot.getScore(), snapshot.getLevel(), false);
+        boolean[][] attacks = snapshot.getAttackCells();
+        if (attacks == null) return;
+        int first = Math.max(0, attacks.length - VISIBLE_ROWS);
+        for (int r = 0; r < VISIBLE_ROWS && first + r < attacks.length; r++)
+            for (int c = 0; c < COLS && c < attacks[first + r].length; c++)
+                if (attacks[first + r][c])
+                    boardCells[r][c].setStyle(baseCellStyle() + "-fx-background-color: #666666;");
     }
 }

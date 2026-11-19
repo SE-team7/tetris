@@ -531,26 +531,66 @@
     -fx-border-color: #FFD54F;
 }
 
-/* GAME SCREENS ALWAYS DARK */
 
-.game-root,
-.battle-root,
-.theme-light.game-root,
-.theme-light.battle-root,
-.theme-dark.game-root,
-.theme-dark.battle-root {
+/* Shared palette for every screen; SceneManager adds theme-light/theme-dark. */
+.theme-light { -fx-background-color: #F7F7F7; -fx-text-fill: #202020; }
+.theme-dark { -fx-background-color: #111111; -fx-text-fill: #F5F5F5; }
+.theme-light .label { -fx-text-fill: #202020; }
+.theme-dark .label { -fx-text-fill: #F5F5F5; }
+.theme-light .button, .theme-light .combo-box {
+    -fx-background-color: #E8E8E8; -fx-text-fill: #202020;
+    -fx-border-color: #999999;
+}
+.theme-dark .button, .theme-dark .combo-box {
+    -fx-background-color: #353535; -fx-text-fill: #FFFFFF;
+    -fx-border-color: #777777;
+}
+.theme-light .combo-box .list-cell { -fx-text-fill: #202020; }
+.theme-dark .combo-box .list-cell { -fx-text-fill: #FFFFFF; }
+.theme-dark .combo-box-popup .list-view { -fx-background-color: #353535; }
+.theme-dark .combo-box-popup .list-cell { -fx-background-color: #353535; -fx-text-fill: white; }
+.theme-dark .combo-box-popup .list-cell:hover { -fx-background-color: #505050; }
+.theme-light .combo-box-popup .list-cell { -fx-text-fill: #202020; }
+.theme-light .settings-scroll, .theme-light .settings-scroll > .viewport,
+.theme-light .settings-root { -fx-background-color: #F7F7F7; }
+.theme-dark .settings-scroll, .theme-dark .settings-scroll > .viewport,
+.theme-dark .settings-root { -fx-background-color: #111111; }
+.theme-light .fixed-key-notice { -fx-text-fill: #555555; }
+.theme-dark .fixed-key-notice { -fx-text-fill: #D0D0D0; }
+.theme-light .battle-root, .theme-light .game-root, .theme-light .scoreboard-root,
+.theme-light .battle-mode-root, .theme-light .battle-type-root,
+.theme-light .p2p-root, .theme-light .p2p-waiting-root, .theme-light .time-limit-root {
+    -fx-background-color: #F7F7F7;
+}
+.theme-dark .battle-root, .theme-dark .game-root, .theme-dark .scoreboard-root,
+.theme-dark .battle-mode-root, .theme-dark .battle-type-root,
+.theme-dark .p2p-root, .theme-dark .p2p-waiting-root, .theme-dark .time-limit-root {
     -fx-background-color: #111111;
 }
-.theme-dark .settings-root,
-.theme-dark .settings-root .label,
-.theme-dark .settings-root .settings-label,
-.theme-dark .settings-root .settings-section-title,
-.theme-dark .settings-root .fixed-key-notice,
-.theme-dark .settings-root .settings-message {
-    -fx-text-fill: #F4F4F4;
+.theme-light .battle-attack { -fx-text-fill: #A00000; }
+.theme-dark .battle-attack { -fx-text-fill: #FF8A80; }
+.theme-light .game-small-bordered-label {
+    -fx-background-color: #E8E8E8; -fx-text-fill: #202020; -fx-border-color: #666666;
+}
+.theme-dark .game-small-bordered-label {
+    -fx-background-color: #222222; -fx-text-fill: #FFFFFF; -fx-border-color: #BDBDBD;
+}
+.theme-light .menu-item-selected, .theme-light .scoreboard-mode-selected {
+    -fx-background-color: #DCEAFF; -fx-text-fill: #202020;
+}
+.theme-dark .menu-item-selected, .theme-dark .scoreboard-mode-selected {
+    -fx-background-color: #353535; -fx-text-fill: #FFFFFF;
 }
 
-.theme-dark .settings-root .button,
-.theme-dark .settings-root .combo-box {
-    -fx-text-fill: #111111;
+/* Settings: одинаковый фон на всю высоту окна */
+.theme-light.settings-root,
+.theme-light.settings-root .viewport,
+.theme-light.settings-root .scroll-pane {
+    -fx-background-color: #F7F7F7;
+}
+
+.theme-dark.settings-root,
+.theme-dark.settings-root .viewport,
+.theme-dark.settings-root .scroll-pane {
+    -fx-background-color: #111111;
 }

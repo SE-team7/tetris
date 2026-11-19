@@ -79,11 +79,6 @@ public class BattleController {
             return;
         }
 
-        if (key == KeyCode.SHIFT) {
-            togglePause();
-            return;
-        }
-
         if (key == KeyCode.ENTER
             && localBattle
             && service.getState() == BattleState.FINISHED
@@ -126,16 +121,6 @@ public class BattleController {
             || action == KeyAction.SOFT_DROP;
     }
 
-    private void togglePause() {
-        if (service.getState() == BattleState.RUNNING) {
-            service.pause();
-            view.setStatus("PAUSED");
-        } else if (service.getState() == BattleState.PAUSED) {
-            service.resume();
-            view.setStatus(localBattle ? "LOCAL BATTLE" : "P2P BATTLE");
-        }
-    }
-
     private void render() {
         view.renderPlayer(
             PlayerId.PLAYER1,
@@ -155,7 +140,7 @@ public class BattleController {
                 seconds / 60,
                 seconds % 60
             ));
-        }
+        } else view.setTimer("");
 
         if (service.getState() == BattleState.FINISHED) {
             showResult(service.getResult());

@@ -148,12 +148,12 @@ public class SceneManager {
     }
 
     public void showGame() {
-        dark(gameRoot);
+        menuTheme(gameRoot);
         show(gameScene, gameRoot);
     }
 
     public void showGameOver() {
-        dark(gameOverRoot);
+        menuTheme(gameOverRoot);
         show(gameOverScene, gameOverRoot);
     }
 
@@ -183,7 +183,7 @@ public class SceneManager {
     }
 
     public void showBattle() {
-        dark(battleRoot);
+        menuTheme(battleRoot);
         show(battleScene, battleRoot);
     }
 
@@ -199,9 +199,9 @@ public class SceneManager {
         menuTheme(p2pConnectionRoot);
         menuTheme(p2pWaitingRoot);
 
-        dark(gameRoot);
-        dark(gameOverRoot);
-        dark(battleRoot);
+        menuTheme(gameRoot);
+        menuTheme(gameOverRoot);
+        menuTheme(battleRoot);
     }
 
     private void menuTheme(Parent root) {
@@ -209,11 +209,6 @@ public class SceneManager {
         root.getStyleClass().add(
             theme == Theme.DARK ? "theme-dark" : "theme-light"
         );
-    }
-
-    private void dark(Parent root) {
-        root.getStyleClass().removeAll("theme-light", "theme-dark");
-        root.getStyleClass().add("theme-dark");
     }
 
     private Scene scene(Parent root) {

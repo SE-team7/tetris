@@ -20,3 +20,5 @@ Thumbs.db
 
 # Logs
 *.log
+
+/backup-before-p2p-1119/
