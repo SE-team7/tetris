@@ -22,7 +22,7 @@ class BoardItemApplyTest {
     }
 
     @Test
-    void bombDeletesAreaAndItselfWithoutMovingOtherCells() {
+    void bombDeletesAreaAndDropsCellsAboveDeletedPositions() {
         Board board = new Board();
 
         for (int row = 9; row <= 11; row++) {
@@ -31,8 +31,13 @@ class BoardItemApplyTest {
             }
         }
 
+        // 삭제 범위 위쪽: 같은 열에서 삭제된 3칸만큼 내려옴
         putCell(board, 8, 5, BlockType.CROSS);
+
+        // 삭제 범위 아래쪽: 이동하지 않음
         putCell(board, 12, 5, BlockType.CROSS);
+
+        // 삭제 범위 밖의 열: 이동하지 않음
         putCell(board, 10, 3, BlockType.CROSS);
         putCell(board, 10, 7, BlockType.CROSS);
 
@@ -40,14 +45,13 @@ class BoardItemApplyTest {
         board.applyClear(board.findItemEffect(bomb));
 
         BlockType[][] expected = new BlockType[Board.ROWS][Board.COLS];
-        expected[8][5] = BlockType.CROSS;
+        expected[11][5] = BlockType.CROSS;
         expected[12][5] = BlockType.CROSS;
         expected[10][3] = BlockType.CROSS;
         expected[10][7] = BlockType.CROSS;
 
         assertBoardEquals(expected, board);
     }
-
     @Test
     void crossDeletesRowAndColumnThenMovesUpperRowsDown() {
         Board board = new Board();
