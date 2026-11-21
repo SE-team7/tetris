@@ -136,6 +136,33 @@ public class GameView {
         sidePanel.setPrefWidth(225);
         root.setCenter(boardGrid);
         root.setRight(sidePanel);
+
+        // Only single-player LARGE layout: bring NEXT closer to the board.
+        // SMALL/MEDIUM and the separate BattleView layout remain unchanged.
+        root.widthProperty().addListener((obs, oldWidth, newWidth) -> updateSingleLargeLayout());
+        root.heightProperty().addListener((obs, oldHeight, newHeight) -> updateSingleLargeLayout());
+    }
+
+    private void updateSingleLargeLayout() {
+        // BattleView detaches these grids; never apply single-player offsets there.
+        if (boardGrid.getParent() != root || sidePanel.getParent() != root) {
+            boardGrid.setTranslateX(0);
+            sidePanel.setTranslateX(0);
+            scoreLabel.setStyle("");
+            return;
+        }
+
+        boolean large = root.getWidth() >= 1050 && root.getHeight() >= 650;
+        if (large) {
+            // Move the board toward the NEXT panel without changing the game grid.
+            boardGrid.setTranslateX(55);
+            sidePanel.setTranslateX(-16);
+            scoreLabel.setStyle("-fx-font-size: 34px; -fx-font-weight: bold;");
+        } else {
+            boardGrid.setTranslateX(0);
+            sidePanel.setTranslateX(0);
+            scoreLabel.setStyle("");
+        }
     }
     private void createTextBoard() {
         boardGrid.getChildren().clear();
@@ -967,6 +994,12 @@ public class GameView {
     }
     public void setPaused(boolean paused) {
         statusLabel.setText(paused ? "PAUSED" : "");
+    }
+
+    public void setBattleItemMode(boolean enabled) {
+        currentGameMode = enabled ? GameMode.ITEM : GameMode.NORMAL;
+        createTextBoard();
+        createNextArea();
     }
 
     public void showBattle() {

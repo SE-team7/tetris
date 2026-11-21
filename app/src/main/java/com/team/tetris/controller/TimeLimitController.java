@@ -43,7 +43,7 @@ public class TimeLimitController {
     }
 
     private void move(int direction) {
-        TimeLimitItem[] items = TimeLimitItem.values();
+        TimeLimitItem[] items = { TimeLimitItem.THREE_MIN, TimeLimitItem.FIVE_MIN, TimeLimitItem.TEN_MIN };
         int index = (selected.ordinal() + direction + items.length) % items.length;
 
         selected = items[index];

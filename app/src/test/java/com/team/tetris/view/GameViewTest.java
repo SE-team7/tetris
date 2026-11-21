@@ -1043,7 +1043,7 @@ class GameViewTest {
 
             assertTrue(
                 normalBoardStyle
-                    .contains("white")
+                    .contains("#FFFFFF")
             );
 
             assertTrue(
@@ -2050,4 +2050,114 @@ class GameViewTest {
 
         return task.get();
     }
+
+    // Additional tests for battle reuse, rendering and responsive layout.
+    @Test
+    void battleModeChangesFrameAndCanReturnToNormal() throws Exception {
+        runFx(() -> {
+            GameView view = new GameView();
+            view.setBattleItemMode(true);
+            String itemStyle = (String) invokePrivate(view, "getFrameStyle", new Class<?>[]{boolean.class}, false);
+            assertTrue(itemStyle.contains("#D6C2FF"));
+            view.setBattleItemMode(false);
+            String normalStyle = (String) invokePrivate(view, "getFrameStyle", new Class<?>[]{boolean.class}, false);
+            assertTrue(normalStyle.contains("#FFFFFF"));
+            return null;
+        });
+    }
+
+    @Test
+    void renderResetsPreviousCellsAndPauseStatus() throws Exception {
+        runFx(() -> {
+            GameView view = new GameView();
+            BlockType[][] board = new BlockType[20][10];
+            board[0][0] = BlockType.I;
+            view.render(board, null, null, 12, 1, true);
+            Label[][] cells = getField(view, "boardCells", Label[][].class);
+            assertTrue(cells[0][0].getStyle().contains("#00FFFF"));
+            assertEquals("PAUSED", getField(view, "statusLabel", Label.class).getText());
+            view.render(null, null, null, 42, 1, false);
+            assertFalse(cells[0][0].getStyle().contains("#00FFFF"));
+            assertEquals("42", getField(view, "scoreLabel", Label.class).getText());
+            assertEquals("", getField(view, "statusLabel", Label.class).getText());
+            return null;
+        });
+    }
+
+    @Test
+    void battleSnapshotNullDoesNotChangeScore() throws Exception {
+        runFx(() -> {
+            GameView view = new GameView();
+            view.updateScore(55);
+            view.renderBattle(null);
+            assertEquals("55", getField(view, "scoreLabel", Label.class).getText());
+            return null;
+        });
+    }
+
+    @Test
+    void battleSnapshotDrawsAttackCells() throws Exception {
+        runFx(() -> {
+            GameView view = new GameView();
+            BlockType[][] board = new BlockType[20][10];
+            boolean[][] attacks = new boolean[20][10];
+            attacks[0][0] = true;
+            com.team.tetris.domain.GameSnapshot snapshot =
+                new com.team.tetris.domain.GameSnapshot(board, attacks, null, null,
+                    345, 2, 5, null, false);
+            view.renderBattle(snapshot);
+            Label[][] cells = getField(view, "boardCells", Label[][].class);
+            assertTrue(cells[0][0].getStyle().contains("#666666"));
+            assertEquals("345", getField(view, "scoreLabel", Label.class).getText());
+            return null;
+        });
+    }
+
+    @Test
+    void battleComponentsCanBeDetached() throws Exception {
+        runFx(() -> {
+            GameView view = new GameView();
+            GridPane board = getField(view, "boardGrid", GridPane.class);
+            GridPane next = getField(view, "nextGrid", GridPane.class);
+            assertEquals(board, view.detachBattleBoard());
+            assertEquals(next, view.detachBattleNext());
+            assertEquals(null, board.getParent());
+            assertEquals(null, next.getParent());
+            return null;
+        });
+    }
+
+    @Test
+    void largeLayoutOnlyAppliesWhenBoardIsInSingleView() throws Exception {
+        runFx(() -> {
+            GameView view = new GameView();
+            BorderPane root = (BorderPane) view.getRoot();
+            GridPane board = getField(view, "boardGrid", GridPane.class);
+            BorderPane panel = getField(view, "sidePanel", BorderPane.class);
+            root.resize(1200, 800);
+            assertEquals(55.0, board.getTranslateX(), 0.001);
+            assertEquals(-16.0, panel.getTranslateX(), 0.001);
+            root.resize(800, 600);
+            assertEquals(0.0, board.getTranslateX(), 0.001);
+            assertEquals(0.0, panel.getTranslateX(), 0.001);
+            view.detachBattleBoard();
+            root.resize(1200, 800);
+            assertEquals(0.0, board.getTranslateX(), 0.001);
+            return null;
+        });
+    }
+
+    @Test
+    void showBattleCreatesTwoPlayerPlaceholders() throws Exception {
+        runFx(() -> {
+            GameView view = new GameView();
+            view.showBattle();
+            BorderPane root = (BorderPane) view.getRoot();
+            assertInstanceOf(javafx.scene.layout.HBox.class, root.getCenter());
+            javafx.scene.layout.HBox battle = (javafx.scene.layout.HBox) root.getCenter();
+            assertEquals(2, battle.getChildren().size());
+            return null;
+        });
+    }
+
 }

@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 import com.team.tetris.domain.Difficulty;
+import com.team.tetris.domain.PlayerId;
 
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -38,6 +39,11 @@ public class SettingsView {
     private final ComboBox<Difficulty> difficultyComboBox;
 
     private final Map<String, Button> keyButtons;
+    private final Map<PlayerId, Map<String, Button>> localButtons = new LinkedHashMap<>();
+    private final Button singleTab = new Button("일반 / P2P");
+    private final Button localTab = new Button("LOCAL BATTLE");
+    private final GridPane localGrid = new GridPane();
+    private final GridPane singleGrid = new GridPane();
 
     private final Button colorBlindButton;
 
@@ -160,8 +166,7 @@ public class SettingsView {
             + "-fx-font-weight: bold;"
         );
 
-        GridPane keyGrid =
-            new GridPane();
+        GridPane keyGrid = singleGrid;
 
         keyGrid.setHgap(COLUMN_GAP);
         keyGrid.setVgap(8);
@@ -213,6 +218,30 @@ public class SettingsView {
             "SKIP",
             "-"
         );
+
+        HBox tabs = new HBox(8, singleTab, localTab);
+        tabs.setAlignment(Pos.CENTER);
+        singleTab.setPrefWidth(120);
+        localTab.setPrefWidth(120);
+        localGrid.setHgap(10);
+        localGrid.setVgap(8);
+        localGrid.setAlignment(Pos.CENTER);
+        localGrid.add(new Label("PLAYER 1"), 1, 0);
+        localGrid.add(new Label("PLAYER 2"), 2, 0);
+        localButtons.put(PlayerId.PLAYER1, new LinkedHashMap<>());
+        localButtons.put(PlayerId.PLAYER2, new LinkedHashMap<>());
+        int localRow = 1;
+        for (String action : keyButtons.keySet()) {
+            localGrid.add(new Label(action), 0, localRow);
+            for (PlayerId player : new PlayerId[]{PlayerId.PLAYER1, PlayerId.PLAYER2}) {
+                Button button = new Button("-");
+                button.setPrefWidth(100);
+                localButtons.get(player).put(action, button);
+                localGrid.add(button, player == PlayerId.PLAYER1 ? 1 : 2, localRow);
+            }
+            localRow++;
+        }
+        setLocalTab(false);
 
         /*
          * COLOR BLIND MODE
@@ -324,7 +353,9 @@ public class SettingsView {
             themeRow,
             difficultyRow,
             keySettingsTitle,
+            tabs,
             keyGrid,
+            localGrid,
             colorBlindGrid,
             fixedKeyNotice,
             saveButton,
@@ -421,6 +452,25 @@ public class SettingsView {
         );
 
         return row + 1;
+    }
+
+    public Button getSingleTab() { return singleTab; }
+    public Button getLocalTab() { return localTab; }
+    public void setLocalTab(boolean local) {
+        singleGrid.setVisible(!local);
+        singleGrid.setManaged(!local);
+        localGrid.setVisible(local);
+        localGrid.setManaged(local);
+        // The active tab is not a focused keyboard control.
+        singleTab.setStyle("");
+        localTab.setStyle("");
+    }
+    public Button getBattleKeyButton(PlayerId player, String action) {
+        return localButtons.get(player).get(action);
+    }
+    public void setBattleKeyText(PlayerId player, String action, String text) {
+        Button button = getBattleKeyButton(player, action);
+        if (button != null) button.setText(text);
     }
 
     public Parent getRoot() { return scroll; }

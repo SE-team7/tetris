@@ -5,6 +5,7 @@ import java.util.List;
 
 import com.team.tetris.domain.Difficulty;
 import com.team.tetris.domain.Settings;
+import com.team.tetris.domain.PlayerId;
 import com.team.tetris.domain.Settings.KeyAction;
 import com.team.tetris.domain.Settings.ScreenSize;
 import com.team.tetris.domain.Settings.Theme;
@@ -25,6 +26,8 @@ public class SettingsController {
         THEME,
         DIFFICULTY,
         KEY,
+        KEY_TAB,
+        BATTLE_KEY,
         COLOR_BLIND,
         SAVE,
         RESET_DEFAULT,
@@ -32,10 +35,9 @@ public class SettingsController {
         BACK
     }
 
-    private record Item(Type type, String keyName) {
-        Item(Type type) {
-            this(type, null);
-        }
+    private record Item(Type type, String keyName, PlayerId player) {
+        Item(Type type) { this(type, null, null); }
+        Item(Type type, String keyName) { this(type, keyName, null); }
     }
 
     private final SettingsView view;
@@ -47,8 +49,12 @@ public class SettingsController {
     private final List<Item> items = new ArrayList<>();
 
     private KeyAction waitingKey;
+    private PlayerId waitingPlayer;
+    private boolean localTabSelected;
+    private boolean pendingLocalTab;
     private KeyCode pendingKey;
-    private int selected;
+    private int selected = -1;
+    private int playerColumn = 0;
     private boolean updatingDifficulty;
 
     public SettingsController(
@@ -77,19 +83,38 @@ public class SettingsController {
     }
 
     private void createItems() {
+        items.clear();
         items.add(new Item(Type.SCREEN_SIZE));
         items.add(new Item(Type.THEME));
         items.add(new Item(Type.DIFFICULTY));
-
-        for (String name : view.getKeyActionNames()) {
-            items.add(new Item(Type.KEY, name));
+        items.add(new Item(Type.KEY_TAB));
+        if (localTabSelected) {
+            for (String name : view.getKeyActionNames()) {
+                items.add(new Item(Type.BATTLE_KEY, name, PlayerId.PLAYER1));
+            }
+        } else {
+            for (String name : view.getKeyActionNames()) items.add(new Item(Type.KEY, name));
         }
-
         items.add(new Item(Type.COLOR_BLIND));
         items.add(new Item(Type.SAVE));
         items.add(new Item(Type.RESET_DEFAULT));
         items.add(new Item(Type.RESET_SCOREBOARD));
         items.add(new Item(Type.BACK));
+    }
+
+    private void previewTab(boolean local) {
+        pendingLocalTab = local;
+        updateSelection();
+    }
+
+    private void selectTab(boolean local) {
+        pendingLocalTab = local;
+        localTabSelected = local;
+        view.setLocalTab(local);
+        createItems();
+        selected = 3;
+        playerColumn = 0;
+        updateSelection();
     }
 
     private void connectActions() {
@@ -120,6 +145,18 @@ public class SettingsController {
     }
 
     private void connectKeys() {
+        view.getSingleTab().setOnAction(e -> selectTab(false));
+        view.getLocalTab().setOnAction(e -> selectTab(true));
+        for (PlayerId player : new PlayerId[]{PlayerId.PLAYER1, PlayerId.PLAYER2}) {
+            for (String name : view.getKeyActionNames()) {
+                Button button = view.getBattleKeyButton(player, name);
+                KeyAction action = findAction(name);
+                if (button != null && action != null) {
+                    button.setOnAction(e -> beginBattleCapture(player, action));
+                }
+            }
+        }
+
         for (String name : view.getKeyActionNames()) {
             Button button = view.getKeyButton(name);
             KeyAction action = findAction(name);
@@ -155,6 +192,22 @@ public class SettingsController {
             switch (e.getCode()) {
                 case UP -> move(-1);
                 case DOWN -> move(1);
+                case LEFT -> {
+                    if (selected < 0) return;
+                    if (items.get(selected).type() == Type.KEY_TAB) previewTab(false);
+                    else if (items.get(selected).type() == Type.BATTLE_KEY) {
+                        playerColumn = 0;
+                        updateSelection();
+                    } else return;
+                }
+                case RIGHT -> {
+                    if (selected < 0) return;
+                    if (items.get(selected).type() == Type.KEY_TAB) previewTab(true);
+                    else if (items.get(selected).type() == Type.BATTLE_KEY) {
+                        playerColumn = 1;
+                        updateSelection();
+                    } else return;
+                }
                 case ENTER -> activate();
                 default -> { return; }
             }
@@ -164,40 +217,49 @@ public class SettingsController {
     }
 
     private void connectFocus() {
-        int i = 0;
-
-        track(view.getScreenSizeComboBox(), i++);
-        track(view.getThemeComboBox(), i++);
-        track(view.getDifficultyComboBox(), i++);
-
+        track(view.getScreenSizeComboBox(), new Item(Type.SCREEN_SIZE));
+        track(view.getThemeComboBox(), new Item(Type.THEME));
+        track(view.getDifficultyComboBox(), new Item(Type.DIFFICULTY));
+        track(view.getSingleTab(), new Item(Type.KEY_TAB));
+        track(view.getLocalTab(), new Item(Type.KEY_TAB));
         for (String name : view.getKeyActionNames()) {
-            track(view.getKeyButton(name), i++);
+            track(view.getKeyButton(name), new Item(Type.KEY, name));
+            for (PlayerId player : new PlayerId[]{PlayerId.PLAYER1, PlayerId.PLAYER2}) {
+                track(view.getBattleKeyButton(player, name), new Item(Type.BATTLE_KEY, name, player));
+            }
         }
-
-        track(view.getColorBlindButton(), i++);
-        track(view.getSaveButton(), i++);
-        track(view.getResetDefaultButton(), i++);
-        track(view.getResetScoreboardButton(), i++);
-        track(view.getBackButton(), i);
+        track(view.getColorBlindButton(), new Item(Type.COLOR_BLIND));
+        track(view.getSaveButton(), new Item(Type.SAVE));
+        track(view.getResetDefaultButton(), new Item(Type.RESET_DEFAULT));
+        track(view.getResetScoreboardButton(), new Item(Type.RESET_SCOREBOARD));
+        track(view.getBackButton(), new Item(Type.BACK));
     }
 
-    private void track(Node node, int index) {
+    private void track(Node node, Item item) {
         if (node == null) return;
 
         node.focusedProperty().addListener((obs, oldValue, focused) -> {
-            if (focused) {
-                selected = index;
-                updateSelection();
+            if (focused && scenes != null && selected >= 0) {
+                int index = items.indexOf(item);
+                if (index >= 0) {
+                    selected = index;
+                    if (item.type() == Type.BATTLE_KEY)
+                        playerColumn = item.player() == PlayerId.PLAYER2 ? 1 : 0;
+                    updateSelection();
+                }
             }
         });
     }
 
     private void move(int direction) {
-        selected = Math.floorMod(selected + direction, items.size());
+        selected = selected < 0
+            ? (direction > 0 ? 0 : items.size() - 1)
+            : Math.floorMod(selected + direction, items.size());
         updateSelection();
     }
 
     private void activate() {
+        if (selected < 0) return;
         Item item = items.get(selected);
 
         switch (item.type()) {
@@ -208,6 +270,10 @@ public class SettingsController {
                 KeyAction action = findAction(item.keyName());
                 if (action != null) beginKeyCapture(action);
             }
+            case KEY_TAB -> selectTab(pendingLocalTab);
+            case BATTLE_KEY -> beginBattleCapture(
+                playerColumn == 0 ? PlayerId.PLAYER1 : PlayerId.PLAYER2,
+                findAction(item.keyName()));
             case COLOR_BLIND -> toggleColorBlindMode();
             case SAVE -> save();
             case RESET_DEFAULT -> resetToDefault();
@@ -222,6 +288,10 @@ public class SettingsController {
             case THEME -> view.getThemeComboBox();
             case DIFFICULTY -> view.getDifficultyComboBox();
             case KEY -> view.getKeyButton(item.keyName());
+            case KEY_TAB -> pendingLocalTab ? view.getLocalTab() : view.getSingleTab();
+            case BATTLE_KEY -> view.getBattleKeyButton(
+                playerColumn == 0 ? PlayerId.PLAYER1 : PlayerId.PLAYER2,
+                item.keyName());
             case COLOR_BLIND -> view.getColorBlindButton();
             case SAVE -> view.getSaveButton();
             case RESET_DEFAULT -> view.getResetDefaultButton();
@@ -231,20 +301,51 @@ public class SettingsController {
     }
 
     private void updateSelection() {
-        for (int i = 0; i < items.size(); i++) {
-            Node node = node(items.get(i));
-            if (node == null) continue;
+        // A blue border indicates keyboard focus only, never the active tab.
+        view.getSingleTab().setStyle("-fx-border-color: " +
+            (selected == 3 && !pendingLocalTab ? "#4A90E2" : "#B5B5B5") +
+            ";-fx-border-width:" + (selected == 3 && !pendingLocalTab ? "2px;" : "1px;"));
+        view.getLocalTab().setStyle("-fx-border-color: " +
+            (selected == 3 && pendingLocalTab ? "#4A90E2" : "#B5B5B5") +
+            ";-fx-border-width:" + (selected == 3 && pendingLocalTab ? "2px;" : "1px;"));
 
-            node.setStyle(
-                "-fx-border-color:"
-                + (i == selected ? "#4A90E2" : "#B5B5B5")
-                + ";-fx-border-width:"
-                + (i == selected ? "2px;" : "1px;")
-            );
+        for (int i = 0; i < items.size(); i++) {
+            Item item = items.get(i);
+            if (item.type() == Type.KEY_TAB) continue;
+            if (item.type() == Type.BATTLE_KEY) {
+                for (PlayerId player : new PlayerId[]{PlayerId.PLAYER1, PlayerId.PLAYER2}) {
+                    Node button = view.getBattleKeyButton(player, item.keyName());
+                    if (button != null) {
+                        boolean focused = i == selected &&
+                            (player == PlayerId.PLAYER1 ? playerColumn == 0 : playerColumn == 1);
+                        button.setStyle("-fx-border-color:" +
+                            (focused ? "#4A90E2" : "#B5B5B5") +
+                            ";-fx-border-width:" + (focused ? "2px;" : "1px;"));
+                    }
+                }
+            } else {
+                Node control = node(item);
+                if (control != null) {
+                    boolean focused = i == selected;
+                    control.setStyle("-fx-border-color:" +
+                        (focused ? "#4A90E2" : "#B5B5B5") +
+                        ";-fx-border-width:" + (focused ? "2px;" : "1px;"));
+                }
+            }
         }
     }
 
+    private void beginBattleCapture(PlayerId player, KeyAction action) {
+        if (action == null) return;
+        waitingPlayer = player;
+        waitingKey = action;
+        pendingKey = null;
+        view.setBattleKeyText(player, action.name(), "");
+        view.showMessage(player.name() + " / " + action.name() + " : 새 키를 입력하세요.");
+    }
+
     private void beginKeyCapture(KeyAction action) {
+        waitingPlayer = null;
         waitingKey = action;
         pendingKey = null;
 
@@ -259,23 +360,42 @@ public class SettingsController {
         }
 
         pendingKey = key;
-        view.setKeyText(waitingKey.name(), key.getName());
+        if (waitingPlayer == null) view.setKeyText(waitingKey.name(), key.getName());
+        else view.setBattleKeyText(waitingPlayer, waitingKey.name(), key.getName());
         view.showMessage(waitingKey.name() + " : ENTER를 눌러 확정");
     }
 
     private void confirmKey() {
         if (waitingKey == null || pendingKey == null) return;
 
-        if (!settings.setKey(waitingKey, pendingKey)) {
+        boolean accepted = waitingPlayer == null
+            ? settings.setKey(waitingKey, pendingKey)
+            : setLocalKey(waitingPlayer, waitingKey, pendingKey);
+        if (!accepted) {
             pendingKey = null;
-            view.setKeyText(waitingKey.name(), "");
-            view.showMessage("이미 사용 중인 키입니다.");
+            if (waitingPlayer == null) view.setKeyText(waitingKey.name(), "");
+            else view.setBattleKeyText(waitingPlayer, waitingKey.name(), "");
+            view.showMessage("이미 사용 중이거나 사용할 수 없는 키입니다.");
             return;
         }
 
-        view.setKeyText(waitingKey.name(), pendingKey.getName());
+        if (waitingPlayer == null) view.setKeyText(waitingKey.name(), pendingKey.getName());
+        else view.setBattleKeyText(waitingPlayer, waitingKey.name(), pendingKey.getName());
+        waitingPlayer = null;
         waitingKey = null;
         pendingKey = null;
+    }
+
+    private boolean setLocalKey(PlayerId player, KeyAction action, KeyCode key) {
+        if (Settings.isFixedKey(key)) return false;
+        for (PlayerId other : new PlayerId[]{PlayerId.PLAYER1, PlayerId.PLAYER2}) {
+            for (KeyAction candidate : KeyAction.values()) {
+                if (candidate.isFixed()) continue;
+                if (other == player && candidate == action) continue;
+                if (settings.getBattleKey(other, candidate) == key) return false;
+            }
+        }
+        return settings.setBattleKey(player, action, key);
     }
 
     private void toggleColorBlindMode() {
@@ -287,8 +407,11 @@ public class SettingsController {
 
     public void show() {
         waitingKey = null;
+        waitingPlayer = null;
         pendingKey = null;
-        selected = 0;
+        selected = -1;
+        playerColumn = 0;
+        pendingLocalTab = localTabSelected;
 
         render();
         scenes.showSettings();
@@ -334,6 +457,7 @@ public class SettingsController {
         settings.copyFrom(defaults);
 
         waitingKey = null;
+        waitingPlayer = null;
         pendingKey = null;
 
         scenes.applyScreenSize(settings.getScreenSize());
@@ -366,6 +490,7 @@ public class SettingsController {
 
     public void backToMainMenu() {
         waitingKey = null;
+        waitingPlayer = null;
         pendingKey = null;
         scenes.showMainMenu();
     }
@@ -385,6 +510,13 @@ public class SettingsController {
 
         view.setColorBlindMode(settings.isColorBlindMode());
 
+        for (PlayerId player : new PlayerId[]{PlayerId.PLAYER1, PlayerId.PLAYER2}) {
+            for (String name : view.getKeyActionNames()) {
+                KeyAction action = findAction(name);
+                KeyCode key = settings.getBattleKey(player, action);
+                if (key != null) view.setBattleKeyText(player, name, key.getName());
+            }
+        }
         for (KeyAction action : KeyAction.values()) {
             KeyCode key = settings.getKey(action);
 

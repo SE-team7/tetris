@@ -84,15 +84,7 @@ public class ScoreboardController {
     }
 
     private void moveMode(int direction) {
-        GameMode[] modes = GameMode.values();
-
-        currentMode = modes[
-            Math.floorMod(
-                currentMode.ordinal() + direction,
-                modes.length
-            )
-        ];
-
+        currentMode = currentMode == GameMode.ITEM ? GameMode.NORMAL : GameMode.ITEM;
         render();
     }
 
