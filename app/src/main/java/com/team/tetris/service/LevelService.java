@@ -8,7 +8,7 @@ public class LevelService {
     private static final int LINE_SCORE_PER_LEVEL = 30;
 
     //최초 블럭 떨어지는 속도
-    private static final long BASE_DROP_INTERVAL_MILLIS = 1000;
+    private static final long BASE_DROP_INTERVAL_MILLIS = 1111;
 
     //속도 줄어드는 간격 (NORMAL 기준)
     private static final long DROP_INTERVAL_STEP_MILLIS = 80;
