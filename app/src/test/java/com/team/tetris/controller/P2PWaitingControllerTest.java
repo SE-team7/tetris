@@ -9,7 +9,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import com.team.tetris.domain.Difficulty;
 import com.team.tetris.network.HostAddress;
+import com.team.tetris.network.MessagePayload;
 import com.team.tetris.view.P2PWaitingView;
 
 import javafx.application.Platform;
@@ -280,6 +282,71 @@ class P2PWaitingControllerTest {
 
         assertEquals("HOST IP : (확인할 수 없음)\nMODE : ", view.getInfoText());
         assertEquals("HOST IP : (확인할 수 없음)", P2PWaitingController.formatHostAddresses(null));
+    }
+
+    // ================================================================ 클라이언트 설정 표시
+
+    @Test
+    void showClient_withConfig_showsModeDifficultyAndTime() {
+        P2PWaitingController controller = controller();
+
+        controller.showClient("10.0.0.2",
+                new MessagePayload.Config("TIME_LIMIT", Difficulty.EASY, 180));
+        assertEquals("SERVER IP : 10.0.0.2\nMODE : TIME LIMIT / 3분 / EASY", view.getInfoText());
+
+        controller.showClient("10.0.0.2", new MessagePayload.Config("NORMAL", Difficulty.HARD, 0));
+        assertEquals("SERVER IP : 10.0.0.2\nMODE : NORMAL / HARD", view.getInfoText());
+
+        controller.showClient("10.0.0.2", new MessagePayload.Config("ITEM", null, 0));
+        assertEquals("SERVER IP : 10.0.0.2\nMODE : ITEM", view.getInfoText());
+    }
+
+    @Test
+    void showClient_withoutConfig_waitsForServerSettings() {
+        P2PWaitingController controller = controller();
+        controller.setStartEnabled(true);
+        controller.startBattle();
+
+        controller.showClient("10.0.0.2", null);
+
+        assertFalse(controller.isReady());
+        assertEquals("SERVER IP : 10.0.0.2\n서버의 게임 설정을 기다리는 중...", view.getInfoText());
+    }
+
+    // ================================================================ 재대전 (다시 게임 시작 버튼)
+
+    @Test
+    void rematchWaiting_requiresPressingStartAgain() {
+        P2PWaitingController controller = controller();
+        controller.setStartEnabled(true);
+        controller.startBattle();   // 첫 대전
+        assertEquals(1, starts.get());
+
+        // 대전 종료 → 재대전 수락 → 대기실 복귀
+        controller.showHost(List.of(new HostAddress("10.50.90.62", "Wi-Fi")), "NORMAL");
+        controller.showRematchWaiting(true);
+
+        assertFalse(controller.isReady(), "재대전은 자동 준비되지 않음");
+        assertFalse(view.getStartButton().isDisabled());
+        assertEquals("재대전 - 게임 시작을 눌러주세요.", view.getStatusText());
+        assertEquals(1, starts.get());
+
+        view.getStartButton().fire();
+        assertEquals(2, starts.get());
+        assertTrue(controller.isReady());
+    }
+
+    @Test
+    void rematchWaiting_withoutConfig_keepsButtonDisabled() {
+        P2PWaitingController controller = controller();
+        controller.show();
+
+        controller.showRematchWaiting(false);
+
+        assertTrue(view.getStartButton().isDisabled());
+        assertEquals("재대전 - 서버의 게임 설정을 기다리는 중...", view.getStatusText());
+        controller.startBattle();
+        assertEquals(0, starts.get());
     }
 
     @Test

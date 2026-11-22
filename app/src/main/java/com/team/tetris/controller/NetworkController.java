@@ -392,14 +392,15 @@ public class NetworkController {
         status("재대전 요청을 보냈습니다.");
     }
 
-    /** 재대전 수락·거절 전달. 수락하면 바로 준비 상태가 되어 양쪽 동의 후 시작 절차 진행 */
+    /**
+     * 재대전 수락·거절 전달.
+     * 수락해도 자동으로 준비하지 않는다. 첫 대전과 같이 양쪽이 대기실에서 '게임 시작'(setReady(true))을 눌러야 시작.
+     */
     public synchronized void respondRematch(boolean accepted) {
         requireState(State.CONNECTED);
         network.send(NetworkMessage.of(MessageType.REMATCH_RESPONSE, battleId,
                 new MessagePayload.RematchResponse(accepted)));
-        if (accepted && config != null) {
-            setReady(true);
-        }
+        status(accepted ? "재대전을 수락했습니다. 게임 시작을 눌러주세요." : "재대전을 거절했습니다.");
     }
 
     /**
@@ -530,11 +531,8 @@ public class NetworkController {
         rematchRequested = false;
         boolean accepted = message.getPayload(MessagePayload.RematchResponse.class).accepted();
         ui(() -> events.onRematchAnswered(accepted));
-        if (accepted && config != null) {
-            setReady(true);
-        } else if (!accepted) {
-            status("상대가 재대전을 거절했습니다.");
-        }
+        // 수락돼도 자동 준비하지 않음: 양쪽이 '게임 시작'을 눌러야 시작
+        status(accepted ? "상대가 재대전을 수락했습니다. 게임 시작을 눌러주세요." : "상대가 재대전을 거절했습니다.");
     }
 
     private void onPeerLeft() {

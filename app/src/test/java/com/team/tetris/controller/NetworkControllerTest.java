@@ -606,7 +606,7 @@ class NetworkControllerTest {
     // ================================================================ 재대전
 
     @Test
-    void rematchAccepted_startsNewBattle() throws InterruptedException {
+    void rematchAccepted_doesNotStartUntilBothPressStartAgain() throws InterruptedException {
         startBattle(NORMAL);
         server.battle.result = new MessagePayload.Result("PLAYER1", false, "GAME_OVER");
         waitUntil(() -> client.controller.getState() == State.CONNECTED
@@ -616,11 +616,30 @@ class NetworkControllerTest {
         client.controller.requestRematch();
         waitUntil(() -> server.events.rematchRequests == 1);
         server.controller.respondRematch(true);
-
         waitUntil(() -> client.events.rematchAnswers.contains(true));
+        Thread.sleep(FAST.startDelayMillis() * 2);
+
+        // 수락만으로는 시작하지 않음 (요구사항: 양쪽이 '게임 시작'을 눌러야 시작)
+        assertEquals(State.CONNECTED, server.controller.getState());
+        assertEquals(State.CONNECTED, client.controller.getState());
+        assertFalse(server.controller.isLocalReady());
+        assertFalse(client.controller.isLocalReady());
+        assertEquals(1, client.battle.count("start"));
+        assertTrue(server.events.statuses.stream().anyMatch(s -> s.contains("게임 시작을 눌러주세요")));
+        assertTrue(client.events.statuses.stream().anyMatch(s -> s.contains("게임 시작을 눌러주세요")));
+
+        // 한쪽만 누르면 아직 시작 안 함
+        client.controller.setReady(true);
+        waitUntil(server.controller::isPeerReady);
+        Thread.sleep(FAST.startDelayMillis() * 2);
+        assertEquals(State.CONNECTED, server.controller.getState());
+
+        // 양쪽이 누르면 새 대전 시작
+        server.controller.setReady(true);
         waitUntil(() -> server.controller.getState() == State.IN_BATTLE
                 && client.controller.getState() == State.IN_BATTLE);
         assertEquals(2, client.battle.count("start"));
+        assertEquals(2, server.battle.count("start"));
     }
 
     @Test

@@ -5,6 +5,7 @@ import java.util.Objects;
 import java.util.function.Consumer;
 
 import com.team.tetris.network.HostAddress;
+import com.team.tetris.network.MessagePayload;
 import com.team.tetris.view.P2PWaitingView;
 import javafx.scene.input.KeyCode;
 
@@ -76,6 +77,35 @@ public class P2PWaitingController {
     public void showClient(String ip) {
         reset();
         view.setInfo("SERVER IP : " + ip + "\n서버의 게임 설정을 기다리는 중...");
+    }
+
+    /** 클라이언트 대기실: 서버가 확정한 모드·난이도·제한시간 표시 */
+    public void showClient(String ip, MessagePayload.Config config) {
+        if (config == null) {
+            showClient(ip);
+            return;
+        }
+        reset();
+        view.setInfo("SERVER IP : " + ip + "\nMODE : " + configText(config));
+    }
+
+    /** 대전 설정을 화면 문구로. 예) "NORMAL / HARD", "ITEM", "TIME LIMIT / 3분 / EASY" */
+    static String configText(MessagePayload.Config config) {
+        String difficulty = config.difficulty() == null ? "" : " / " + config.difficulty().name();
+        return switch (config.mode()) {
+            case "ITEM" -> "ITEM";
+            case "TIME_LIMIT" -> "TIME LIMIT / " + (config.timeLimitSeconds() / 60) + "분" + difficulty;
+            default -> config.mode() + difficulty;
+        };
+    }
+
+    /**
+     * 재대전 수락 후 대기실로 돌아왔을 때.
+     * 요구사항대로 첫 대전과 같이 양쪽이 다시 '게임 시작'을 눌러야 대전이 시작된다.
+     */
+    public void showRematchWaiting(boolean configReady) {
+        setStartEnabled(configReady);
+        view.setStatus(configReady ? "재대전 - 게임 시작을 눌러주세요." : "재대전 - 서버의 게임 설정을 기다리는 중...");
     }
 
     private void reset() {

@@ -28,6 +28,8 @@ public class Main extends Application {
     private int battleMinutes;
     private boolean hostFlow;
     private boolean p2pBattleShown;
+    /** 클라이언트가 접속한 서버 주소 (대기실 표시용) */
+    private String joinedHost = "";
 
     private BattleModeController battleModeController;
     private BattleTypeController battleTypeController;
@@ -231,7 +233,7 @@ public class Main extends Application {
                     hostFlow = true;
                     battleType = BattleTypeItem.P2P;
                     p2pWaitingController.showHost(
-                        String.join(", ", networkController.getHostAddresses()), ""
+                        networkController.getHostAddressDetails(), "모드 선택 전"
                     );
                     scenes.showP2PWaiting();
                 } catch (RuntimeException e) {
@@ -243,7 +245,8 @@ public class Main extends Application {
                     networkController.join(ip, NetworkService.DEFAULT_PORT);
                     hostFlow = false;
                     battleType = BattleTypeItem.P2P;
-                    p2pWaitingController.showClient(ip);
+                    joinedHost = ip.trim();
+                    p2pWaitingController.showClient(joinedHost);
                     scenes.showP2PWaiting();
                 } catch (RuntimeException e) {
                     p2pConnectionController.showError(e.getMessage());
@@ -258,27 +261,21 @@ public class Main extends Application {
 
         p2pWaitingController = new P2PWaitingController(
             p2pWaitingView,
-            () -> {},
+            // '게임 시작' 버튼(클릭·Enter): 양쪽이 모두 누르면 서버가 대전을 시작한다.
+            // 예외가 나면 P2PWaitingController가 오류를 표시하고 버튼을 다시 연다.
+            () -> {
+                if (networkController.getState() != NetworkController.State.CONNECTED
+                    || networkController.getConfig() == null) {
+                    throw new IllegalStateException("연결 또는 게임 설정을 기다려주세요.");
+                }
+                networkController.setReady(true);
+            },
             () -> {
                 networkController.leave();
 
                 p2pBattleShown = false;
                 p2pConnectionController.show();
                 scenes.showP2PConnection();
-            },
-            ready -> {
-                try {
-                    if (networkController.getState() == NetworkController.State.CONNECTED
-                        && networkController.getConfig() != null) {
-                        networkController.setReady(ready);
-                    } else {
-                        p2pWaitingController.showError(
-                            "연결 또는 게임 설정을 기다려주세요."
-                        );
-                    }
-                } catch (RuntimeException e) {
-                    p2pWaitingController.showError(e.getMessage());
-                }
             }
         );
 
@@ -373,6 +370,9 @@ public class Main extends Application {
                 }
             }
             @Override public void onConfigChanged(MessagePayload.Config config) {
+                if (!hostFlow) {
+                    p2pWaitingController.showClient(joinedHost, config);
+                }
                 p2pWaitingController.showConnected();
                 p2pWaitingController.setStartEnabled(true);
             }
@@ -414,7 +414,7 @@ public class Main extends Application {
                     "ACCEPT", () -> {
                         try {
                             networkController.respondRematch(true);
-                            battleView.showWaiting("REMATCH ACCEPTED", "Preparing the next match");
+                            showP2PRematchWaiting(scenes);
                         } catch (RuntimeException ex) {
                             battleView.showChoice("REMATCH ERROR", ex.getMessage(),
                                 "P2P MENU", () -> openP2PConnection(scenes),
@@ -431,7 +431,7 @@ public class Main extends Application {
             }
             @Override public void onRematchAnswered(boolean accepted) {
                 if (accepted) {
-                    battleView.showWaiting("REMATCH ACCEPTED", "Preparing the next match");
+                    showP2PRematchWaiting(scenes);
                 } else {
                     battleView.showChoice("REMATCH DECLINED", "Your opponent declined the rematch.",
                         "NEW GAME", () -> requestAnotherRematch(battleView),
@@ -479,6 +479,17 @@ public class Main extends Application {
         }
     }
 
+    /** 재대전 수락 후 대기실로: 첫 대전과 같이 양쪽이 다시 '게임 시작'을 눌러야 시작 */
+    private void showP2PRematchWaiting(SceneManager scenes) {
+        if (hostFlow) {
+            p2pWaitingController.showHost(networkController.getHostAddressDetails(), getWaitingModeText());
+        } else {
+            p2pWaitingController.showClient(joinedHost, networkController.getConfig());
+        }
+        p2pWaitingController.showRematchWaiting(networkController.getConfig() != null);
+        scenes.showP2PWaiting();
+    }
+
     private void openP2PConnection(SceneManager scenes) {
         networkController.leave();
         p2pBattleShown = false;
@@ -519,7 +530,7 @@ public class Main extends Application {
 
         if (hostFlow) {
             p2pWaitingController.showHost(
-                String.join(", ", networkController.getHostAddresses()),
+                networkController.getHostAddressDetails(),
                 getWaitingModeText()
             );
 
