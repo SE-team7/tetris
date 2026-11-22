@@ -1,6 +1,9 @@
 package com.team.tetris.view;
 
+import java.util.List;
+import com.team.tetris.network.RecentHostStore.HostEntry;
 import javafx.geometry.Pos;
+import javafx.geometry.Insets;
 import javafx.scene.Parent;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
@@ -10,17 +13,17 @@ public class P2PConnectionView {
 
     public enum P2PItem {
         HOST,
-        JOIN,
-        BACK
+        JOIN
     }
 
     private final VBox root = new VBox(16);
 
     private final Label hostLabel = new Label("서버 만들기");
     private final Label joinLabel = new Label("서버 접속");
-    private final Label backLabel = new Label("뒤로가기");
+    private final Label backHint = new Label("TAB : 뒤로가기");
 
     private final TextField ipField = new TextField();
+    private final VBox recentHostsBox = new VBox(4);
 
     public P2PConnectionView() {
         root.setAlignment(Pos.CENTER);
@@ -31,18 +34,25 @@ public class P2PConnectionView {
 
         hostLabel.getStyleClass().add("p2p-item");
         joinLabel.getStyleClass().add("p2p-item");
-        backLabel.getStyleClass().add("p2p-item");
+        backHint.getStyleClass().add("battle-back-hint");
+        VBox.setMargin(backHint, new Insets(28, 0, 0, 0));
 
         ipField.setPromptText("IP 주소 입력");
         ipField.getStyleClass().add("p2p-ip-field");
         ipField.setMaxWidth(260);
+        recentHostsBox.setAlignment(Pos.CENTER);
+        recentHostsBox.setMaxWidth(320);
+        recentHostsBox.getStyleClass().add("p2p-recent-hosts");
+        recentHostsBox.setManaged(false);
+        recentHostsBox.setVisible(false);
 
         root.getChildren().addAll(
             title,
             hostLabel,
             joinLabel,
             ipField,
-            backLabel
+            recentHostsBox,
+            backHint
         );
 
         showIpField(false);
@@ -68,6 +78,29 @@ public class P2PConnectionView {
     public void showIpField(boolean visible) {
         ipField.setVisible(visible);
         ipField.setManaged(visible);
+        if (!visible) { recentHostsBox.setVisible(false); recentHostsBox.setManaged(false); }
+    }
+
+    public void showRecentHosts(List<HostEntry> hosts) {
+        recentHostsBox.getChildren().clear();
+        if (hosts != null && !hosts.isEmpty()) {
+            Label heading = new Label("RECENT IP");
+            heading.getStyleClass().add("p2p-recent-title");
+            recentHostsBox.getChildren().add(heading);
+            for (HostEntry entry : hosts) {
+                Label item = new Label(entry.toString());
+                item.getStyleClass().add("p2p-recent-item");
+                item.setMaxWidth(Double.MAX_VALUE);
+                item.setOnMouseClicked(e -> {
+                    setIp(entry.host());
+                    focusIp();
+                });
+                recentHostsBox.getChildren().add(item);
+            }
+        }
+        boolean visible = hosts != null && !hosts.isEmpty();
+        recentHostsBox.setVisible(visible);
+        recentHostsBox.setManaged(visible);
     }
 
     public void focusIp() {
@@ -83,8 +116,7 @@ public class P2PConnectionView {
     public void render(P2PItem selected) {
         Label[] items = {
             hostLabel,
-            joinLabel,
-            backLabel
+            joinLabel
         };
 
         for (int i = 0; i < items.length; i++) {

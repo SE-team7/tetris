@@ -318,6 +318,88 @@ class SettingsControllerTest {
         });
     }
 
+
+    @Test
+    void themeComboBoxChangesTheme() throws Exception {
+        runFx(() -> {
+            TestContext context = createContext();
+            try {
+                Settings.Theme desired = context.settings.getTheme() == Settings.Theme.DARK
+                    ? Settings.Theme.LIGHT : Settings.Theme.DARK;
+                context.settingsView.getThemeComboBox().setValue(desired.name());
+                context.settingsView.getThemeComboBox().getOnAction().handle(null);
+                assertEquals(desired, context.settings.getTheme());
+            } finally { context.stage.hide(); }
+            return null;
+        });
+    }
+
+    @Test
+    void localAndSingleTabsCanBeSelected() throws Exception {
+        runFx(() -> {
+            TestContext context = createContext();
+            try {
+                context.settingsView.getLocalTab().fire();
+                assertNotNull(context.settingsView.getBattleKeyButton(
+                    com.team.tetris.domain.PlayerId.PLAYER1, KeyAction.MOVE_LEFT.name()));
+                context.settingsView.getSingleTab().fire();
+                assertNotNull(context.settingsView.getKeyButton(KeyAction.MOVE_LEFT.name()));
+            } finally { context.stage.hide(); }
+            return null;
+        });
+    }
+
+    @Test
+    void localBattleKeyCaptureAcceptsAvailableKey() throws Exception {
+        runFx(() -> {
+            TestContext context = createContext();
+            try {
+                var player = com.team.tetris.domain.PlayerId.PLAYER1;
+                context.settingsView.getLocalTab().fire();
+                context.settingsView.getBattleKeyButton(player, KeyAction.MOVE_LEFT.name()).fire();
+                context.controller.handleKey(KeyCode.F9);
+                context.controller.handleKey(KeyCode.ENTER);
+                assertEquals(KeyCode.F9, context.settings.getBattleKey(player, KeyAction.MOVE_LEFT));
+            } finally { context.stage.hide(); }
+            return null;
+        });
+    }
+
+    @Test
+    void localBattleKeyCaptureRejectsDuplicateAcrossPlayers() throws Exception {
+        runFx(() -> {
+            TestContext context = createContext();
+            try {
+                var p1 = com.team.tetris.domain.PlayerId.PLAYER1;
+                var p2 = com.team.tetris.domain.PlayerId.PLAYER2;
+                KeyCode existing = context.settings.getBattleKey(p2, KeyAction.MOVE_RIGHT);
+                KeyCode original = context.settings.getBattleKey(p1, KeyAction.MOVE_LEFT);
+                context.settingsView.getLocalTab().fire();
+                context.settingsView.getBattleKeyButton(p1, KeyAction.MOVE_LEFT.name()).fire();
+                context.controller.handleKey(existing);
+                context.controller.handleKey(KeyCode.ENTER);
+                assertEquals(original, context.settings.getBattleKey(p1, KeyAction.MOVE_LEFT));
+            } finally { context.stage.hide(); }
+            return null;
+        });
+    }
+
+    @Test
+    void unconfirmedKeyDoesNotChangeSettings() throws Exception {
+        runFx(() -> {
+            TestContext context = createContext();
+            try {
+                KeyCode original = context.settings.getKey(KeyAction.MOVE_LEFT);
+                context.settingsView.getKeyButton(KeyAction.MOVE_LEFT.name()).fire();
+                context.controller.handleKey(KeyCode.F10);
+                assertEquals(original, context.settings.getKey(KeyAction.MOVE_LEFT));
+                context.controller.backToMainMenu();
+                assertEquals(original, context.settings.getKey(KeyAction.MOVE_LEFT));
+            } finally { context.stage.hide(); }
+            return null;
+        });
+    }
+
     private static TestContext createContext() {
         Stage stage = new Stage();
 

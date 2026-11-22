@@ -43,7 +43,7 @@ public class BattleModeController {
     }
 
     private void move(int direction) {
-        BattleModeItem[] items = BattleModeItem.values();
+        BattleModeItem[] items = { BattleModeItem.NORMAL, BattleModeItem.ITEM, BattleModeItem.TIME_LIMIT };
         int index = (selected.ordinal() + direction + items.length) % items.length;
 
         selected = items[index];

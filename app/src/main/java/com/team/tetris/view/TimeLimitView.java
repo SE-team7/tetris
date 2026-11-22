@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javafx.geometry.Pos;
+import javafx.geometry.Insets;
 import javafx.scene.Parent;
 import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
@@ -30,7 +31,6 @@ public class TimeLimitView {
         menuLabels.add(new Label("3분"));
         menuLabels.add(new Label("5분"));
         menuLabels.add(new Label("10분"));
-        menuLabels.add(new Label("뒤로가기"));
 
         menuLabels.forEach(label ->
             label.getStyleClass().add("time-limit-item")
@@ -38,6 +38,10 @@ public class TimeLimitView {
 
         root.getChildren().add(title);
         root.getChildren().addAll(menuLabels);
+        Label backHint = new Label("TAB : 뒤로가기");
+        backHint.getStyleClass().add("battle-back-hint");
+        root.getChildren().add(backHint);
+        VBox.setMargin(backHint, new Insets(28, 0, 0, 0));
 
         render(TimeLimitItem.THREE_MIN);
     }

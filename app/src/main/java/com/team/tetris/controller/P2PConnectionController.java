@@ -1,6 +1,9 @@
 package com.team.tetris.controller;
 
+import java.util.List;
+import java.util.function.Supplier;
 import java.util.function.Consumer;
+import com.team.tetris.network.RecentHostStore.HostEntry;
 
 import com.team.tetris.view.P2PConnectionView;
 import com.team.tetris.view.P2PConnectionView.P2PItem;
@@ -16,6 +19,9 @@ public class P2PConnectionController {
 
     private P2PItem selected = P2PItem.HOST;
     private boolean enteringIp;
+    private final Supplier<List<HostEntry>> recentHosts;
+    private List<HostEntry> cachedHosts = List.of();
+    private int recentIndex = -1;
 
     public P2PConnectionController(
         P2PConnectionView view,
@@ -23,6 +29,13 @@ public class P2PConnectionController {
         Consumer<String> onJoin,
         Runnable onBack
     ) {
+        this(view, onHost, onJoin, onBack, List::of);
+    }
+
+    public P2PConnectionController(P2PConnectionView view, Runnable onHost,
+                                   Consumer<String> onJoin, Runnable onBack,
+                                   Supplier<List<HostEntry>> recentHosts) {
+        this.recentHosts = recentHosts;
         this.view = view;
         this.onHost = onHost;
         this.onJoin = onJoin;
@@ -32,6 +45,7 @@ public class P2PConnectionController {
     public void show() {
         selected = P2PItem.HOST;
         enteringIp = false;
+        recentIndex = -1;
 
         view.clearIp();
         view.showIpField(false);
@@ -59,6 +73,12 @@ public class P2PConnectionController {
     }
 
     private void handleIpInput(KeyCode key) {
+        if ((key == KeyCode.UP || key == KeyCode.DOWN) && !cachedHosts.isEmpty()) {
+            recentIndex = Math.floorMod(recentIndex + (key == KeyCode.DOWN ? 1 : -1), cachedHosts.size());
+            view.setIp(cachedHosts.get(recentIndex).host());
+            view.focusIp();
+            return;
+        }
         if (key == KeyCode.ESCAPE) {
             enteringIp = false;
             view.showIpField(false);
@@ -77,7 +97,7 @@ public class P2PConnectionController {
     }
 
     private void move(int direction) {
-        P2PItem[] items = P2PItem.values();
+        P2PItem[] items = { P2PItem.HOST, P2PItem.JOIN };
 
         selected = items[
             Math.floorMod(
@@ -95,10 +115,12 @@ public class P2PConnectionController {
 
             case JOIN -> {
                 enteringIp = true;
+                recentIndex = -1;
+                cachedHosts = recentHosts.get();
+                view.showRecentHosts(cachedHosts);
                 view.focusIp();
             }
 
-            case BACK -> onBack.run();
         }
     }
 

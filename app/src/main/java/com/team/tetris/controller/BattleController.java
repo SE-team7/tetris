@@ -7,6 +7,7 @@ import com.team.tetris.domain.PlayerId;
 import com.team.tetris.domain.Settings;
 import com.team.tetris.domain.Settings.KeyAction;
 import com.team.tetris.service.BattleService;
+import com.team.tetris.network.MessagePayload;
 import com.team.tetris.view.BattleView;
 
 import javafx.animation.AnimationTimer;
@@ -47,7 +48,7 @@ public class BattleController {
         };
 
         service.setResultListener(result ->
-            Platform.runLater(() -> showResult(result))
+            Platform.runLater(() -> { if (localBattle) showResult(result); })
         );
     }
 
@@ -76,11 +77,6 @@ public class BattleController {
         if (key == KeyCode.ESCAPE) {
             stop();
             onBack.run();
-            return;
-        }
-
-        if (key == KeyCode.SHIFT) {
-            togglePause();
             return;
         }
 
@@ -126,17 +122,8 @@ public class BattleController {
             || action == KeyAction.SOFT_DROP;
     }
 
-    private void togglePause() {
-        if (service.getState() == BattleState.RUNNING) {
-            service.pause();
-            view.setStatus("PAUSED");
-        } else if (service.getState() == BattleState.PAUSED) {
-            service.resume();
-            view.setStatus(localBattle ? "LOCAL BATTLE" : "P2P BATTLE");
-        }
-    }
-
     private void render() {
+        view.applyColorBlindMode(settings.isColorBlindMode());
         view.renderPlayer(
             PlayerId.PLAYER1,
             service.getPlayerSnapshot(PlayerId.PLAYER1)
@@ -155,7 +142,7 @@ public class BattleController {
                 seconds / 60,
                 seconds % 60
             ));
-        }
+        } else view.setTimer("");
 
         if (service.getState() == BattleState.FINISHED) {
             showResult(service.getResult());
@@ -165,23 +152,55 @@ public class BattleController {
     private void showResult(BattleResult result) {
         if (result == null) return;
 
-        String text;
+        var first = service.getPlayerSnapshot(PlayerId.PLAYER1);
+        var second = service.getPlayerSnapshot(PlayerId.PLAYER2);
+        int p1 = first == null ? 0 : first.getScore();
+        int p2 = second == null ? 0 : second.getScore();
+        String winner = result.isDraw() ? "DRAW" :
+            result.getWinner() == PlayerId.PLAYER1 ? "PLAYER 1 WINS!" :
+            result.getWinner() == PlayerId.PLAYER2 ? "PLAYER 2 WINS!" : "BATTLE FINISHED";
+        String reason = switch (result.getReason()) {
+            case GAME_OVER -> result.isDraw() ? "BOTH PLAYERS TOPPED OUT" :
+                (result.getWinner() == PlayerId.PLAYER1 ? "PLAYER 2 TOPPED OUT" : "PLAYER 1 TOPPED OUT");
+            case TIME_UP -> "TIME UP — " + (result.isDraw() ? "EQUAL SCORE" : "HIGHER SCORE WINS");
+            case PLAYER_LEFT -> "OPPONENT LEFT";
+            case CONNECTION_LOST -> "CONNECTION LOST";
+        };
+        view.showFinish(winner, reason, p1, p2, localBattle);
+    }
 
-        if (result.isDraw()) {
-            text = "DRAW";
-        } else if (result.getWinner() == PlayerId.PLAYER1) {
-            text = "PLAYER 1 WIN";
-        } else if (result.getWinner() == PlayerId.PLAYER2) {
-            text = "PLAYER 2 WIN";
-        } else {
-            text = "BATTLE FINISHED";
+    /** Show the authoritative network result from the current computer's perspective. */
+    public void showP2PResult(MessagePayload.Result result, boolean isHost) {
+        if (result == null) return;
+        renderer.stop(); // Do not overwrite the result with a stopped battle snapshot.
+
+        PlayerId me = isHost ? PlayerId.PLAYER1 : PlayerId.PLAYER2;
+        String title;
+        if (result.draw()) title = "DRAW";
+        else if (result.winner() == null) title = "BATTLE FINISHED";
+        else {
+            boolean hostWon = NetworkController.HOST_PLAYER.equals(result.winner());
+            boolean clientWon = NetworkController.CLIENT_PLAYER.equals(result.winner());
+            if (!hostWon && !clientWon) title = "BATTLE FINISHED";
+            else title = (hostWon && me == PlayerId.PLAYER1)
+                || (clientWon && me == PlayerId.PLAYER2) ? "YOU WIN!" : "YOU LOSE";
         }
 
-        view.showResult(
-            text,
-            localBattle ? "ENTER : REMATCH" : ""
-        );
+        String reason = switch (result.reason()) {
+            case "GAME_OVER" -> result.draw() ? "BOTH PLAYERS TOPPED OUT" :
+                NetworkController.HOST_PLAYER.equals(result.winner())
+                    ? "CLIENT TOPPED OUT" : "SERVER TOPPED OUT";
+            case "TIME_UP" -> "TIME UP — " + (result.draw() ? "EQUAL SCORE" : "HIGHER SCORE WINS");
+            case "PLAYER_LEFT" -> "OPPONENT LEFT";
+            case "CONNECTION_LOST" -> "CONNECTION LOST";
+            default -> result.reason();
+        };
+        view.showFinish(title, reason,
+            view.getDisplayedScore(PlayerId.PLAYER1),
+            view.getDisplayedScore(PlayerId.PLAYER2), false);
     }
+
+    public void stopRenderingOnly() { renderer.stop(); service.clearInputStates(); }
 
     public void clearInputStates() {
         service.clearInputStates();

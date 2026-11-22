@@ -43,9 +43,8 @@ public class BattleTypeController {
     }
 
     private void move(int direction) {
-        BattleTypeItem[] items = BattleTypeItem.values();
-        int index = (selected.ordinal() + direction + items.length) % items.length;
-
+        BattleTypeItem[] items = { BattleTypeItem.LOCAL, BattleTypeItem.P2P };
+        int index = Math.floorMod(selected.ordinal() + direction, items.length);
         selected = items[index];
         view.render(selected);
     }

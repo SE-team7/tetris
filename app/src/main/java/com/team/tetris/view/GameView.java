@@ -12,6 +12,7 @@ import com.team.tetris.domain.Board;
 import com.team.tetris.domain.ClearResult;
 import com.team.tetris.domain.Difficulty;
 import com.team.tetris.domain.GameMode;
+import com.team.tetris.domain.GameSnapshot;
 import com.team.tetris.domain.ItemType;
 import com.team.tetris.domain.Position;
 
@@ -135,6 +136,33 @@ public class GameView {
         sidePanel.setPrefWidth(225);
         root.setCenter(boardGrid);
         root.setRight(sidePanel);
+
+        // Only single-player LARGE layout: bring NEXT closer to the board.
+        // SMALL/MEDIUM and the separate BattleView layout remain unchanged.
+        root.widthProperty().addListener((obs, oldWidth, newWidth) -> updateSingleLargeLayout());
+        root.heightProperty().addListener((obs, oldHeight, newHeight) -> updateSingleLargeLayout());
+    }
+
+    private void updateSingleLargeLayout() {
+        // BattleView detaches these grids; never apply single-player offsets there.
+        if (boardGrid.getParent() != root || sidePanel.getParent() != root) {
+            boardGrid.setTranslateX(0);
+            sidePanel.setTranslateX(0);
+            scoreLabel.setStyle("");
+            return;
+        }
+
+        boolean large = root.getWidth() >= 1050 && root.getHeight() >= 650;
+        if (large) {
+            // Move the board toward the NEXT panel without changing the game grid.
+            boardGrid.setTranslateX(55);
+            sidePanel.setTranslateX(-16);
+            scoreLabel.setStyle("-fx-font-size: 34px; -fx-font-weight: bold;");
+        } else {
+            boardGrid.setTranslateX(0);
+            sidePanel.setTranslateX(0);
+            scoreLabel.setStyle("");
+        }
     }
     private void createTextBoard() {
         boardGrid.getChildren().clear();
@@ -968,6 +996,12 @@ public class GameView {
         statusLabel.setText(paused ? "PAUSED" : "");
     }
 
+    public void setBattleItemMode(boolean enabled) {
+        currentGameMode = enabled ? GameMode.ITEM : GameMode.NORMAL;
+        createTextBoard();
+        createNextArea();
+    }
+
     public void showBattle() {
     root.setCenter(createBattleLayout());
 }
@@ -1126,5 +1160,29 @@ private VBox createBattlePlayer(String name) {
 
         container.setMinSize(0, 0);
         return container;
+    }
+
+    // Shared battle rendering: the same board, NEXT and item visuals as Single.
+    public GridPane detachBattleBoard() {
+        root.setCenter(null);
+        return boardGrid;
+    }
+
+    public GridPane detachBattleNext() {
+        ((Pane) nextGrid.getParent()).getChildren().remove(nextGrid);
+        return nextGrid;
+    }
+
+    public void renderBattle(GameSnapshot snapshot) {
+        if (snapshot == null) return;
+        render(snapshot.getBoard(), snapshot.getCurrentBlock(), snapshot.getNextBlock(),
+               snapshot.getScore(), snapshot.getLevel(), false);
+        boolean[][] attacks = snapshot.getAttackCells();
+        if (attacks == null) return;
+        int first = Math.max(0, attacks.length - VISIBLE_ROWS);
+        for (int r = 0; r < VISIBLE_ROWS && first + r < attacks.length; r++)
+            for (int c = 0; c < COLS && c < attacks[first + r].length; c++)
+                if (attacks[first + r][c])
+                    boardCells[r][c].setStyle(baseCellStyle() + "-fx-background-color: #666666;");
     }
 }
