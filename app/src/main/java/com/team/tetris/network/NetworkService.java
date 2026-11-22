@@ -14,6 +14,7 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
@@ -254,32 +255,68 @@ public class NetworkService {
     }
 
     /**
-     * 서버 화면에 표시할 이 PC의 IPv4 주소 목록.
-     * 같은 네트워크에서 접속할 수 있는 사설 주소를 앞에 둔다. 찾지 못하면 루프백 주소.
+     * 서버 화면에 표시할 이 PC의 IPv4 주소 목록 (IP만).
+     * {@link #getLocalAddressDetails()}와 같은 순서이며, 첫 번째가 접속에 쓸 가능성이 가장 높은 주소.
      */
     public static List<String> getLocalAddresses() {
-        List<String> privateAddresses = new ArrayList<>();
-        List<String> otherAddresses = new ArrayList<>();
+        List<String> ips = new ArrayList<>();
+        for (HostAddress address : getLocalAddressDetails()) {
+            ips.add(address.ip());
+        }
+        return ips;
+    }
+
+    /**
+     * 서버 화면에 표시할 이 PC의 IPv4 주소와 어댑터 이름 목록.
+     * VirtualBox 등 가상 어댑터가 있으면 주소가 여러 개 나오므로 어댑터 이름을 함께 돌려준다.
+     * 순서: 실제 어댑터의 사설 주소 → 실제 어댑터의 기타 주소 → 가상 어댑터 주소.
+     * 찾지 못하면 루프백 주소 하나.
+     */
+    public static List<HostAddress> getLocalAddressDetails() {
+        List<HostAddress> found = new ArrayList<>();
         try {
             for (NetworkInterface nic : Collections.list(NetworkInterface.getNetworkInterfaces())) {
                 if (!nic.isUp() || nic.isLoopback() || nic.isVirtual()) {
                     continue;
                 }
+                String adapterName = nic.getDisplayName() == null || nic.getDisplayName().isBlank()
+                        ? nic.getName() : nic.getDisplayName();
                 for (InetAddress address : Collections.list(nic.getInetAddresses())) {
                     if (address instanceof Inet4Address && !address.isLinkLocalAddress()) {
-                        (address.isSiteLocalAddress() ? privateAddresses : otherAddresses)
-                                .add(address.getHostAddress());
+                        found.add(new HostAddress(address.getHostAddress(), adapterName));
                     }
                 }
             }
         } catch (SocketException e) {
             // 목록을 못 읽으면 루프백만 반환
         }
-        privateAddresses.addAll(otherAddresses);
-        if (privateAddresses.isEmpty()) {
-            privateAddresses.add(InetAddress.getLoopbackAddress().getHostAddress());
+        if (found.isEmpty()) {
+            found.add(new HostAddress(InetAddress.getLoopbackAddress().getHostAddress(), "Loopback"));
+            return found;
         }
-        return privateAddresses;
+        return orderForDisplay(found);
+    }
+
+    /** 접속에 쓸 가능성이 높은 주소가 앞에 오도록 정렬 (같은 등급끼리는 원래 순서 유지) */
+    static List<HostAddress> orderForDisplay(List<HostAddress> addresses) {
+        List<HostAddress> ordered = new ArrayList<>(addresses);
+        ordered.sort(Comparator.comparingInt(NetworkService::displayRank));
+        return ordered;
+    }
+
+    private static int displayRank(HostAddress address) {
+        if (address.isVirtualAdapter()) {
+            return 2;
+        }
+        return isSiteLocal(address.ip()) ? 0 : 1;
+    }
+
+    private static boolean isSiteLocal(String ip) {
+        try {
+            return InetAddress.getByName(ip).isSiteLocalAddress();   // IP 문자열이므로 DNS 조회 없음
+        } catch (IOException e) {
+            return false;
+        }
     }
 
     // ---------------------------------------------------------------- 연결 수립

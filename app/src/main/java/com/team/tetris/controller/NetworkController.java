@@ -14,6 +14,7 @@ import com.team.tetris.domain.BattleResult;
 import com.team.tetris.domain.GameSnapshot;
 import com.team.tetris.network.BattleGateway;
 import com.team.tetris.network.BattleServiceGateway;
+import com.team.tetris.network.HostAddress;
 import com.team.tetris.network.MessagePayload;
 import com.team.tetris.network.MessageType;
 import com.team.tetris.network.NetworkEvents;
@@ -56,11 +57,13 @@ public class NetworkController {
 
     /**
      * 진행 시간 기준.
-     * @param startDelayMillis       양쪽 준비 후 시작까지 시간 (클라이언트는 지연 절반만큼 빼서 맞춤)
+     * @param startDelayMillis       양쪽이 게임 시작을 누른 뒤 실제 시작까지 시간.
+     *                               기본 0: 요구사항대로 두 사람이 모두 누르면 바로 시작.
+     *                               0보다 크면 카운트다운 통지 (클라이언트는 지연 절반만큼 빼서 맞춤)
      * @param snapshotIntervalMillis 상대에게 내 화면 상태를 보내는 주기 (지연 200ms 이하 목표)
      */
     public record Timing(long startDelayMillis, long snapshotIntervalMillis) {
-        public static final Timing DEFAULT = new Timing(3000, 50);
+        public static final Timing DEFAULT = new Timing(0, 50);
 
         public Timing {
             if (startDelayMillis < 0 || snapshotIntervalMillis <= 0) {
@@ -142,7 +145,8 @@ public class NetworkController {
         network.openHost(port);
         if (network.isOpening()) {
             int openPort = network.getLocalPort();
-            status("접속 대기 중 - IP " + String.join(", ", getHostAddresses()) + " / 포트 " + openPort);
+            List<String> addresses = getHostAddressDetails().stream().map(HostAddress::displayText).toList();
+            status("접속 대기 중 - IP " + String.join(", ", addresses) + " / 포트 " + openPort);
         } else if (state == State.HOSTING) {
             changeState(State.DISCONNECTED);   // 포트 열기 실패 (오류는 onError로 이미 표시)
         }
@@ -165,9 +169,14 @@ public class NetworkController {
         status(joiningHost + ":" + port + " 에 연결 중...");
     }
 
-    /** 서버 화면에 표시할 이 PC의 IP 목록 */
+    /** 서버 화면에 표시할 이 PC의 IP 목록 (IP만, 접속에 쓸 가능성이 높은 순) */
     public List<String> getHostAddresses() {
         return NetworkService.getLocalAddresses();
+    }
+
+    /** 서버 화면에 표시할 이 PC의 IP와 어댑터 이름 목록. "IP (어댑터 이름)" 형식 표시용 */
+    public List<HostAddress> getHostAddressDetails() {
+        return NetworkService.getLocalAddressDetails();
     }
 
     /** 클라이언트가 고를 수 있는 최근 접속 주소 (최근 순) */
@@ -206,7 +215,7 @@ public class NetworkController {
         }
         localReady = ready;
         network.send(NetworkMessage.of(MessageType.READY, battleId, new MessagePayload.Ready(ready)));
-        status(ready ? (peerReady ? "양쪽 준비 완료" : "상대 준비를 기다리는 중...") : "준비 취소");
+        status(ready ? (peerReady ? "양쪽 모두 게임 시작" : "상대의 게임 시작을 기다리는 중...") : "게임 시작 취소");
         startIfBothReady();
     }
 
@@ -224,8 +233,10 @@ public class NetworkController {
         changeState(State.STARTING);
         long id = battleId;
         startTask = timer.schedule(() -> beginBattle(id), delayMillis, TimeUnit.MILLISECONDS);
-        ui(() -> events.onBattleStarting(delayMillis));
-        status((delayMillis / 1000.0) + "초 후 대전 시작");
+        if (delayMillis > 0) {   // 지연 없이 바로 시작하면 카운트다운 안내도 없음
+            ui(() -> events.onBattleStarting(delayMillis));
+            status((delayMillis / 1000.0) + "초 후 대전 시작");
+        }
     }
 
     private synchronized void beginBattle(long id) {
@@ -489,7 +500,7 @@ public class NetworkController {
         peerReady = message.getPayload(MessagePayload.Ready.class).ready();
         boolean ready = peerReady;
         ui(() -> events.onPeerReadyChanged(ready));
-        status(ready ? "상대 준비 완료" : "상대가 준비를 취소했습니다.");
+        status(ready ? "상대가 게임 시작을 눌렀습니다." : "상대가 게임 시작을 취소했습니다.");
         startIfBothReady();
     }
 

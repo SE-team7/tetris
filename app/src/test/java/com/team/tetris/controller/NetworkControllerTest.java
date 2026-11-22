@@ -29,6 +29,7 @@ import com.team.tetris.domain.Difficulty;
 import com.team.tetris.domain.GameSnapshot;
 import com.team.tetris.domain.PlayerId;
 import com.team.tetris.network.MessageCodec;
+import com.team.tetris.network.HostAddress;
 import com.team.tetris.network.MessagePayload;
 import com.team.tetris.network.MessageType;
 import com.team.tetris.network.NetworkMessage;
@@ -74,8 +75,12 @@ class NetworkControllerTest {
         final NetworkController controller;
 
         Side(String folder) {
+            this(folder, FAST);
+        }
+
+        Side(String folder, NetworkController.Timing timing) {
             recent = new RecentHostStore(new FileManager(tempDir.resolve(folder)));
-            controller = new NetworkController(network, battle, recent, Runnable::run, FAST);
+            controller = new NetworkController(network, battle, recent, Runnable::run, timing);
             controller.setEvents(events);
             controllers.add(controller);
         }
@@ -87,8 +92,12 @@ class NetworkControllerTest {
 
     /** 서버 대기 → 클라이언트 접속까지 */
     private void connect() throws InterruptedException {
-        server = new Side("server");
-        client = new Side("client");
+        connect(FAST);
+    }
+
+    private void connect(NetworkController.Timing timing) throws InterruptedException {
+        server = new Side("server", timing);
+        client = new Side("client", timing);
         server.controller.host(0);
         serverPort = server.network.getLocalPort();
         client.controller.join("127.0.0.1", serverPort);
@@ -259,7 +268,7 @@ class NetworkControllerTest {
         waitUntil(server.controller::isPeerReady);
         assertTrue(client.controller.isLocalReady());
         assertTrue(server.events.peerReady.contains(true));
-        assertTrue(server.events.statuses.contains("상대 준비 완료"));
+        assertTrue(server.events.statuses.contains("상대가 게임 시작을 눌렀습니다."));
     }
 
     @Test
@@ -905,8 +914,8 @@ class NetworkControllerTest {
         client.controller.setReady(true);
         waitUntil(server.controller::isPeerReady);
 
-        assertOrder(server.events.statuses, "접속 대기", "상대가 접속", "대전 설정", "상대 준비 완료");
-        assertOrder(client.events.statuses, "연결 중", "서버에 연결", "대전 설정", "상대 준비를 기다리는 중");
+        assertOrder(server.events.statuses, "접속 대기", "상대가 접속", "대전 설정", "상대가 게임 시작을 눌렀습니다");
+        assertOrder(client.events.statuses, "연결 중", "서버에 연결", "대전 설정", "상대의 게임 시작을 기다리는 중");
         assertOrder(client.events.states, State.CONNECTING, State.CONNECTED);
         assertOrder(server.events.states, State.HOSTING, State.CONNECTED);
     }
@@ -931,6 +940,79 @@ class NetworkControllerTest {
         waitUntil(() -> !onFxThread.isEmpty());
         assertTrue(onFxThread.stream().allMatch(Boolean::booleanValue), "화면 통지는 JavaFX Application Thread에서");
         assertEquals(State.HOSTING, app.getState());
+    }
+
+    // ================================================================ 게임 시작 버튼 (요구사항: 양쪽이 누르면 시작)
+
+    private static final NetworkController.Timing IMMEDIATE = new NetworkController.Timing(0, 20);
+
+    @Test
+    void defaultTiming_startsImmediatelyWhenBothPressStart() {
+        assertEquals(0, NetworkController.Timing.DEFAULT.startDelayMillis(),
+                "요구사항: 서버와 클라이언트가 모두 '게임 시작'을 누르면 대전 시작 (자동 카운트다운 없음)");
+        assertEquals(50, NetworkController.Timing.DEFAULT.snapshotIntervalMillis());
+    }
+
+    @Test
+    void onlyOneSidePressedStart_battleDoesNotStart() throws InterruptedException {
+        connect(IMMEDIATE);
+        server.controller.sendBattleConfig(NORMAL);
+        waitUntil(() -> client.controller.getConfig() != null);
+
+        server.controller.setReady(true);   // 서버만 누름
+        waitUntil(client.controller::isPeerReady);
+        Thread.sleep(200);
+
+        assertEquals(State.CONNECTED, server.controller.getState(), "상대가 누르기 전에는 시작하지 않음");
+        assertEquals(State.CONNECTED, client.controller.getState());
+        assertEquals(0, server.battle.count("start"));
+        assertTrue(server.events.statuses.contains("상대의 게임 시작을 기다리는 중..."));
+        assertTrue(client.events.statuses.contains("상대가 게임 시작을 눌렀습니다."));
+    }
+
+    @Test
+    void bothPressedStart_battleStartsImmediatelyWithoutCountdown() throws InterruptedException {
+        connect(IMMEDIATE);
+        server.controller.sendBattleConfig(NORMAL);
+        waitUntil(() -> client.controller.getConfig() != null);
+
+        client.controller.setReady(true);
+        waitUntil(server.controller::isPeerReady);
+        long pressedAt = System.nanoTime();
+        server.controller.setReady(true);   // 두 번째로 누른 순간 시작
+
+        waitUntil(() -> server.controller.getState() == State.IN_BATTLE
+                && client.controller.getState() == State.IN_BATTLE);
+        long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - pressedAt);
+        assertTrue(elapsedMillis < 1000, "바로 시작해야 함: " + elapsedMillis + "ms");
+        assertEquals(1, server.battle.count("start"));
+        assertEquals(1, client.battle.count("start"));
+        for (Side side : List.of(server, client)) {
+            assertTrue(side.events.startingDelays.isEmpty(), "지연 0이면 카운트다운 통지 없음");
+            assertTrue(side.events.statuses.stream().noneMatch(text -> text.contains("초 후 대전 시작")),
+                    side.events.statuses.toString());
+        }
+    }
+
+    @Test
+    void positiveDelay_stillShowsCountdown() throws InterruptedException {
+        startBattle(NORMAL);   // FAST: 100ms 지연
+
+        assertFalse(server.events.startingDelays.isEmpty());
+        assertTrue(server.events.statuses.stream().anyMatch(text -> text.contains("초 후 대전 시작")));
+    }
+
+    @Test
+    void hostAddressDetails_matchHostAddressesInSameOrder() {
+        Side side = new Side("details");
+
+        List<HostAddress> details = side.controller.getHostAddressDetails();
+
+        assertFalse(details.isEmpty());
+        assertEquals(side.controller.getHostAddresses(), details.stream().map(HostAddress::ip).toList());
+        side.controller.host(0);
+        String status = side.events.statuses.get(side.events.statuses.size() - 1);
+        assertTrue(status.contains(details.get(0).displayText()), "대기 문구에 'IP (어댑터)' 표시: " + status);
     }
 
     // ================================================================ 도우미
