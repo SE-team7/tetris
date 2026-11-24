@@ -20,7 +20,8 @@ public enum MessageType {
     REMATCH_RESPONSE,
     LEAVE,
     PING,
-    PONG;
+    PONG,
+    CHAT;
 
     /** 빠뜨리지 않고 순서대로 처리해야 하는 이벤트인지. SNAPSHOT·PING·PONG만 아니다. */
     public boolean isEvent() {

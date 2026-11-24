@@ -480,6 +480,7 @@ public class NetworkController {
             case PING, PONG -> {
                 // NetworkService에서 처리됨
             }
+            case CHAT -> onChat(message);
         }
     }
 
@@ -533,6 +534,27 @@ public class NetworkController {
         ui(() -> events.onRematchAnswered(accepted));
         // 수락돼도 자동 준비하지 않음: 양쪽이 '게임 시작'을 눌러야 시작
         status(accepted ? "상대가 재대전을 수락했습니다. 게임 시작을 눌러주세요." : "상대가 재대전을 거절했습니다.");
+    }
+
+    /**
+     * 대기실에서 상대에게 채팅 전송.
+     * 연결·설정 전, 카운트다운, 대전 중에는 전송하지 않고 예외를 던진다.
+     * 본문은 MessagePayload.Chat 생성 시 앞뒤 공백 제거·200자 제한·줄바꿈 금지가 적용된다.
+     */
+    public synchronized void sendChat(String text) {
+        if (state != State.CONNECTED || config == null) {
+            throw new IllegalStateException("chat is only available in the waiting room");
+        }
+        MessagePayload.Chat chat = new MessagePayload.Chat(text);
+        network.send(NetworkMessage.of(MessageType.CHAT, battleId, chat));
+    }
+
+    private void onChat(NetworkMessage message) {
+        if (state != State.CONNECTED || config == null || message.getBattleId() != battleId) {
+            return;
+        }
+        String text = message.getPayload(MessagePayload.Chat.class).text();
+        ui(() -> events.onChatReceived(text));
     }
 
     private void onPeerLeft() {
