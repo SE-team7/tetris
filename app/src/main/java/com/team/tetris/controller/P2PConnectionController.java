@@ -35,6 +35,7 @@ public class P2PConnectionController {
 
         view.clearIp();
         view.showIpField(false);
+        view.setStatus("");
         view.render(selected);
     }
 
@@ -112,5 +113,6 @@ public class P2PConnectionController {
     }
 
     public void showError(String message) {
+        view.setStatus("오류: " + message);
     }
 }

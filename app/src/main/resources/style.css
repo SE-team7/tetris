@@ -337,6 +337,12 @@
     -fx-font-size: 12px;
 }
 
+.battle-lag {
+    -fx-text-fill: #FF5252;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+
 .battle-back,
 .battle-rematch {
     -fx-text-fill: #AAAAAA;

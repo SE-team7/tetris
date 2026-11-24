@@ -21,6 +21,7 @@ public class P2PConnectionView {
     private final Label backLabel = new Label("뒤로가기");
 
     private final TextField ipField = new TextField();
+    private final Label statusLabel = new Label();
 
     public P2PConnectionView() {
         root.setAlignment(Pos.CENTER);
@@ -37,12 +38,17 @@ public class P2PConnectionView {
         ipField.getStyleClass().add("p2p-ip-field");
         ipField.setMaxWidth(260);
 
+        statusLabel.getStyleClass().add("p2p-status");
+        statusLabel.setWrapText(true);
+        statusLabel.setMaxWidth(420);
+
         root.getChildren().addAll(
             title,
             hostLabel,
             joinLabel,
             ipField,
-            backLabel
+            backLabel,
+            statusLabel
         );
 
         showIpField(false);
@@ -103,6 +109,7 @@ public class P2PConnectionView {
 
    
     public void setStatus(String text) {
+        statusLabel.setText(text == null ? "" : text);
     }
 
     public void setHostIp(String ip) {

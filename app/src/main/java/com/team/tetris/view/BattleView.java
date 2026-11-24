@@ -16,6 +16,7 @@ public class BattleView {
     private final BorderPane root = new BorderPane();
     private final Label timer = new Label("TIME --:--");
     private final Label status = new Label("");
+    private final Label lag = new Label("");
     private final Label result = new Label();
     private final Label rematch = new Label();
 
@@ -31,10 +32,11 @@ public class BattleView {
         title.getStyleClass().add("battle-title");
         timer.getStyleClass().add("battle-timer");
         status.getStyleClass().add("battle-status");
+        lag.getStyleClass().add("battle-lag");
         result.getStyleClass().add("battle-result");
         rematch.getStyleClass().add("battle-rematch");
 
-        VBox top = new VBox(2, title, timer, status, result, rematch);
+        VBox top = new VBox(2, title, timer, status, lag, result, rematch);
         top.setAlignment(Pos.CENTER);
 
         HBox players = new HBox(30, p1.root, p2.root);
@@ -59,6 +61,15 @@ public class BattleView {
 
     public void setStatus(String text) {
         status.setText(text == null ? "" : text);
+    }
+
+    /** P2P 랙 표시. null 또는 빈 문자열이면 숨김 */
+    public void setLag(String text) {
+        lag.setText(text == null ? "" : text);
+    }
+
+    public String getLagText() {
+        return lag.getText();
     }
 
     public void showResult(String text, String rematchText) {

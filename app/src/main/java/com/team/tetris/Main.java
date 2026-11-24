@@ -4,6 +4,7 @@ import java.util.function.Consumer;
 
 import com.team.tetris.controller.*;
 import com.team.tetris.domain.*;
+import com.team.tetris.network.NetworkEvents;
 import com.team.tetris.network.NetworkService;
 import com.team.tetris.service.*;
 import com.team.tetris.util.*;
@@ -274,6 +275,43 @@ public class Main extends Application {
             }
         );
 
+        networkController.setEvents(new NetworkEvents() {
+            @Override
+            public void showError(String message) {
+                p2pConnectionController.showError(message);
+                p2pWaitingController.showError(message);
+            }
+
+            @Override
+            public void onBattleStarted() {
+                battleView.setLag("");
+            }
+
+            @Override
+            public void onLagChanged(long roundTripMillis, boolean lagging) {
+                battleView.setLag(
+                    lagging ? "⚠ LAG " + roundTripMillis + "ms - 네트워크 지연 중" : ""
+                );
+            }
+
+            @Override
+            public void onConnectionClosed(String reason, boolean peerLeft) {
+                battleView.setLag("");
+                // p2pBattleShown은 감시 타이머가 먼저 false로 바꿀 수 있어 실제 화면으로 판단
+                boolean onBattleScreen =
+                    stage.getScene() == battleView.getRoot().getScene();
+
+                // 대전 중 상대가 정상적으로 나간 경우: 결과(승리)를 대전 화면에 그대로 보여준다
+                if (peerLeft && onBattleScreen) {
+                    battleView.setStatus(reason);
+                    return;
+                }
+
+                // 연결 끊김(또는 대기실에서 상대 퇴장): 에러 표시 후 P2P 첫 화면으로
+                returnToP2PStart(battleController, scenes, reason, onBattleScreen);
+            }
+        });
+
         mainMenuView.getRoot().setOnKeyPressed(
             e -> mainMenuController.handleKey(e.getCode())
         );
@@ -453,6 +491,23 @@ public class Main extends Application {
         if (networkController.getState() != NetworkController.State.IN_BATTLE) {
             p2pBattleShown = false;
         }
+    }
+
+    private void returnToP2PStart(
+        BattleController controller,
+        SceneManager scenes,
+        String reason,
+        boolean onBattleScreen
+    ) {
+        if (onBattleScreen) {
+            controller.stop();
+        }
+        p2pBattleShown = false;
+
+        hostFlow = false;
+        p2pConnectionController.show();
+        p2pConnectionController.showError(reason);
+        scenes.showP2PConnection();
     }
 
     private BattleModeItem modeFrom(BattleConfig config) {
