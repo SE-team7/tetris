@@ -13,6 +13,7 @@ import com.team.tetris.util.*;
 import com.team.tetris.view.*;
 import com.team.tetris.view.BattleModeView.BattleModeItem;
 import com.team.tetris.view.BattleTypeView.BattleTypeItem;
+import com.team.tetris.view.OpponentTypeView.OpponentType;
 
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -33,7 +34,9 @@ public class Main extends Application {
 
     private BattleModeController battleModeController;
     private BattleTypeController battleTypeController;
+    private OpponentTypeController opponentTypeController;
     private TimeLimitController timeLimitController;
+    private Runnable opponentBack = () -> {};
     private P2PConnectionController p2pConnectionController;
     private P2PWaitingController p2pWaitingController;
 
@@ -59,6 +62,7 @@ public class Main extends Application {
 
         BattleModeView battleModeView = new BattleModeView();
         BattleTypeView battleTypeView = new BattleTypeView();
+        OpponentTypeView opponentTypeView = new OpponentTypeView();
         TimeLimitView timeLimitView = new TimeLimitView();
         P2PConnectionView p2pConnectionView = new P2PConnectionView();
         P2PWaitingView p2pWaitingView = new P2PWaitingView();
@@ -88,6 +92,7 @@ public class Main extends Application {
             gameOverView,
             battleModeView,
             battleTypeView,
+            opponentTypeView,
             timeLimitView,
             p2pConnectionView,
             p2pWaitingView,
@@ -181,13 +186,12 @@ public class Main extends Application {
                     return;
                 }
 
-                startLocalBattle(
-                    battleController,
-                    battleView,
-                    scenes,
-                    settings,
-                    battleBack
-                );
+                opponentBack = () -> {
+                    battleModeController.show();
+                    scenes.showBattleMode();
+                };
+                opponentTypeController.show();
+                scenes.showOpponentType();
             },
             () -> {
                 if (battleType == BattleTypeItem.P2P && hostFlow) {
@@ -211,6 +215,26 @@ public class Main extends Application {
                     return;
                 }
 
+                opponentBack = () -> {
+                    timeLimitController.show();
+                    scenes.showTimeLimit();
+                };
+                opponentTypeController.show();
+                scenes.showOpponentType();
+            },
+            () -> {
+                battleModeController.show();
+                scenes.showBattleMode();
+            }
+        );
+
+        opponentTypeController = new OpponentTypeController(
+            opponentTypeView,
+            opponent -> {
+                battleController.clearAgents();
+                if (opponent == OpponentType.CPU) {
+                    battleController.setAgent(PlayerId.PLAYER2, new HeuristicBotAgent());
+                }
                 startLocalBattle(
                     battleController,
                     battleView,
@@ -219,10 +243,7 @@ public class Main extends Application {
                     battleBack
                 );
             },
-            () -> {
-                battleModeController.show();
-                scenes.showBattleMode();
-            }
+            () -> opponentBack.run()
         );
 
         p2pConnectionController = new P2PConnectionController(
@@ -317,6 +338,11 @@ public class Main extends Application {
         bindMenu(
             timeLimitView.getRoot(), timeLimitController::handleKey,
             () -> { battleModeController.show(); scenes.showBattleMode(); }
+        );
+
+        bindMenu(
+            opponentTypeView.getRoot(), opponentTypeController::handleKey,
+            () -> opponentBack.run()
         );
 
         bindMenu(

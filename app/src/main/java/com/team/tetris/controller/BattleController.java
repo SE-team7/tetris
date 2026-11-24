@@ -1,5 +1,8 @@
 package com.team.tetris.controller;
 
+import java.util.EnumMap;
+import java.util.Map;
+
 import com.team.tetris.domain.BattleConfig;
 import com.team.tetris.domain.BattleResult;
 import com.team.tetris.domain.BattleState;
@@ -7,6 +10,7 @@ import com.team.tetris.domain.PlayerId;
 import com.team.tetris.domain.Settings;
 import com.team.tetris.domain.Settings.KeyAction;
 import com.team.tetris.service.BattleService;
+import com.team.tetris.service.PlayerAgent;
 import com.team.tetris.network.MessagePayload;
 import com.team.tetris.view.BattleView;
 
@@ -24,6 +28,7 @@ public class BattleController {
 
     private BattleConfig lastConfig;
     private boolean localBattle;
+    private final Map<PlayerId, PlayerAgent> agents = new EnumMap<>(PlayerId.class);
 
     public BattleController(
         BattleService service,
@@ -58,9 +63,30 @@ public class BattleController {
 
         view.clearResult();
         service.startLocalBattle(config);
+        agents.values().forEach(PlayerAgent::reset);
         renderer.start();
         render();
         view.requestFocus();
+    }
+
+    /**
+     * 플레이어의 입력을 봇으로 대체. null을 넘기면 다시 사람 조작으로 돌아간다.
+     * 봇이 설정된 플레이어의 키 입력은 무시된다. startLocal 전에 호출.
+     */
+    public void setAgent(PlayerId player, PlayerAgent agent) {
+        if (agent == null) {
+            agents.remove(player);
+        } else {
+            agents.put(player, agent);
+        }
+        view.setControlsVisible(player, agent == null);
+    }
+
+    public void clearAgents() {
+        for (PlayerId player : agents.keySet()) {
+            view.setControlsVisible(player, true);
+        }
+        agents.clear();
     }
 
     public void startRendering() {
@@ -106,6 +132,8 @@ public class BattleController {
         KeyCode key,
         boolean pressed
     ) {
+        if (agents.containsKey(player)) return;
+
         KeyAction action = settings.findBattleAction(player, key);
         if (action == null) return;
 
@@ -116,6 +144,26 @@ public class BattleController {
         }
     }
 
+    private void driveAgents() {
+        if (agents.isEmpty() || service.getState() != BattleState.RUNNING) return;
+
+        for (Map.Entry<PlayerId, PlayerAgent> entry : agents.entrySet()) {
+            PlayerId player = entry.getKey();
+            var snapshot = service.getPlayerSnapshot(player);
+            if (snapshot == null) continue;
+
+            var actions = entry.getValue().decide(snapshot);
+            if (actions == null) continue;
+
+            for (KeyAction action : actions) {
+                if (action == null) continue;
+                // 봇은 자동반복(hold-repeat)을 거치지 않고 단발 액션으로 보낸다:
+                // keyState로 보내면 MOVE_LEFT/RIGHT가 눌린 상태로 남아 벽까지 미끄러진다.
+                service.submitAction(player, action);
+            }
+        }
+    }
+
     private boolean isRepeatable(KeyAction action) {
         return action == KeyAction.MOVE_LEFT
             || action == KeyAction.MOVE_RIGHT
@@ -123,6 +171,7 @@ public class BattleController {
     }
 
     private void render() {
+        driveAgents();
         view.applyColorBlindMode(settings.isColorBlindMode());
         view.renderPlayer(
             PlayerId.PLAYER1,

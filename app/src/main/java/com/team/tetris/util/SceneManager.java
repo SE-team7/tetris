@@ -21,6 +21,7 @@ public class SceneManager {
 
     private final Parent battleModeRoot;
     private final Parent battleTypeRoot;
+    private final Parent opponentTypeRoot;
     private final Parent timeLimitRoot;
     private final Parent p2pConnectionRoot;
     private final Parent p2pWaitingRoot;
@@ -34,6 +35,7 @@ public class SceneManager {
 
     private final Scene battleModeScene;
     private final Scene battleTypeScene;
+    private final Scene opponentTypeScene;
     private final Scene timeLimitScene;
     private final Scene p2pConnectionScene;
     private final Scene p2pWaitingScene;
@@ -58,6 +60,7 @@ public class SceneManager {
             gameOver,
             new BattleModeView(),
             new BattleTypeView(),
+            new OpponentTypeView(),
             new TimeLimitView(),
             new P2PConnectionView(),
             new P2PWaitingView(),
@@ -83,6 +86,7 @@ public class SceneManager {
             gameOver,
             new BattleModeView(),
             new BattleTypeView(),
+            new OpponentTypeView(),
             new TimeLimitView(),
             new P2PConnectionView(),
             new P2PWaitingView(),
@@ -99,6 +103,7 @@ public class SceneManager {
         GameOverView gameOver,
         BattleModeView battleMode,
         BattleTypeView battleType,
+        OpponentTypeView opponentType,
         TimeLimitView timeLimit,
         P2PConnectionView p2pConnection,
         P2PWaitingView p2pWaiting,
@@ -114,6 +119,7 @@ public class SceneManager {
 
         battleModeRoot = battleMode.getRoot();
         battleTypeRoot = battleType.getRoot();
+        opponentTypeRoot = opponentType.getRoot();
         timeLimitRoot = timeLimit.getRoot();
         p2pConnectionRoot = p2pConnection.getRoot();
         p2pWaitingRoot = p2pWaiting.getRoot();
@@ -127,6 +133,7 @@ public class SceneManager {
 
         battleModeScene = scene(battleModeRoot);
         battleTypeScene = scene(battleTypeRoot);
+        opponentTypeScene = scene(opponentTypeRoot);
         timeLimitScene = scene(timeLimitRoot);
         p2pConnectionScene = scene(p2pConnectionRoot);
         p2pWaitingScene = scene(p2pWaitingRoot);
@@ -167,6 +174,11 @@ public class SceneManager {
         show(battleTypeScene, battleTypeRoot);
     }
 
+    public void showOpponentType() {
+        menuTheme(opponentTypeRoot);
+        show(opponentTypeScene, opponentTypeRoot);
+    }
+
     public void showTimeLimit() {
         menuTheme(timeLimitRoot);
         show(timeLimitScene, timeLimitRoot);
@@ -195,6 +207,7 @@ public class SceneManager {
         menuTheme(scoreboardRoot);
         menuTheme(battleModeRoot);
         menuTheme(battleTypeRoot);
+        menuTheme(opponentTypeRoot);
         menuTheme(timeLimitRoot);
         menuTheme(p2pConnectionRoot);
         menuTheme(p2pWaitingRoot);
