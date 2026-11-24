@@ -20,6 +20,8 @@ class RecordingNetworkEvents implements NetworkEvents {
     final List<Boolean> rematchAnswers = new CopyOnWriteArrayList<>();
     final List<Boolean> lagStates = new CopyOnWriteArrayList<>();
     final List<Boolean> closedByPeerLeft = new CopyOnWriteArrayList<>();
+    final List<Long> connectRetryRemaining = new CopyOnWriteArrayList<>();
+    final List<String> connectFailures = new CopyOnWriteArrayList<>();
     volatile int battleStarted;
     volatile int rematchRequests;
 
@@ -31,6 +33,17 @@ class RecordingNetworkEvents implements NetworkEvents {
     @Override
     public void showError(String message) {
         errors.add(message);
+    }
+
+    @Override
+    public void onConnectRetry(int attempt, long remainingMillis) {
+        connectRetryRemaining.add(remainingMillis);
+    }
+
+    @Override
+    public void onConnectFailed(String message) {
+        connectFailures.add(message);
+        NetworkEvents.super.onConnectFailed(message);   // 기본 동작(showError)도 확인
     }
 
     @Override

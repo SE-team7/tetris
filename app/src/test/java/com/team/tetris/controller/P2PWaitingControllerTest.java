@@ -349,6 +349,22 @@ class P2PWaitingControllerTest {
         assertEquals(0, starts.get());
     }
 
+    // ================================================================ 서버를 찾는 중 (회의 7차 문제 6·7)
+
+    @Test
+    void connectRetry_showsRemainingSecondsWithoutPressingStart() {
+        P2PWaitingController controller = controller();
+        controller.showClient("10.0.0.2");
+
+        controller.showConnectRetry(26_400);
+        assertEquals("서버를 찾는 중... 3초마다 다시 시도합니다 (27초 남음)", view.getStatusText());
+        controller.showConnectRetry(-5);
+        assertEquals("서버를 찾는 중... 3초마다 다시 시도합니다 (0초 남음)", view.getStatusText());
+
+        assertTrue(view.getStartButton().isDisabled(), "연결 전에는 게임 시작 불가");
+        assertFalse(controller.isReady());
+    }
+
     @Test
     void nullCallbacksAreAllowed() {
         P2PWaitingController controller = new P2PWaitingController(view, null, null, null);

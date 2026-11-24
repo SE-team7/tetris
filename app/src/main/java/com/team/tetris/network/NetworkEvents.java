@@ -57,6 +57,22 @@ public interface NetworkEvents {
     default void onLagChanged(long roundTripMillis, boolean lagging) {
     }
 
+    /**
+     * 서버를 아직 찾지 못해 다시 접속을 시도하는 중 (클라이언트가 서버보다 먼저 접속한 경우 등).
+     * @param attempt         지금까지 실패한 시도 횟수
+     * @param remainingMillis 포기하기까지 남은 시간 (화면에 "N초 남음" 표시용)
+     */
+    default void onConnectRetry(int attempt, long remainingMillis) {
+    }
+
+    /**
+     * 서버 접속 최종 실패 (30초 동안 서버를 찾지 못함 등). 상태는 이미 DISCONNECTED.
+     * 화면은 주소를 다시 확인하도록 IP 입력란으로 돌아가면 된다. 기본 구현은 showError로 전달
+     */
+    default void onConnectFailed(String message) {
+        showError(message);
+    }
+
     /** 연결 종료. P2P 첫 화면으로 돌아감. peerLeft면 상대가 정상적으로 나간 것 */
     default void onConnectionClosed(String reason, boolean peerLeft) {
     }

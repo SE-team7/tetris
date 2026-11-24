@@ -23,6 +23,7 @@ public class P2PConnectionView {
     private final Label backHint = new Label("TAB : 뒤로가기");
 
     private final TextField ipField = new TextField();
+    private final Label message = new Label();
     private final VBox recentHostsBox = new VBox(4);
 
     public P2PConnectionView() {
@@ -45,6 +46,11 @@ public class P2PConnectionView {
         recentHostsBox.getStyleClass().add("p2p-recent-hosts");
         recentHostsBox.setManaged(false);
         recentHostsBox.setVisible(false);
+        message.getStyleClass().add("p2p-status");
+        message.setWrapText(true);
+        message.setMaxWidth(420);
+        message.setAlignment(Pos.CENTER);
+        setStatus("");
 
         root.getChildren().addAll(
             title,
@@ -52,6 +58,7 @@ public class P2PConnectionView {
             joinLabel,
             ipField,
             recentHostsBox,
+            message,
             backHint
         );
 
@@ -134,7 +141,16 @@ public class P2PConnectionView {
     }
 
    
+    /** 안내·오류 문구 (비어 있으면 숨김) */
     public void setStatus(String text) {
+        String value = text == null ? "" : text;
+        message.setText(value);
+        message.setVisible(!value.isEmpty());
+        message.setManaged(!value.isEmpty());
+    }
+
+    public String getStatus() {
+        return message.getText();
     }
 
     public void setHostIp(String ip) {

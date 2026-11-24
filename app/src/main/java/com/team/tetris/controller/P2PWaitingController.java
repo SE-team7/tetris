@@ -138,6 +138,12 @@ public class P2PWaitingController {
         view.setStatus("상대방을 기다리는 중...");
     }
 
+    /** 클라이언트: 서버를 아직 못 찾아 다시 시도하는 중 (회의 7차 문제 6·7) */
+    public void showConnectRetry(long remainingMillis) {
+        long seconds = (Math.max(0, remainingMillis) + 999) / 1000;
+        view.setStatus("서버를 찾는 중... 3초마다 다시 시도합니다 (" + seconds + "초 남음)");
+    }
+
     public void showOpponentReady() {
         view.setStatus(ready ? "양쪽 모두 게임 시작" : "상대방이 게임 시작을 눌렀습니다.");
     }

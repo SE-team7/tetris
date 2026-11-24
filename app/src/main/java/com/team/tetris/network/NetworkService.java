@@ -51,25 +51,44 @@ public class NetworkService {
      * @param heartbeatIntervalMillis PING 주기
      * @param lagThresholdMillis      왕복 지연이 이 값을 넘으면 랙 상태
      * @param disconnectTimeoutMillis 이 시간 동안 아무것도 받지 못하면 연결 끊김
+     * @param connectRetryIntervalMillis 서버를 못 찾으면 이 간격으로 다시 접속 시도
+     * @param connectGiveUpMillis     이 시간 동안 서버를 못 찾으면 포기 (0이면 한 번만 시도)
      */
     public record Timing(
             long connectTimeoutMillis,
             long heartbeatIntervalMillis,
             long lagThresholdMillis,
-            long disconnectTimeoutMillis
+            long disconnectTimeoutMillis,
+            long connectRetryIntervalMillis,
+            long connectGiveUpMillis
     ) {
+        /** 서버를 못 찾을 때 다시 시도하는 간격 (회의 7차 문제 7: 3초마다) */
+        public static final long DEFAULT_CONNECT_RETRY_MILLIS = 3000;
+        /** 서버를 못 찾을 때 포기하기까지의 시간 (회의 7차 문제 7: 30초) */
+        public static final long DEFAULT_CONNECT_GIVE_UP_MILLIS = 30_000;
+
         /**
          * 기본값.
          * 요구사항의 "키 입력~화면 표시 200ms 이하"에 맞춰 왕복 200ms 초과를 랙으로 본다.
          * 일시적인 지연으로 대전이 끊기지 않도록 5초간 응답이 없을 때만 끊김으로 본다.
+         * 클라이언트가 서버보다 먼저 접속해도 3초마다 다시 시도하고, 30초 동안 못 찾으면 포기한다.
          */
-        public static final Timing DEFAULT = new Timing(5000, 250, 200, 5000);
+        public static final Timing DEFAULT = new Timing(5000, 250, 200, 5000,
+                DEFAULT_CONNECT_RETRY_MILLIS, DEFAULT_CONNECT_GIVE_UP_MILLIS);
 
         public Timing {
             if (connectTimeoutMillis <= 0 || heartbeatIntervalMillis <= 0
-                    || lagThresholdMillis <= 0 || disconnectTimeoutMillis <= heartbeatIntervalMillis) {
+                    || lagThresholdMillis <= 0 || disconnectTimeoutMillis <= heartbeatIntervalMillis
+                    || connectRetryIntervalMillis <= 0 || connectGiveUpMillis < 0) {
                 throw new IllegalArgumentException("invalid timing");
             }
+        }
+
+        /** 재시도 없이 한 번만 접속 시도 */
+        public Timing(long connectTimeoutMillis, long heartbeatIntervalMillis,
+                      long lagThresholdMillis, long disconnectTimeoutMillis) {
+            this(connectTimeoutMillis, heartbeatIntervalMillis, lagThresholdMillis, disconnectTimeoutMillis,
+                    DEFAULT_CONNECT_RETRY_MILLIS, 0);
         }
     }
 
@@ -340,18 +359,68 @@ public class NetworkService {
         }
     }
 
+    /**
+     * 접속 시도. 서버가 아직 열리지 않았으면(클라이언트가 먼저 들어온 경우 등)
+     * connectRetryIntervalMillis마다 다시 시도하고, connectGiveUpMillis가 지나면 포기한다.
+     * 그 사이 disconnect()하면 조용히 멈춘다.
+     */
     private void connectTo(long id, String host, int port) {
-        Socket socket = new Socket();
-        try {
-            socket.connect(new InetSocketAddress(host, port), (int) timing.connectTimeoutMillis());
-            install(id, socket);
-        } catch (IOException e) {
-            closeQuietly(socket);
-            if (generation.get() == id) {
-                finishOpening(id);
-                listener.onError("서버(" + host + ":" + port + ")에 연결할 수 없습니다: " + e.getMessage());
+        long retryNanos = TimeUnit.MILLISECONDS.toNanos(timing.connectRetryIntervalMillis());
+        long giveUpAt = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timing.connectGiveUpMillis());
+        int attempt = 0;
+        String lastError = null;
+        while (generation.get() == id) {
+            attempt++;
+            long attemptStart = System.nanoTime();
+            // 한 번의 시도가 재시도 간격을 넘지 않게 (응답 없는 주소에서 3초마다 시도하도록)
+            long limit = timing.connectGiveUpMillis() == 0
+                    ? timing.connectTimeoutMillis()
+                    : Math.min(timing.connectTimeoutMillis(), timing.connectRetryIntervalMillis());
+            Socket socket = new Socket();
+            try {
+                socket.connect(new InetSocketAddress(host, port), (int) Math.max(1, limit));
+                install(id, socket);
+                return;
+            } catch (IOException e) {
+                closeQuietly(socket);
+                lastError = e.getMessage();
+            }
+            long nextAttemptAt = attemptStart + retryNanos;
+            if (generation.get() != id || nextAttemptAt - giveUpAt >= 0) {
+                break;
+            }
+            long remainingMillis = TimeUnit.NANOSECONDS.toMillis(giveUpAt - System.nanoTime());
+            listener.onConnectRetry(attempt, Math.max(0, remainingMillis));
+            if (!sleepUntil(id, nextAttemptAt)) {
+                return;
             }
         }
+        if (generation.get() == id) {
+            finishOpening(id);
+            String target = "서버(" + host + ":" + port + ")";
+            listener.onConnectFailed(timing.connectGiveUpMillis() == 0
+                    ? target + "에 연결할 수 없습니다: " + lastError
+                    : target + "를 찾을 수 없습니다. "
+                            + TimeUnit.MILLISECONDS.toSeconds(timing.connectGiveUpMillis())
+                            + "초 동안 응답이 없습니다. IP 주소를 다시 확인해주세요.");
+        }
+    }
+
+    /** 다음 시도 시각까지 대기. 그 사이 disconnect()되면 false */
+    private boolean sleepUntil(long id, long deadlineNanos) {
+        while (generation.get() == id) {
+            long left = deadlineNanos - System.nanoTime();
+            if (left <= 0) {
+                return true;
+            }
+            try {
+                Thread.sleep(Math.max(1, Math.min(50, TimeUnit.NANOSECONDS.toMillis(left))));
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return false;
+            }
+        }
+        return false;
     }
 
     private void install(long id, Socket socket) throws IOException {

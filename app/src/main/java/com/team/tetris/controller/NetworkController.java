@@ -730,5 +730,28 @@ public class NetworkController {
         public void onLatencyChanged(long roundTripMillis, boolean lagging) {
             ui(() -> events.onLagChanged(roundTripMillis, lagging));
         }
+
+        @Override
+        public void onConnectRetry(int attempt, long remainingMillis) {
+            synchronized (NetworkController.this) {
+                if (state != State.CONNECTING) {
+                    return;
+                }
+                long seconds = (remainingMillis + 999) / 1000;
+                status("서버를 찾는 중... 다시 시도합니다 (" + seconds + "초 남음)");
+                ui(() -> events.onConnectRetry(attempt, remainingMillis));
+            }
+        }
+
+        @Override
+        public void onConnectFailed(String message) {
+            synchronized (NetworkController.this) {
+                if (state != State.CONNECTING) {
+                    return;   // 그 사이 나가기 등
+                }
+                changeState(State.DISCONNECTED);
+                ui(() -> events.onConnectFailed(message));
+            }
+        }
     }
 }

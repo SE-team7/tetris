@@ -448,6 +448,15 @@ public class Main extends Application {
                     "MAIN MENU", () -> leaveToMainMenu(mainMenuController));
                 scenes.showBattle();
             }
+            // 클라이언트가 서버보다 먼저 접속한 경우: 3초마다 다시 시도하며 남은 시간 표시
+            @Override public void onConnectRetry(int attempt, long remainingMillis) {
+                p2pWaitingController.showConnectRetry(remainingMillis);
+            }
+            // 30초 동안 서버를 못 찾으면: 주소 재확인 안내와 함께 IP 입력란으로 이동
+            @Override public void onConnectFailed(String message) {
+                scenes.showP2PConnection();
+                p2pConnectionController.showAddressCheck(joinedHost, message);
+            }
             @Override public void showError(String message) {
                 if (networkController.getState() != NetworkController.State.DISCONNECTED)
                     p2pWaitingController.showError(message);

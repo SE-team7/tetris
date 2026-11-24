@@ -49,7 +49,30 @@ public class P2PConnectionController {
 
         view.clearIp();
         view.showIpField(false);
+        view.setStatus("");
         view.render(selected);
+    }
+
+    /**
+     * 서버를 찾지 못했을 때 (회의 7차 문제 6·7): 주소 재확인 안내를 보여주고
+     * '서버 접속'의 IP 입력란으로 바로 이동한다. 입력했던 IP를 채워 두어 고쳐서 다시 접속할 수 있다.
+     */
+    public void showAddressCheck(String ip, String message) {
+        selected = P2PItem.JOIN;
+        view.render(selected);
+        enteringIp = true;
+        recentIndex = -1;
+        cachedHosts = recentHosts.get();
+        view.showRecentHosts(cachedHosts);
+        view.setIp(ip);
+        view.setStatus(message == null || message.isBlank()
+                ? "서버를 찾을 수 없습니다. IP 주소를 다시 확인해주세요."
+                : message);
+        view.focusIp();
+    }
+
+    public boolean isEnteringIp() {
+        return enteringIp;
     }
 
     public void handleKey(KeyCode key) {
@@ -134,5 +157,6 @@ public class P2PConnectionController {
     }
 
     public void showError(String message) {
+        view.setStatus(message == null ? "" : "오류: " + message);
     }
 }

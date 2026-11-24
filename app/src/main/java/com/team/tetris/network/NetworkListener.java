@@ -27,4 +27,17 @@ public interface NetworkListener {
      */
     default void onLatencyChanged(long roundTripMillis, boolean lagging) {
     }
+
+    /**
+     * 서버를 찾지 못해 잠시 후 다시 접속을 시도한다는 통지 (클라이언트가 서버보다 먼저 접속한 경우 등).
+     * @param attempt         지금까지 실패한 시도 횟수
+     * @param remainingMillis 포기하기까지 남은 시간
+     */
+    default void onConnectRetry(int attempt, long remainingMillis) {
+    }
+
+    /** 접속 최종 실패 (재시도 시간 초과 포함). 기본 구현은 onError로 전달 */
+    default void onConnectFailed(String message) {
+        onError(message);
+    }
 }

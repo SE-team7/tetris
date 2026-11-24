@@ -174,6 +174,83 @@ class NetworkControllerTest {
         assertTrue(side.controller.getRecentHosts().isEmpty(), "실패한 주소는 저장하지 않음");
     }
 
+    // ---------------------------------------------------------------- 회의 7차 문제 6·7: 클라이언트가 먼저 접속
+
+    /** 200ms마다 재시도, 1.5초 후 포기 (실제 3초·30초와 같은 규칙) */
+    private static final NetworkService.Timing RETRY_NET = new NetworkService.Timing(1000, 50, 150, 800, 200, 1500);
+
+    private NetworkController retryingClient(RecordingNetworkEvents events, FakeBattleGateway battle) {
+        NetworkController controller = new NetworkController(new NetworkService(RETRY_NET), battle,
+                new RecentHostStore(new FileManager(tempDir.resolve("retry-client"))), Runnable::run, FAST);
+        controller.setEvents(events);
+        controllers.add(controller);
+        return controller;
+    }
+
+    private static int unusedPort() throws IOException {
+        try (ServerSocket socket = new ServerSocket(0)) {
+            return socket.getLocalPort();
+        }
+    }
+
+    @Test
+    void joinBeforeServerOpens_keepsRetryingThenConnects() throws Exception {
+        RecordingNetworkEvents events = new RecordingNetworkEvents();
+        NetworkController client = retryingClient(events, new FakeBattleGateway());
+        int port = unusedPort();
+
+        client.join("127.0.0.1", port);   // 서버보다 먼저 접속
+
+        waitUntil(() -> events.connectRetryRemaining.size() >= 2);
+        assertEquals(State.CONNECTING, client.getState(), "무한 대기도, 바로 실패도 아님: 재시도 중");
+        assertTrue(events.statuses.stream().anyMatch(s -> s.contains("서버를 찾는 중")), events.statuses.toString());
+        assertTrue(events.errors.isEmpty(), "재시도 중에는 오류 표시 안 함");
+
+        Side server = new Side("late-server");
+        server.controller.host(port);   // 늦게 서버를 연다
+
+        waitUntil(() -> client.getState() == State.CONNECTED
+                && server.controller.getState() == State.CONNECTED);
+        assertTrue(events.connectFailures.isEmpty());
+        assertEquals("127.0.0.1", client.getRecentHosts().get(0).host(), "연결되면 최근 접속 주소 저장");
+    }
+
+    @Test
+    void joinWithoutServer_timesOutAndAsksToCheckAddress() throws Exception {
+        RecordingNetworkEvents events = new RecordingNetworkEvents();
+        NetworkController client = retryingClient(events, new FakeBattleGateway());
+
+        client.join("127.0.0.1", unusedPort());
+
+        waitUntil(() -> !events.connectFailures.isEmpty());
+        assertEquals(State.DISCONNECTED, client.getState(), "시간 초과 → 처음 상태로 (주소 재확인 화면)");
+        assertEquals(1, events.connectFailures.size());
+        assertTrue(events.connectFailures.get(0).contains("IP 주소를 다시 확인"), events.connectFailures.toString());
+        assertEquals(events.connectFailures, events.errors, "기본 구현은 showError로도 전달");
+        assertTrue(events.connectRetryRemaining.size() >= 3, "포기 전 여러 번 재시도: " + events.connectRetryRemaining);
+        assertTrue(client.getRecentHosts().isEmpty(), "찾지 못한 주소는 저장하지 않음");
+
+        client.join("127.0.0.1", unusedPort());   // 주소를 고쳐 다시 시도할 수 있음
+        assertEquals(State.CONNECTING, client.getState());
+    }
+
+    @Test
+    void leaveWhileRetrying_stopsWithoutFailureMessage() throws Exception {
+        RecordingNetworkEvents events = new RecordingNetworkEvents();
+        NetworkController client = retryingClient(events, new FakeBattleGateway());
+        client.join("127.0.0.1", unusedPort());
+        waitUntil(() -> !events.connectRetryRemaining.isEmpty());
+
+        client.leave();   // 대기 화면에서 뒤로가기
+
+        assertEquals(State.DISCONNECTED, client.getState());
+        Thread.sleep(RETRY_NET.connectGiveUpMillis() + 300);
+        assertTrue(events.connectFailures.isEmpty(), "직접 나간 것은 실패로 알리지 않음");
+        assertTrue(events.errors.isEmpty());
+        client.host(0);   // 바로 다른 동작 가능
+        assertEquals(State.HOSTING, client.getState());
+    }
+
     @Test
     void join_invalidArgumentsLeaveStateUnchanged() {
         Side side = new Side("client");
