@@ -106,20 +106,12 @@ public class BattleController {
         KeyCode key,
         boolean pressed
     ) {
+        if (!pressed) return;
         KeyAction action = settings.findBattleAction(player, key);
         if (action == null) return;
 
-        if (isRepeatable(action)) {
-            service.submitKeyState(player, action, pressed);
-        } else if (pressed) {
-            service.submitAction(player, action);
-        }
-    }
-
-    private boolean isRepeatable(KeyAction action) {
-        return action == KeyAction.MOVE_LEFT
-            || action == KeyAction.MOVE_RIGHT
-            || action == KeyAction.SOFT_DROP;
+        // 모든 키를 OS 키 리피트에 맡겨 싱글플레이와 동일한 "초기 지연 → 반복" 체감을 준다.
+        service.submitAction(player, action);
     }
 
     private void render() {
