@@ -4,12 +4,17 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import com.team.tetris.domain.Block;
 import com.team.tetris.domain.BlockType;
@@ -414,7 +419,7 @@ class GameEngineServiceTest {
         engine.hardDrop();
         engine.tick();
 
-        // 폭탄이 반드시 다음 턴에 나오지 않을 수 있다(랜덤). isItemBlockTurn은 10줄 삭제마다 켜짐.
+        // 아직 누적 줄 삭제 보상을 받지 않았으므로 폭탄은 등장하지 않는다.
         // 그러나 이 테스트에선 아이템 모드만 활성화하고 pollClearEvent로 어느 이벤트든 확인.
         // 라인 완성이 없더라도 아이템 효과가 발생하면 enqueue 되어야 한다.
         // 따라서 "clearEvents가 비어있지 않은 가능성"만 확인하는 방식 대신,
@@ -442,6 +447,75 @@ class GameEngineServiceTest {
         assertEquals(firstNext, engine.getCurrentBlock(),
                 "직전의 nextBlock이 currentBlock이 되어야 함");
         assertNotNull(engine.getNextBlock(), "새로운 next가 준비되어야 함");
+    }
+
+    @ParameterizedTest
+    @CsvSource({"2, true", "3, true", "3, false"})
+    void itemRewardBecomesTheNextBlockAtOrAcrossTenLines(int finalClear, boolean itemMode) {
+        Board board = new Board();
+        StubBlockFactory factory = new StubBlockFactory();
+        GameEngineService engine = new GameEngineService(
+                board, factory, new ScoreService(), new LevelService());
+        engine.startGame(Difficulty.EASY, itemMode);
+
+        for (int i = 0; i < 4; i++) {
+            clearBottomRows(engine, board, 2);
+        }
+        assertEquals(8, engine.getClearedLines());
+        assertFalse(engine.getNextBlock().hasItem());
+
+        Block nextNormalBlock = clearBottomRows(engine, board, finalClear);
+        assertEquals(8 + finalClear, engine.getClearedLines());
+        Block nextBlock = engine.getNextBlock();
+        assertEquals(itemMode, nextBlock.hasItem());
+        assertEquals(nextBlock.getItemType(), engine.getSnapshot().getNextBlock().getItemType());
+
+        engine.tick();
+        assertSame(nextBlock, engine.getCurrentBlock());
+        assertFalse(engine.getNextBlock().hasItem());
+        if (itemMode) {
+            assertSame(nextNormalBlock, engine.getNextBlock());
+        }
+    }
+
+    @Test
+    void fiftyEightClearedLinesSpawnFiveItemBlocks() {
+        Board board = new Board();
+        GameEngineService engine = new GameEngineService(
+                board, new StubBlockFactory(), new ScoreService(), new LevelService());
+        engine.startGame(Difficulty.EASY, true);
+
+        List<Integer> itemSpawnLines = new ArrayList<>();
+        for (int clear = 0; clear < 20; clear++) {
+            clearBottomRows(engine, board, clear < 18 ? 3 : 2);
+            if (engine.getNextBlock().hasItem()) {
+                engine.tick();
+                assertTrue(engine.getCurrentBlock().hasItem());
+                itemSpawnLines.add(engine.getClearedLines());
+                engine.hardDrop();
+                engine.tick();
+            }
+        }
+
+        assertEquals(58, engine.getClearedLines());
+        assertEquals(List.of(12, 21, 30, 42, 51), itemSpawnLines);
+    }
+
+    private Block clearBottomRows(GameEngineService engine, Board board, int rows) {
+        int topRow = Board.ROWS - rows;
+        for (int row = topRow; row < Board.ROWS; row++) {
+            for (int col = 0; col < Board.COLS; col++) {
+                if (row >= topRow + 2 || (col != 4 && col != 5)) {
+                    board.lockBlock(bombAt(row, col));
+                }
+            }
+        }
+        engine.tick();
+        engine.hardDrop();
+        engine.tick();
+        Block nextBlock = engine.getNextBlock();
+        assertTrue(engine.applyPendingLineClear());
+        return nextBlock;
     }
 
     @Test
