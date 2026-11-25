@@ -166,6 +166,25 @@ public sealed interface MessagePayload {
     record Ping(long timestampNanos) implements MessagePayload {
     }
 
+    /** CHAT: 대기실에서 주고받는 한 줄 메시지. 앞뒤 공백 제거, 200자 제한, 줄바꿈 금지 */
+    record Chat(String text) implements MessagePayload {
+        public static final int MAX_LENGTH = 200;
+
+        public Chat {
+            Objects.requireNonNull(text, "text must not be null");
+            if (text.indexOf('\n') >= 0 || text.indexOf('\r') >= 0) {
+                throw new IllegalArgumentException("text must not contain line breaks");
+            }
+            text = text.strip();
+            if (text.isEmpty()) {
+                throw new IllegalArgumentException("text must not be blank");
+            }
+            if (text.length() > MAX_LENGTH) {
+                throw new IllegalArgumentException("text must not exceed " + MAX_LENGTH + " characters");
+            }
+        }
+    }
+
     /** 블록 상태. Block은 회전값을 직접 설정할 수 없으므로 toBlock()에서 rotate()를 반복해 복원 */
     record BlockState(BlockType type, int row, int col, int rotation, ItemType itemType, int itemCellIndex) {
         public BlockState {

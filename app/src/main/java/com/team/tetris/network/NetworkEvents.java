@@ -76,4 +76,8 @@ public interface NetworkEvents {
     /** 연결 종료. P2P 첫 화면으로 돌아감. peerLeft면 상대가 정상적으로 나간 것 */
     default void onConnectionClosed(String reason, boolean peerLeft) {
     }
+
+    /** 상대가 대기실에서 보낸 채팅 메시지 */
+    default void onChatReceived(String text) {
+    }
 }
