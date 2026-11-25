@@ -52,9 +52,11 @@ public class HeuristicBotPlanner {
                 if (placed == null) continue;
 
                 double score = evaluate(placed);
-                if (next != null) {
+                /*if (next != null) {
                     score += bestNextScore(placed.boardAfter, next);
                 }
+                    */
+                
 
                 if (best == null || score > best.score) {
                     best = placed;

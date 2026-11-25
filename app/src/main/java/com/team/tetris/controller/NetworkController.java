@@ -104,6 +104,7 @@ public class NetworkController {
     private boolean peerReady;
     private boolean paused;
     private boolean rematchRequested;
+    private long finishedChatBattleId = -1;
     private long lastSnapshotSequence;
     private String joiningHost;
     private int joiningPort;
@@ -194,6 +195,7 @@ public class NetworkController {
         }
         requireState(State.CONNECTED);
         config = newConfig;
+        finishedChatBattleId = -1;
         battleId++;
         localReady = false;
         peerReady = false;
@@ -230,6 +232,7 @@ public class NetworkController {
     }
 
     private void scheduleStart(long delayMillis) {
+        finishedChatBattleId = -1;
         changeState(State.STARTING);
         long id = battleId;
         startTask = timer.schedule(() -> beginBattle(id), delayMillis, TimeUnit.MILLISECONDS);
@@ -537,7 +540,7 @@ public class NetworkController {
     }
 
     /**
-     * 대기실에서 상대에게 채팅 전송.
+     * 대기실이나 대전 종료 화면에서 상대에게 채팅 전송.
      * 연결·설정 전, 카운트다운, 대전 중에는 전송하지 않고 예외를 던진다.
      * 본문은 MessagePayload.Chat 생성 시 앞뒤 공백 제거·200자 제한·줄바꿈 금지가 적용된다.
      */
@@ -550,7 +553,8 @@ public class NetworkController {
     }
 
     private void onChat(NetworkMessage message) {
-        if (state != State.CONNECTED || config == null || message.getBattleId() != battleId) {
+        long id = message.getBattleId();
+        if (state != State.CONNECTED || config == null || (id != battleId && id != finishedChatBattleId)) {
             return;
         }
         String text = message.getPayload(MessagePayload.Chat.class).text();
@@ -612,6 +616,8 @@ public class NetworkController {
         status("대전 종료 - 게임 시작을 누르면 새 대전을 시작합니다.");
         if (host && config != null) {
             // 다음 대전 번호를 알려 이전 대전의 늦은 메시지를 구분
+            // 클라이언트가 새 CONFIG를 읽기 전에 전송한 종료 화면 채팅도 받는다.
+            finishedChatBattleId = battleId;
             battleId++;
             network.send(NetworkMessage.of(MessageType.CONFIG, battleId, config));
         }
@@ -659,6 +665,7 @@ public class NetworkController {
         host = asHost;
         config = null;
         battleId = 0;
+        finishedChatBattleId = -1;
         localReady = false;
         peerReady = false;
         paused = false;

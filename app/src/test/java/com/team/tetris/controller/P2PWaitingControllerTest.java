@@ -1,7 +1,9 @@
 package com.team.tetris.controller;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static com.team.tetris.FxTestSupport.onFx;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -15,6 +17,10 @@ import com.team.tetris.network.MessagePayload;
 import com.team.tetris.view.P2PWaitingView;
 
 import javafx.application.Platform;
+import javafx.event.ActionEvent;
+import javafx.scene.control.Button;
+import javafx.scene.control.ListView;
+import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
 
 /**
@@ -42,6 +48,69 @@ class P2PWaitingControllerTest {
 
     private P2PWaitingController controller() {
         return new P2PWaitingController(view, starts::incrementAndGet, backs::incrementAndGet);
+    }
+
+    @Test
+    void chatSendsFromButtonAndInputActionAndStaysEnabledWhileWaitingForPeer() throws Exception {
+        onFx(() -> {
+            var sent = new ArrayList<String>();
+            var controller = new P2PWaitingController(view, starts::incrementAndGet, null, null, sent::add);
+            var input = (TextField) view.getRoot().lookup(".text-field");
+            var messages = (ListView<?>) view.getRoot().lookup(".list-view");
+            var send = view.getRoot().lookupAll(".button").stream()
+                .map(Button.class::cast).filter(button -> button != view.getStartButton())
+                .findFirst().orElseThrow();
+
+            assertTrue(input.isDisabled());
+            assertTrue(send.isDisabled());
+            view.setChatEnabled(true);
+            controller.setStartEnabled(true);
+            controller.startBattle();
+            assertEquals(1, starts.get());
+            assertFalse(input.isDisabled());
+            assertFalse(send.isDisabled());
+
+            input.setText("  \u2003 ");
+            send.fire();
+            assertTrue(sent.isEmpty());
+
+            input.setText("\u2003안녕하세요 ");
+            send.fire();
+            assertTrue(input.getText().isEmpty());
+            input.setText(" 또 봐요 ");
+            input.fireEvent(new ActionEvent());
+            assertTrue(input.getText().isEmpty());
+            controller.showPeerChat("  반가워요\u2003");
+            assertEquals(List.of("\u2003안녕하세요 ", " 또 봐요 "), sent);
+            assertEquals(List.of("나: 안녕하세요", "나: 또 봐요", "상대: 반가워요"), messages.getItems());
+
+            controller.show();
+            assertTrue(input.isDisabled());
+            controller.showRematchWaiting(true);
+            assertFalse(input.isDisabled());
+            input.setText("draft");
+            view.clearChat();
+            assertTrue(input.getText().isEmpty());
+            assertTrue(messages.getItems().isEmpty());
+        });
+    }
+
+    @Test
+    void failedChatKeepsDraftAndShowsError() throws Exception {
+        onFx(() -> {
+            new P2PWaitingController(view, null, null, null, text -> {
+                throw new IllegalStateException("전송 실패");
+            });
+            var input = (TextField) view.getRoot().lookup(".text-field");
+            var messages = (ListView<?>) view.getRoot().lookup(".list-view");
+            view.setChatEnabled(true);
+            input.setText(" 보낼 내용 ");
+            input.fireEvent(new ActionEvent());
+
+            assertEquals(" 보낼 내용 ", input.getText());
+            assertEquals("오류: 전송 실패", view.getStatusText());
+            assertTrue(messages.getItems().isEmpty());
+        });
     }
 
     // ================================================================ 버튼 활성화

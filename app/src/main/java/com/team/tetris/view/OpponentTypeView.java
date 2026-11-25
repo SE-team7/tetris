@@ -27,7 +27,7 @@ public class OpponentTypeView {
         title.getStyleClass().add("battle-type-title");
 
         menuLabels.add(new Label("2인 대전"));
-        menuLabels.add(new Label("CPU 대전"));
+        menuLabels.add(new Label("컴퓨터 봇 대전"));
 
         menuLabels.forEach(label -> label.getStyleClass().add("battle-type-item"));
 

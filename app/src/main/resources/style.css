@@ -714,3 +714,80 @@
 }
 .p2p-recent-item:hover { -fx-border-color: #3B82F6; -fx-background-color: #DCEAFF; -fx-text-fill: #172554; }
 .theme-dark .p2p-recent-item:hover { -fx-background-color: #253858; -fx-text-fill: #FFFFFF; }
+
+.battle-post-match-chat { -fx-padding: 0 20px 22px; }
+.p2p-chat-panel {
+    -chat-surface: #FFFFFF;
+    -chat-log: #F4F7FB;
+    -chat-line: #D9E3EF;
+    -chat-text: #18263A;
+    -chat-muted: #51657D;
+    -chat-accent: #2457C5;
+    -chat-badge: #E5EDFC;
+    -chat-error: #A52035;
+    -fx-font-family: "Malgun Gothic";
+    -fx-background-color: -chat-surface;
+    -fx-background-radius: 14px;
+    -fx-border-color: -chat-line;
+    -fx-border-radius: 14px;
+    -fx-padding: 12px;
+}
+.theme-dark .p2p-chat-panel {
+    -chat-surface: #191F2A;
+    -chat-log: #111722;
+    -chat-line: #344157;
+    -chat-text: #EAF0FA;
+    -chat-muted: #AAB8CD;
+    -chat-accent: #ABC6FF;
+    -chat-badge: #263A60;
+    -chat-error: #FFB0BB;
+}
+.p2p-chat-panel .p2p-chat-title {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -chat-text;
+}
+.p2p-chat-panel .p2p-chat-messages {
+    -fx-background-color: -chat-log;
+    -fx-background-radius: 8px;
+    -fx-padding: 5px;
+}
+.p2p-chat-messages .list-cell { -fx-background-color: transparent; -fx-padding: 4px 5px; }
+.p2p-chat-messages .scroll-bar:vertical { -fx-background-color: transparent; -fx-pref-width: 11px; }
+.p2p-chat-messages .scroll-bar:vertical .thumb { -fx-background-color: -chat-line; }
+.p2p-chat-panel .p2p-chat-placeholder { -fx-text-fill: -chat-muted; }
+.p2p-chat-panel .p2p-chat-sender {
+    -fx-text-fill: -chat-muted;
+    -fx-min-width: 34px;
+    -fx-padding: 2px 4px;
+    -fx-alignment: center;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+.p2p-chat-panel .p2p-chat-sender:self {
+    -fx-text-fill: -chat-accent;
+    -fx-background-color: -chat-badge;
+    -fx-background-radius: 5px;
+}
+.p2p-chat-panel .p2p-chat-body { -fx-text-fill: -chat-text; -fx-padding: 1px 0; }
+.p2p-chat-panel .p2p-chat-input {
+    -fx-background-color: -chat-log;
+    -fx-background-radius: 7px;
+    -fx-border-color: -chat-line;
+    -fx-border-radius: 7px;
+    -fx-text-fill: -chat-text;
+    -fx-prompt-text-fill: -chat-muted;
+    -fx-padding: 7px 9px;
+}
+.p2p-chat-panel .p2p-chat-input:focused { -fx-border-color: -chat-accent; }
+.p2p-chat-panel .p2p-chat-send {
+    -fx-background-color: #285BC7;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 7px;
+    -fx-border-color: transparent;
+    -fx-padding: 7px 13px;
+    -fx-cursor: hand;
+}
+.p2p-chat-panel .p2p-chat-send:hover { -fx-background-color: #1D479F; }
+.p2p-chat-panel .p2p-chat-error { -fx-text-fill: -chat-error; -fx-font-size: 12px; }

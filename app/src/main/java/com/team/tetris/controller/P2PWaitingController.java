@@ -21,6 +21,7 @@ public class P2PWaitingController {
     private final P2PWaitingView view;
     private final Runnable onStart, onBack;
     private final Consumer<Boolean> onReadyChange;
+    private final Consumer<String> onSendChat;
     private boolean ready, enabled;
 
     public P2PWaitingController(P2PWaitingView view, Runnable onStart, Runnable onBack) {
@@ -33,11 +34,19 @@ public class P2PWaitingController {
      */
     public P2PWaitingController(P2PWaitingView view, Runnable onStart,
                                 Runnable onBack, Consumer<Boolean> onReadyChange) {
+        this(view, onStart, onBack, onReadyChange, null);
+    }
+
+    public P2PWaitingController(P2PWaitingView view, Runnable onStart,
+                                Runnable onBack, Consumer<Boolean> onReadyChange,
+                                Consumer<String> onSendChat) {
         this.view = Objects.requireNonNull(view, "view must not be null");
         this.onStart = onStart == null ? () -> {} : onStart;
         this.onBack = onBack == null ? () -> {} : onBack;
         this.onReadyChange = onReadyChange == null ? r -> {} : onReadyChange;
+        this.onSendChat = onSendChat;
         view.setOnStart(this::startBattle);
+        view.setOnSendChat(onSendChat == null ? null : this::sendChat);
     }
 
     public void show() {
@@ -105,6 +114,7 @@ public class P2PWaitingController {
      */
     public void showRematchWaiting(boolean configReady) {
         setStartEnabled(configReady);
+        view.setChatEnabled(configReady);
         view.setStatus(configReady ? "재대전 - 게임 시작을 눌러주세요." : "재대전 - 서버의 게임 설정을 기다리는 중...");
     }
 
@@ -113,6 +123,7 @@ public class P2PWaitingController {
         enabled = false;
         view.setStatus("상대방을 기다리는 중...");
         view.setStartEnabled(false);
+        view.setChatEnabled(false);
         view.setLag(0, false);
     }
 
@@ -124,7 +135,8 @@ public class P2PWaitingController {
 
     public void handleKey(KeyCode key) {
         if (key == KeyCode.ENTER) {
-            startBattle();
+            // 입력창에 포커스가 있으면 TextField의 전송 이벤트에 맡긴다.
+            if (!view.isChatInputFocused()) startBattle();
         } else if (key == KeyCode.TAB) {
             onBack.run();
         }
@@ -179,6 +191,27 @@ public class P2PWaitingController {
 
     public void showError(String message) {
         view.setStatus("오류: " + message);
+    }
+
+    private void sendChat(String text) {
+        String body = text.strip();
+        if (body.isEmpty()) return;
+
+        try {
+            onSendChat.accept(text);
+        } catch (RuntimeException e) {
+            showError(e.getMessage());
+            view.setChatError(e.getMessage());
+            return;
+        }
+
+        view.appendChat("나", body);
+        view.clearChatInput();
+        view.setChatError(null);
+    }
+
+    public void showPeerChat(String text) {
+        view.appendChat("상대", text.strip());
     }
 
     public void showLag(long ms, boolean lagging) {

@@ -23,6 +23,7 @@ public class BattleView {
     private final Label finishTitle = new Label(), finishReason = new Label();
     private final Label finishScores = new Label(), finishGuide = new Label();
     private final HBox finishActions = new HBox(30);
+    private final StackPane postMatchChat = new StackPane();
     private Runnable firstAction, secondAction;
     private int selectedAction;
     private boolean interactiveFinish;
@@ -59,6 +60,7 @@ public class BattleView {
         finishScreen.setManaged(false);
         screens.getChildren().add(finishScreen);
         root.setCenter(screens);
+        postMatchChat.getStyleClass().add("battle-post-match-chat");
         root.setFocusTraversable(true);
     }
 
@@ -109,10 +111,34 @@ public class BattleView {
     }
     public void clearResult() {
         showResult("", "");
+        setPostMatchChat(null);
         finishScreen.setVisible(false);
         finishScreen.setManaged(false);
         interactiveFinish = false;
         finishActions.getChildren().clear();
+    }
+
+    public void setPostMatchChat(Parent panel) {
+        boolean open = panel != null;
+        timer.setManaged(timer.isVisible() && (!open || !timer.getText().isBlank()));
+        result.setManaged(!open || !result.getText().isBlank());
+        rematch.setManaged(!open || !rematch.getText().isBlank());
+        finishScores.setManaged(!open || !finishScores.getText().isBlank());
+        if (panel == null) {
+            postMatchChat.getChildren().clear();
+            root.setBottom(null);
+        } else {
+            postMatchChat.getChildren().setAll(panel);
+            root.setBottom(postMatchChat);
+        }
+    }
+
+    public boolean hasPostMatchChat() {
+        return !postMatchChat.getChildren().isEmpty();
+    }
+
+    private void requestFinishFocus() {
+        if (!postMatchChat.isFocusWithin()) requestFocus();
     }
     public void showFinish(String winner, String reason, int first, int second, boolean local) {
         finishTitle.setText(winner);
@@ -120,6 +146,7 @@ public class BattleView {
         boolean p2p = "SERVER".equals(p1.name.getText());
         finishScores.setText((p2p ? "SERVER SCORE : " : "PLAYER 1 SCORE : ") + first
             + "       " + (p2p ? "CLIENT SCORE : " : "PLAYER 2 SCORE : ") + second);
+        finishScores.setManaged(true);
         finishTitle.getStyleClass().removeAll("battle-finish-win", "battle-finish-lose");
         if (winner != null && (winner.contains("WINS") || winner.equals("YOU WIN!")))
             finishTitle.getStyleClass().add("battle-finish-win");
@@ -141,6 +168,7 @@ public class BattleView {
         else if (title.contains("LOSE")) finishTitle.getStyleClass().add("battle-finish-lose");
         finishReason.setText(detail == null ? "" : detail);
         finishScores.setText("");
+        finishScores.setManaged(!hasPostMatchChat());
         finishGuide.setText("");
         finishGuide.setManaged(false);
         firstAction = onLeft;
@@ -154,7 +182,7 @@ public class BattleView {
         refreshSelection();
         finishScreen.setManaged(true);
         finishScreen.setVisible(true);
-        requestFocus();
+        requestFinishFocus();
     }
 
     /** Retains the win/loss title, reason and scores while enabling actions. */
@@ -170,7 +198,7 @@ public class BattleView {
         refreshSelection();
         finishScreen.setManaged(true);
         finishScreen.setVisible(true);
-        requestFocus();
+        requestFinishFocus();
     }
 
     public void showWaiting(String title, String detail) {

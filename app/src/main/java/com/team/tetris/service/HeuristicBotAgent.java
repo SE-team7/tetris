@@ -12,17 +12,19 @@ import com.team.tetris.domain.Settings.KeyAction;
 /**
  * 휴리스틱 봇.
  * 조각이 새로 스폰됐을 때(현재 조각의 행이 이전보다 낮아짐 또는 타입이 바뀜) 한 번만 플랜을 짜고,
- * 생각 지연 뒤 한 틱에 모든 액션을 쏜 후 다음 조각이 등장할 때까지 침묵한다.
- * 이렇게 해야 엔진 스레드 처리 지연으로 같은 조각에 플랜이 중복 실행되는 걸 방지한다.
+ * 생각 지연 뒤에는 액션을 최소 500ms 간격으로 하나씩 실행한다.
  */
 public class HeuristicBotAgent implements PlayerAgent {
 
     private static final int THINK_TICKS = 30;
+    //여기 조절하면됨
+    private static final long ACTION_INTERVAL_NANOS = 100_000_000L;
 
     private final HeuristicBotPlanner planner = new HeuristicBotPlanner();
     private final Deque<KeyAction> queue = new ArrayDeque<>();
 
     private int thinkTicks;
+    private long nextActionNanos = System.nanoTime();
     private int lastSeenRow = Integer.MIN_VALUE;
     private BlockType lastSeenType = null;
 
@@ -30,6 +32,7 @@ public class HeuristicBotAgent implements PlayerAgent {
     public void reset() {
         queue.clear();
         thinkTicks = 0;
+        nextActionNanos = System.nanoTime();
         lastSeenRow = Integer.MIN_VALUE;
         lastSeenType = null;
     }
@@ -64,6 +67,11 @@ public class HeuristicBotAgent implements PlayerAgent {
         }
 
         if (queue.isEmpty()) return List.of();
+
+        long now = System.nanoTime();
+        if (now - nextActionNanos < 0) return List.of();
+
+        nextActionNanos = now + ACTION_INTERVAL_NANOS;
         return List.of(queue.poll());
     }
 }

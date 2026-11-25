@@ -361,6 +361,14 @@ class NetworkServiceTest {
     }
 
     @Test
+    void sendChat_whileDisconnectedReportsThatMessageCouldNotBeQueued() {
+        NetworkService service = newService(new RecordingListener());
+        var chat = NetworkMessage.of(MessageType.CHAT, 1, new MessagePayload.Chat("hello"));
+
+        assertThrows(IllegalStateException.class, () -> service.send(chat));
+    }
+
+    @Test
     void onMessage_exceptionIsReportedAndLaterMessagesStillArrive() throws InterruptedException {
         RecordingListener hostEvents = new RecordingListener() {
             @Override
@@ -377,6 +385,7 @@ class NetworkServiceTest {
         host.openHost(0);
         client.connect(LOCALHOST, host.getLocalPort());
         hostEvents.awaitConnected();
+        clientEvents.awaitConnected();
 
         client.send(NetworkMessage.of(MessageType.PAUSE, 1));
         client.send(NetworkMessage.of(MessageType.RESUME, 1));

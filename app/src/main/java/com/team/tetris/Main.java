@@ -246,10 +246,17 @@ public class Main extends Application {
             () -> opponentBack.run()
         );
 
+        Runnable resetP2PChat = () -> {
+            battleView.setPostMatchChat(null);
+            p2pWaitingView.restoreChatPanel();
+            p2pWaitingView.setChatEnabled(false);
+            p2pWaitingView.clearChat();
+        };
         p2pConnectionController = new P2PConnectionController(
             p2pConnectionView,
             () -> {
                 try {
+                    resetP2PChat.run();
                     networkController.host(NetworkService.DEFAULT_PORT);
                     hostFlow = true;
                     battleType = BattleTypeItem.P2P;
@@ -263,6 +270,7 @@ public class Main extends Application {
             },
             ip -> {
                 try {
+                    resetP2PChat.run();
                     networkController.join(ip, NetworkService.DEFAULT_PORT);
                     hostFlow = false;
                     battleType = BattleTypeItem.P2P;
@@ -297,7 +305,9 @@ public class Main extends Application {
                 p2pBattleShown = false;
                 p2pConnectionController.show();
                 scenes.showP2PConnection();
-            }
+            },
+            null,
+            networkController::sendChat
         );
 
         mainMenuView.getRoot().setOnKeyPressed(
@@ -358,6 +368,13 @@ public class Main extends Application {
         battleView.getRoot().addEventFilter(
             KeyEvent.KEY_PRESSED,
             e -> {
+                if (battleView.hasPostMatchChat() && p2pWaitingView.isChatInputFocused()) {
+                    if (e.getCode() == KeyCode.TAB) {
+                        battleView.requestFocus();
+                        e.consume();
+                    }
+                    return;
+                }
                 if (e.getCode() == KeyCode.TAB) {
                     battleBack[0].run();
                 } else if (battleType == BattleTypeItem.P2P && battleView.handleFinishKey(e.getCode())) {
@@ -372,6 +389,7 @@ public class Main extends Application {
         battleView.getRoot().addEventFilter(
             KeyEvent.KEY_RELEASED,
             e -> {
+                if (battleView.hasPostMatchChat() && p2pWaitingView.isChatInputFocused()) return;
                 battleController.handleKeyReleased(e.getCode());
                 e.consume();
             }
@@ -385,22 +403,35 @@ public class Main extends Application {
 
         networkController.setEvents(new NetworkEvents() {
             @Override public void onStateChanged(NetworkController.State state) {
-                if (state == NetworkController.State.CONNECTED) {
-                    if (hostFlow && networkController.getConfig() == null) {
-                        battleModeController.show();
-                        scenes.showBattleMode();
-                    } else {
-                        p2pWaitingController.showConnected();
-                        p2pWaitingController.setStartEnabled(networkController.getConfig() != null);
-                    }
+                if (state != NetworkController.State.CONNECTED) {
+                    p2pWaitingView.setChatEnabled(false);
+                } else if (hostFlow && networkController.getConfig() == null) {
+                    battleModeController.show();
+                    scenes.showBattleMode();
+                } else {
+                    boolean configured = networkController.getConfig() != null;
+                    p2pWaitingController.showConnected();
+                    p2pWaitingController.setStartEnabled(configured);
+                    p2pWaitingView.setChatEnabled(configured
+                        && stage.getScene().getRoot() == p2pWaitingView.getRoot());
                 }
             }
             @Override public void onConfigChanged(MessagePayload.Config config) {
+                if (battleView.hasPostMatchChat() && stage.getScene().getRoot() == battleView.getRoot()) {
+                    return;
+                }
                 if (!hostFlow) {
                     p2pWaitingController.showClient(joinedHost, config);
                 }
                 p2pWaitingController.showConnected();
                 p2pWaitingController.setStartEnabled(true);
+                if (networkController.getState() == NetworkController.State.CONNECTED
+                    && stage.getScene().getRoot() == p2pWaitingView.getRoot()) {
+                    p2pWaitingView.setChatEnabled(true);
+                }
+            }
+            @Override public void onChatReceived(String text) {
+                p2pWaitingController.showPeerChat(text);
             }
             @Override public void onPeerReadyChanged(boolean ready) {
                 if (ready) p2pWaitingController.showOpponentReady();
@@ -421,6 +452,9 @@ public class Main extends Application {
             @Override public void onBattleFinished(MessagePayload.Result result) {
                 p2pBattleShown = false;
                 battleController.showP2PResult(result, networkController.isHost());
+                battleView.setPostMatchChat(p2pWaitingView.getChatPanel());
+                p2pWaitingView.setChatEnabled(networkController.getState() == NetworkController.State.CONNECTED
+                    && networkController.getConfig() != null);
                 battleView.showResultChoices(
                     "REMATCH", () -> {
                         try {
@@ -440,7 +474,7 @@ public class Main extends Application {
                     "ACCEPT", () -> {
                         try {
                             networkController.respondRematch(true);
-                            showP2PRematchWaiting(scenes);
+                            showP2PRematchWaiting(scenes, battleView, p2pWaitingView);
                         } catch (RuntimeException ex) {
                             battleView.showChoice("REMATCH ERROR", ex.getMessage(),
                                 "P2P MENU", () -> openP2PConnection(scenes),
@@ -457,7 +491,7 @@ public class Main extends Application {
             }
             @Override public void onRematchAnswered(boolean accepted) {
                 if (accepted) {
-                    showP2PRematchWaiting(scenes);
+                    showP2PRematchWaiting(scenes, battleView, p2pWaitingView);
                 } else {
                     battleView.showChoice("REMATCH DECLINED", "Your opponent declined the rematch.",
                         "NEW GAME", () -> requestAnotherRematch(battleView),
@@ -515,7 +549,9 @@ public class Main extends Application {
     }
 
     /** 재대전 수락 후 대기실로: 첫 대전과 같이 양쪽이 다시 '게임 시작'을 눌러야 시작 */
-    private void showP2PRematchWaiting(SceneManager scenes) {
+    private void showP2PRematchWaiting(SceneManager scenes, BattleView battleView, P2PWaitingView waitingView) {
+        battleView.setPostMatchChat(null);
+        waitingView.restoreChatPanel();
         if (hostFlow) {
             p2pWaitingController.showHost(networkController.getHostAddressDetails(), getWaitingModeText());
         } else {

@@ -116,6 +116,7 @@ class P2PNetworkConditionTest {
         waitUntil(() -> client.network.getRoundTripMillis() > 0);
 
         startBattle();
+        waitUntil(() -> server.events.battleStarted > 0 && client.events.battleStarted > 0);
 
         long gapMillis = TimeUnit.NANOSECONDS.toMillis(
                 Math.abs(server.events.battleStartedAtNanos - client.events.battleStartedAtNanos));

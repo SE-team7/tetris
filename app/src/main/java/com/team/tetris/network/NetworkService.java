@@ -191,6 +191,7 @@ public class NetworkService {
 
     /**
      * 메시지를 송신 큐에 추가. 실제 송신은 통신 스레드에서 처리.
+     * 채팅 메시지를 큐에 넣을 수 없으면 IllegalStateException을 던진다.
      * 연결되어 있지 않으면 버린다. (끊김은 onDisconnected로 따로 알림)
      */
     public void send(NetworkMessage message) {
@@ -199,8 +200,9 @@ public class NetworkService {
             throw new IllegalArgumentException(message.getType() + " is reserved for NetworkService");
         }
         Connection current = connection;
-        if (current != null) {
-            current.enqueue(message);
+        boolean queued = current != null && current.enqueue(message);
+        if (!queued && message.getType() == MessageType.CHAT) {
+            throw new IllegalStateException("채팅을 전송할 수 없습니다. 연결을 확인해주세요.");
         }
     }
 
@@ -488,18 +490,18 @@ public class NetworkService {
             }
         }
 
-        void enqueue(NetworkMessage message) {
+        boolean enqueue(NetworkMessage message) {
             if (closed.get()) {
-                return;
+                return false;
             }
             if (message.getType() == MessageType.SNAPSHOT) {
                 // 이미 대기 중인 스냅샷이 있으면 내용만 최신으로 바꾸고 신호는 하나만 유지
                 if (pendingSnapshot.getAndSet(message) == null) {
                     outbox.offer(SNAPSHOT_READY);
                 }
-            } else {
-                outbox.offer(message);
+                return true;
             }
+            return outbox.offer(message);
         }
 
         private void readLoop() {
