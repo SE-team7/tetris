@@ -22,15 +22,17 @@ public class GameEngineService {
 
     //한 판 최대 스킵 횟수
     private static final int MAX_SKIPS = 7;
+    private static final int LINES_PER_ITEM = 10;
 
     private final Board board;
     private final BlockFactory blockFactory;
     private final ScoreService scoreService;
     private final LevelService levelService;
     private final AttackService attackService;
+    private final Deque<Block> queuedItemBlocks = new ArrayDeque<>();
 
     private Block currentBlock;
-    private Block nextBlock;
+    private Block nextNormalBlock;
     private boolean blockLocked;
     private int clearedLines;
     private int skipsUsed;
@@ -40,7 +42,6 @@ public class GameEngineService {
 
     private Difficulty difficulty;
     private boolean itemMode;
-    private boolean isItemBlockTurn;
     private ClearResult pendingLineClear;
     private AttackRows pendingAttack; // 미뤄둔 줄 삭제가 끝나면 보낼 공격
     private boolean weightCollided;
@@ -86,8 +87,8 @@ public class GameEngineService {
         blockLocked = false;
         clearedLines = 0;
         skipsUsed = 0;
-        isItemBlockTurn = false;
-        nextBlock = createNextBlock();
+        queuedItemBlocks.clear();
+        nextNormalBlock = blockFactory.createRandomBlock(difficulty);
         pendingLineClear = null;
         pendingAttack = null;
         weightCollided = false;
@@ -99,18 +100,8 @@ public class GameEngineService {
 
     //틱당 실행할 메소드
     public void tick() {
-        //isItemBlockTurn = Math.random() < 0.5; // 테스트용 라인입니당 ^_^
-
         // 지난 틱에서 미뤄진 라인 삭제가 있으면 이번 틱에 처리만 하고 끝
-        if (pendingLineClear != null) {
-            ClearResult pending = pendingLineClear;
-            pendingLineClear = null;
-            board.applyClear(pending);
-            applyScoreAndCounter(
-                    pending.getScoreLineCount(),
-                    pending.getItemCounterLineCount()
-            );
-            sendPendingAttack();
+        if (applyPendingLineClear()) {
             return;
         }
 
@@ -122,8 +113,11 @@ public class GameEngineService {
                 return;
             }
 
-            currentBlock = nextBlock;
-            nextBlock = createNextBlock();
+            currentBlock = queuedItemBlocks.pollFirst();
+            if (currentBlock == null) {
+                currentBlock = nextNormalBlock;
+                nextNormalBlock = blockFactory.createRandomBlock(difficulty);
+            }
             weightCollided = false;
 
             // 생성 위치에 놓을 수 없으면 게임오버
@@ -198,20 +192,16 @@ public class GameEngineService {
         attackService.sendAttack(attack);
     }
 
-    private Block createNextBlock() {
-        if (isItemBlockTurn && itemMode) {
-            isItemBlockTurn = false;
-            return blockFactory.createItemBlock();
-        }
-        return blockFactory.createRandomBlock(difficulty);
-    }
-
     //점수/카운터/레벨 반영 (아이템 효과·라인 삭제 공통)
     private void applyScoreAndCounter(int scoreLines, int counterLines) {
         if (counterLines > 0) {
+            int previousMilestone = clearedLines / LINES_PER_ITEM;
             clearedLines += counterLines;
-            if (clearedLines % 10 == 0) {
-                isItemBlockTurn = true;
+            if (itemMode) {
+                int newMilestones = clearedLines / LINES_PER_ITEM - previousMilestone;
+                for (int i = 0; i < newMilestones; i++) {
+                    queuedItemBlocks.addLast(blockFactory.createItemBlock());
+                }
             }
         }
         if (scoreLines > 0) {
@@ -404,7 +394,8 @@ public class GameEngineService {
     }
 
     public Block getNextBlock() {
-        return nextBlock;
+        Block nextItemBlock = queuedItemBlocks.peekFirst();
+        return nextItemBlock == null ? nextNormalBlock : nextItemBlock;
     }
 
     public int getScore() {
@@ -439,7 +430,7 @@ public class GameEngineService {
                 board.getCells(),
                 attackCells,
                 currentBlock,
-                nextBlock,
+                getNextBlock(),
                 getScore(),
                 getLevel(),
                 getSkipsRemaining(),
