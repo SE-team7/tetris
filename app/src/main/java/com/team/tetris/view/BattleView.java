@@ -235,6 +235,10 @@ public class BattleView {
         p1.name.setText(p2p ? "SERVER" : "PLAYER 1");
         p2.name.setText(p2p ? "CLIENT" : "PLAYER 2");
     }
+
+    public void setControlsVisible(PlayerId id, boolean visible) {
+        (id == PlayerId.PLAYER1 ? p1 : p2).setControlsVisible(visible);
+    }
     public void applyColorBlindMode(boolean enabled) {
         p1.game.applyColorBlindMode(enabled);
         p2.game.applyColorBlindMode(enabled);
@@ -259,6 +263,13 @@ public class BattleView {
         private static final int ATTACK_ROWS = 10, ATTACK_COLS = Board.COLS;
         private final Rectangle[][] attackCells = new Rectangle[ATTACK_ROWS][ATTACK_COLS];
         private final GridPane attackPreview = new GridPane();
+        private VBox controlsBox;
+
+        void setControlsVisible(boolean visible) {
+            if (controlsBox == null) return;
+            controlsBox.setVisible(visible);
+            // setManaged는 바꾸지 않는다: 자리는 유지해 상대 보드 높이와 맞춘다.
+        }
 
         PlayerArea(String name, boolean first) {
             this.name = new Label(name);
@@ -295,7 +306,8 @@ public class BattleView {
             info.setAlignment(Pos.TOP_CENTER);
             HBox field = new HBox(18, game.detachBattleBoard(), info);
             field.setAlignment(Pos.CENTER);
-            root = new VBox(18, header, field, controls(first));
+            controlsBox = controls(first);
+            root = new VBox(18, header, field, controlsBox);
             root.setAlignment(Pos.CENTER);
             root.getStyleClass().add("battle-player");
         }
