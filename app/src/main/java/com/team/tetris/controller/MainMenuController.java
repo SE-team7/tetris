@@ -18,6 +18,20 @@ public class MainMenuController {
     private final ScoreboardController scoreboardController;
     private final Settings settings;
 
+    private Runnable onSettings;
+
+    public void setSettingsAction(Runnable action) {
+        onSettings = action;
+    }
+
+    private Runnable onLocalBattle;
+    private Runnable onP2PBattle;
+
+    public void setBattleActions(Runnable local, Runnable p2p) {
+        onLocalBattle = local;
+        onP2PBattle = p2p;
+    }
+
     private MainMenuItem selected = MainMenuItem.START_GAME;
 
     public MainMenuController(
@@ -68,8 +82,12 @@ public class MainMenuController {
                 gameController.startGame(GameMode.ITEM, Difficulty.EASY);
                 scenes.showGame();
             }
-            case BATTLE_MODE -> scenes.showBattleType();
-            case SETTINGS -> scenes.showSettings();
+            case BATTLE_MODE -> { if (onLocalBattle != null) onLocalBattle.run(); else scenes.showBattleType(); }
+            case P2P_BATTLE_MODE -> { if (onP2PBattle != null) onP2PBattle.run(); else scenes.showBattleType(); }
+            case SETTINGS -> {
+                if (onSettings != null) onSettings.run();
+                else scenes.showSettings();
+            }
             case SCOREBOARD -> scoreboardController.show();
             case EXIT -> Platform.exit();
         }

@@ -9,6 +9,8 @@ import com.team.tetris.domain.Settings.KeyAction;
 import com.team.tetris.service.BattleService;
 import com.team.tetris.network.MessagePayload;
 import com.team.tetris.view.BattleView;
+import com.team.tetris.domain.ClearResult;
+
 
 import javafx.animation.AnimationTimer;
 import javafx.application.Platform;
@@ -58,6 +60,7 @@ public class BattleController {
 
         view.clearResult();
         service.startLocalBattle(config);
+        view.updateControlGuides(settings, null);
         renderer.start();
         render();
         view.requestFocus();
@@ -65,6 +68,7 @@ public class BattleController {
 
     public void startRendering() {
         localBattle = false;
+        view.updateControlGuides(settings, service.getLocalPlayer());
         view.clearResult();
         renderer.start();
         render();
@@ -90,6 +94,13 @@ public class BattleController {
 
         if (service.getState() != BattleState.RUNNING) return;
 
+        if (!localBattle && service.isNetworkBattle()) {
+            PlayerId player = service.getLocalPlayer();
+            KeyAction action = settings.findGameAction(key);
+            if (player != null && action != null) service.submitAction(player, action);
+            return;
+        }
+
         handlePlayerKey(PlayerId.PLAYER1, key, true);
         handlePlayerKey(PlayerId.PLAYER2, key, true);
     }
@@ -114,32 +125,42 @@ public class BattleController {
         service.submitAction(player, action);
     }
 
-    private void render() {
-        view.applyColorBlindMode(settings.isColorBlindMode());
-        view.renderPlayer(
-            PlayerId.PLAYER1,
-            service.getPlayerSnapshot(PlayerId.PLAYER1)
-        );
+   private void render() {
+    view.applyColorBlindMode(settings.isColorBlindMode());
 
-        view.renderPlayer(
-            PlayerId.PLAYER2,
-            service.getPlayerSnapshot(PlayerId.PLAYER2)
-        );
-
-        long remaining = service.getRemainingMillis();
-        if (remaining >= 0) {
-            long seconds = remaining / 1000;
-            view.setTimer(String.format(
-                "TIME %02d:%02d",
-                seconds / 60,
-                seconds % 60
-            ));
-        } else view.setTimer("");
-
-        if (service.getState() == BattleState.FINISHED) {
-            showResult(service.getResult());
+    for (PlayerId player : PlayerId.values()) {
+        if (!view.isClearAnimating(player)) {
+            ClearResult event = service.pollClearAnimation(player);
+            if (event != null) {
+                view.playClearAnimation(player, event);
+            }
         }
     }
+
+    view.renderPlayer(
+        PlayerId.PLAYER1,
+        service.getPlayerSnapshot(PlayerId.PLAYER1)
+    );
+
+    view.renderPlayer(
+        PlayerId.PLAYER2,
+        service.getPlayerSnapshot(PlayerId.PLAYER2)
+    );
+
+    long remaining = service.getRemainingMillis();
+    if (remaining >= 0) {
+        long seconds = remaining / 1000;
+        view.setTimer(String.format(
+            "TIME %02d:%02d",
+            seconds / 60,
+            seconds % 60
+        ));
+    } else view.setTimer("");
+
+    if (service.getState() == BattleState.FINISHED) {
+        showResult(service.getResult());
+    }
+}
 
     private void showResult(BattleResult result) {
         if (result == null) return;

@@ -384,6 +384,14 @@ public class GameView {
         }
     }
     private VBox createItemInfoBox() {
+        return createItemInfoBox(false);
+    }
+
+    public VBox createBattleItemInfoBox() {
+        return createItemInfoBox(true);
+    }
+
+    private VBox createItemInfoBox(boolean compact) {
         Label title = new Label("ITEM INFO");
         title.getStyleClass().add("item-info-title");
         GridPane infoGrid = new GridPane();
@@ -395,6 +403,14 @@ public class GameView {
         addItemInfoRow(infoGrid,  2,   ItemType.BOMB,  "중심 3×3 제거");
         addItemInfoRow(infoGrid,  3,   ItemType.CROSS,  "행·열 제거");
         addItemInfoRow(infoGrid,  4,   ItemType.GAP_DESTROY,  "아래 2열 압축");
+        if (compact) {
+            for (var node : infoGrid.getChildren()) {
+                int row = GridPane.getRowIndex(node) == null ? 0 : GridPane.getRowIndex(node);
+                int col = GridPane.getColumnIndex(node) == null ? 0 : GridPane.getColumnIndex(node);
+                GridPane.setRowIndex(node, row / 3);
+                GridPane.setColumnIndex(node, (row % 3) * 2 + col);
+            }
+        }
         VBox box = new VBox(6,  title,  infoGrid);
         box.setAlignment(Pos.CENTER);
         box.setPadding(new Insets(8,  12,  8,  12));

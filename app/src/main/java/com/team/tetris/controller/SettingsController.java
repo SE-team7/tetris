@@ -2,6 +2,14 @@ package com.team.tetris.controller;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.IdentityHashMap;
+import java.util.Map;
+import javafx.beans.property.SimpleObjectProperty;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
+import javafx.scene.paint.Paint;
 
 import com.team.tetris.domain.Difficulty;
 import com.team.tetris.domain.Settings;
@@ -14,8 +22,15 @@ import com.team.tetris.service.SettingsService;
 import com.team.tetris.util.SceneManager;
 import com.team.tetris.view.SettingsView;
 
+import javafx.css.PseudoClass;
 import javafx.scene.Node;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.skin.ComboBoxListViewSkin;
+import javafx.scene.shape.Polygon;
+import javafx.scene.text.Text;
+import javafx.scene.text.Font;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 
@@ -47,6 +62,10 @@ public class SettingsController {
     private final Settings settings;
 
     private final List<Item> items = new ArrayList<>();
+    private record ButtonAppearance(SimpleObjectProperty<Background> background,
+        SimpleObjectProperty<Border> border, SimpleObjectProperty<Paint> text) {}
+    private final Map<Button, ButtonAppearance> appearances = new IdentityHashMap<>();
+    private final Map<ComboBox<?>, ButtonAppearance> comboAppearances = new IdentityHashMap<>();
 
     private KeyAction waitingKey;
     private PlayerId waitingPlayer;
@@ -80,6 +99,7 @@ public class SettingsController {
 
         scenes.applyScreenSize(settings.getScreenSize());
         scenes.applyTheme(settings.getTheme());
+        updateSelection();
     }
 
     private void createItems() {
@@ -129,6 +149,7 @@ public class SettingsController {
             if (value != null) {
                 settings.setTheme(Theme.valueOf(value));
                 scenes.applyTheme(settings.getTheme());
+                updateSelection();
                 view.showMessage("화면 테마: " + value);
             }
         });
@@ -177,6 +198,11 @@ public class SettingsController {
 
     private void connectKeyboard() {
         view.getRoot().addEventFilter(KeyEvent.KEY_PRESSED, e -> {
+            if (e.getCode() == KeyCode.TAB) {
+                backToMainMenu();
+                e.consume();
+                return;
+            }
             if (waitingKey != null) {
                 capture(e.getCode());
                 e.consume();
@@ -238,16 +264,15 @@ public class SettingsController {
     private void track(Node node, Item item) {
         if (node == null) return;
 
-        node.focusedProperty().addListener((obs, oldValue, focused) -> {
-            if (focused && scenes != null && selected >= 0) {
-                int index = items.indexOf(item);
-                if (index >= 0) {
-                    selected = index;
-                    if (item.type() == Type.BATTLE_KEY)
-                        playerColumn = item.player() == PlayerId.PLAYER2 ? 1 : 0;
-                    updateSelection();
-                }
-            }
+        node.addEventFilter(MouseEvent.MOUSE_PRESSED, e -> {
+            int index = items.indexOf(item.type() == Type.BATTLE_KEY
+                ? new Item(Type.BATTLE_KEY, item.keyName(), PlayerId.PLAYER1) : item);
+            if (index < 0) return;
+            selected = index;
+            if (item.type() == Type.BATTLE_KEY)
+                playerColumn = item.player() == PlayerId.PLAYER2 ? 1 : 0;
+            if (item.type() == Type.KEY_TAB) pendingLocalTab = node == view.getLocalTab();
+            updateSelection();
         });
     }
 
@@ -301,38 +326,110 @@ public class SettingsController {
     }
 
     private void updateSelection() {
-        // A blue border indicates keyboard focus only, never the active tab.
-        view.getSingleTab().setStyle("-fx-border-color: " +
-            (selected == 3 && !pendingLocalTab ? "#4A90E2" : "#B5B5B5") +
-            ";-fx-border-width:" + (selected == 3 && !pendingLocalTab ? "2px;" : "1px;"));
-        view.getLocalTab().setStyle("-fx-border-color: " +
-            (selected == 3 && pendingLocalTab ? "#4A90E2" : "#B5B5B5") +
-            ";-fx-border-width:" + (selected == 3 && pendingLocalTab ? "2px;" : "1px;"));
-
+        for (String name : view.getKeyActionNames()) {
+            if (localTabSelected) markSelected(view.getKeyButton(name), false);
+            else for (PlayerId player : new PlayerId[]{PlayerId.PLAYER1, PlayerId.PLAYER2})
+                markSelected(view.getBattleKeyButton(player, name), false);
+        }
+        markSelected(view.getSingleTab(), selected == 3 && !pendingLocalTab);
+        markSelected(view.getLocalTab(), selected == 3 && pendingLocalTab);
         for (int i = 0; i < items.size(); i++) {
             Item item = items.get(i);
             if (item.type() == Type.KEY_TAB) continue;
             if (item.type() == Type.BATTLE_KEY) {
-                for (PlayerId player : new PlayerId[]{PlayerId.PLAYER1, PlayerId.PLAYER2}) {
-                    Node button = view.getBattleKeyButton(player, item.keyName());
-                    if (button != null) {
-                        boolean focused = i == selected &&
-                            (player == PlayerId.PLAYER1 ? playerColumn == 0 : playerColumn == 1);
-                        button.setStyle("-fx-border-color:" +
-                            (focused ? "#4A90E2" : "#B5B5B5") +
-                            ";-fx-border-width:" + (focused ? "2px;" : "1px;"));
-                    }
-                }
+                markSelected(view.getBattleKeyButton(PlayerId.PLAYER1, item.keyName()),
+                    i == selected && playerColumn == 0);
+                markSelected(view.getBattleKeyButton(PlayerId.PLAYER2, item.keyName()),
+                    i == selected && playerColumn == 1);
             } else {
-                Node control = node(item);
-                if (control != null) {
-                    boolean focused = i == selected;
-                    control.setStyle("-fx-border-color:" +
-                        (focused ? "#4A90E2" : "#B5B5B5") +
-                        ";-fx-border-width:" + (focused ? "2px;" : "1px;"));
-                }
+                markSelected(node(item), i == selected);
             }
         }
+    }
+
+    private void markSelected(Node control, boolean focused) {
+        if (control == null) return;
+        if (control instanceof ComboBox<?> combo) {
+            markComboSelected(combo, focused);
+            return;
+        }
+        if (!(control instanceof Button button)) {
+            control.pseudoClassStateChanged(PseudoClass.getPseudoClass("settings-selected"), focused);
+            return;
+        }
+        // Keep button geometry and paint independent of CSS reapplication.
+        ButtonAppearance appearance = appearances.computeIfAbsent(button, b -> {
+            ButtonAppearance a = new ButtonAppearance(new SimpleObjectProperty<>(),
+                new SimpleObjectProperty<>(), new SimpleObjectProperty<>());
+            b.backgroundProperty().bind(a.background());
+            b.borderProperty().bind(a.border());
+            b.textFillProperty().bind(a.text());
+            b.paddingProperty().bind(new SimpleObjectProperty<>(new Insets(3, 8, 3, 8)));
+            b.alignmentProperty().bind(new SimpleObjectProperty<>(Pos.CENTER));
+            b.setMinHeight(24);
+            b.setPrefHeight(24);
+            return a;
+        });
+        boolean dark = settings.getTheme() == Theme.DARK;
+        appearance.background().set(new Background(new BackgroundFill(
+            Color.web(dark ? "#353535" : "#E8E8E8"), CornerRadii.EMPTY, Insets.EMPTY)));
+        appearance.border().set(new Border(new BorderStroke(
+            Color.web(focused ? "#4A90E2" : dark ? "#777777" : "#B5B5B5"),
+            BorderStrokeStyle.SOLID, CornerRadii.EMPTY, new BorderWidths(2))));
+        appearance.text().set(Color.web(dark ? "#FFFFFF" : "#202020"));
+    }
+
+    private void markComboSelected(ComboBox<?> combo, boolean focused) {
+        ButtonAppearance appearance = comboAppearances.computeIfAbsent(combo, c -> {
+            ButtonAppearance a = new ButtonAppearance(new SimpleObjectProperty<>(),
+                new SimpleObjectProperty<>(), new SimpleObjectProperty<>());
+            c.backgroundProperty().bind(a.background());
+            c.borderProperty().bind(a.border());
+            c.paddingProperty().bind(new SimpleObjectProperty<>(Insets.EMPTY));
+            c.setMinHeight(32);
+            c.setPrefHeight(32);
+            installComboSkin(c, a);
+            return a;
+        });
+        boolean dark = settings.getTheme() == Theme.DARK;
+        appearance.background().set(new Background(new BackgroundFill(
+            Color.web(dark ? "#353535" : "#E8E8E8"), CornerRadii.EMPTY, Insets.EMPTY)));
+        appearance.border().set(new Border(new BorderStroke(
+            Color.web(focused ? "#4A90E2" : dark ? "#777777" : "#B5B5B5"),
+            BorderStrokeStyle.SOLID, CornerRadii.EMPTY, new BorderWidths(2))));
+        appearance.text().set(Color.web(dark ? "#FFFFFF" : "#202020"));
+        combo.pseudoClassStateChanged(PseudoClass.getPseudoClass("settings-selected"), focused);
+    }
+
+    private <T> void installComboSkin(ComboBox<T> combo, ButtonAppearance appearance) {
+        combo.setSkin(new ComboBoxListViewSkin<T>(combo) {
+            private final Pane face = new Pane();
+            private final Text value = new Text();
+            private final Polygon arrow = new Polygon(0, 0, 8, 0, 4, 4);
+            {
+                face.setManaged(false);
+                face.setMouseTransparent(true);
+                face.backgroundProperty().bind(appearance.background());
+                value.setFont(Font.font(12));
+                value.fillProperty().bind(appearance.text());
+                value.textProperty().bind(javafx.beans.binding.Bindings.createStringBinding(
+                    () -> combo.getValue() == null ? "" : (combo.getConverter() == null ? combo.getValue().toString() : combo.getConverter().toString(combo.getValue())),
+                    combo.valueProperty(), combo.converterProperty()));
+                arrow.fillProperty().bind(appearance.text());
+                face.getChildren().addAll(value, arrow);
+                getChildren().add(face);
+            }
+
+            @Override
+            protected void layoutChildren(double x, double y, double w, double h) {
+                super.layoutChildren(x, y, w, h);
+                // Keep the native popup and input behavior; paint the closed face independently.
+                face.resizeRelocate(x, y, w, h);
+                value.relocate(7, (h - value.getLayoutBounds().getHeight()) / 2);
+                arrow.relocate(Math.max(0, w - 24), (h - 4) / 2);
+                face.toFront();
+            }
+        });
     }
 
     private void beginBattleCapture(PlayerId player, KeyAction action) {
@@ -384,6 +481,7 @@ public class SettingsController {
         waitingPlayer = null;
         waitingKey = null;
         pendingKey = null;
+        view.showMessage("키 변경 완료");
     }
 
     private boolean setLocalKey(PlayerId player, KeyAction action, KeyCode key) {
@@ -414,6 +512,7 @@ public class SettingsController {
         pendingLocalTab = localTabSelected;
 
         render();
+        view.showMessage("");
         scenes.showSettings();
         updateSelection();
     }
@@ -492,6 +591,8 @@ public class SettingsController {
         waitingKey = null;
         waitingPlayer = null;
         pendingKey = null;
+        selected = -1;
+        view.showMessage("");
         scenes.showMainMenu();
     }
 

@@ -137,6 +137,8 @@ public class Main extends Application {
             settings
         );
 
+        mainMenuController.setSettingsAction(settingsController::show);
+
         Runnable[] battleBack = { mainMenuController::show };
 
         BattleController battleController = new BattleController(
@@ -195,8 +197,7 @@ public class Main extends Application {
                     p2pConnectionController.show();
                     scenes.showP2PConnection();
                 } else {
-                    battleTypeController.show();
-                    scenes.showBattleType();
+                    mainMenuController.show();
                 }
             }
         );
@@ -253,8 +254,7 @@ public class Main extends Application {
                 }
             },
             () -> {
-                battleTypeController.show();
-                scenes.showBattleType();
+                mainMenuController.show();
             },
             networkController::getRecentHosts
         );
@@ -274,6 +274,22 @@ public class Main extends Application {
                 networkController.leave();
 
                 p2pBattleShown = false;
+                p2pConnectionController.show();
+                scenes.showP2PConnection();
+            }
+        );
+
+        mainMenuController.setBattleActions(
+            () -> {
+                battleType = BattleTypeItem.LOCAL;
+                battleMinutes = 0;
+                hostFlow = false;
+                battleModeController.show();
+                scenes.showBattleMode();
+            },
+            () -> {
+                battleType = BattleTypeItem.P2P;
+                battleMinutes = 0;
                 p2pConnectionController.show();
                 scenes.showP2PConnection();
             }
@@ -311,7 +327,7 @@ public class Main extends Application {
 
         bindMenu(
             battleModeView.getRoot(), battleModeController::handleKey,
-            () -> { battleTypeController.show(); scenes.showBattleType(); }
+            () -> { if (battleType == BattleTypeItem.P2P && hostFlow) { networkController.leave(); p2pConnectionController.show(); scenes.showP2PConnection(); } else mainMenuController.show(); }
         );
 
         bindMenu(
@@ -321,7 +337,7 @@ public class Main extends Application {
 
         bindMenu(
             p2pConnectionView.getRoot(), p2pConnectionController::handleKey,
-            () -> { networkController.leave(); battleTypeController.show(); scenes.showBattleType(); }
+            () -> { networkController.leave(); mainMenuController.show(); }
         );
 
         bindMenu(
@@ -607,7 +623,9 @@ public class Main extends Application {
 
         view.setStatus(
             (p2p ? "P2P / " : "LOCAL / ") + getModeText(mode)
-                + " / " + difficulty.name()
+                + " / " + (mode == BattleModeItem.ITEM
+                    ? Difficulty.EASY.name()
+                    : difficulty.name())
         );
 
         view.setTimer(

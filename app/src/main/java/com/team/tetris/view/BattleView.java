@@ -2,6 +2,8 @@ package com.team.tetris.view;
 
 import com.team.tetris.domain.*;
 import javafx.geometry.Pos;
+import javafx.geometry.Bounds;
+import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.Label;
 import javafx.scene.input.KeyCode;
@@ -17,6 +19,7 @@ public class BattleView {
     private final Label result = new Label(), rematch = new Label();
     private final PlayerArea p1 = new PlayerArea("PLAYER 1", true);
     private final PlayerArea p2 = new PlayerArea("PLAYER 2", false);
+    private final VBox itemInfo = p1.game.createBattleItemInfoBox();
     private Runnable onBackAction;
     private final StackPane screens = new StackPane();
     private final VBox finishScreen = new VBox(20);
@@ -39,7 +42,62 @@ public class BattleView {
         top.setAlignment(Pos.CENTER);
         HBox players = new HBox(100, p1.root, p2.root);
         players.setAlignment(Pos.CENTER);
-        VBox content = new VBox(8, players);
+        itemInfo.setVisible(false);
+        itemInfo.setManaged(false);
+        // Keep the existing player spacing; use the empty area below both incoming previews.
+        GridPane itemGrid = (GridPane) itemInfo.getChildren().get(1);
+        // GameView adds each image and description consecutively.
+        for (int i = 0; i < itemGrid.getChildren().size(); i++) {
+            Node node = itemGrid.getChildren().get(i);
+            int index = i / 2;
+            GridPane.setRowIndex(node, index);
+            GridPane.setColumnIndex(node, i % 2);
+            if (node instanceof Label label && i % 2 == 1) {
+                label.setStyle(label.getStyle() + "; -fx-font-size: 15px;");
+                label.setMinWidth(Region.USE_PREF_SIZE);
+                label.setMaxWidth(Region.USE_PREF_SIZE);
+            }
+        }
+        itemGrid.setHgap(10);
+        itemGrid.setVgap(6);
+        itemGrid.setAlignment(Pos.CENTER);
+        for (Node node : itemGrid.getChildren()) {
+            if (node instanceof javafx.scene.image.ImageView image) {
+                image.setFitWidth(32);
+                image.setFitHeight(32);
+                image.setPreserveRatio(true);
+            }
+        }
+        itemInfo.setMouseTransparent(true);
+        Scale itemScale = new Scale(1, 1, 0, 0);
+        itemInfo.getTransforms().add(itemScale);
+        StackPane playerLayout = new StackPane(players, itemInfo) {
+            @Override protected void layoutChildren() {
+                super.layoutChildren();
+                // Resolve nested board and incoming positions before measuring them.
+                players.layout();
+                if (!itemInfo.isVisible()) return;
+                Bounds leftBoard = boundsIn(p1.board, this);
+                Bounds rightBoard = boundsIn(p2.board, this);
+                Bounds leftInfo = boundsIn(p1.attackFrame, this);
+                Bounds rightInfo = boundsIn(p2.attackFrame, this);
+                double x = leftBoard.getMaxX() + 8;
+                double y = Math.max(leftInfo.getMaxY(), rightInfo.getMaxY()) + 8;
+                double w = rightBoard.getMinX() - 8 - x;
+                double h = Math.min(leftBoard.getMaxY(), rightBoard.getMaxY()) - 8 - y;
+                itemInfo.applyCss();
+                double iw = itemInfo.prefWidth(-1), ih = itemInfo.prefHeight(iw);
+                if (w <= 0 || h <= 0 || iw <= 0 || ih <= 0) return;
+                double factor = Math.min(1.25, Math.min(w / iw, h / ih));
+                itemInfo.resize(iw, ih);
+                itemGrid.resize(itemGrid.prefWidth(-1), itemGrid.prefHeight(-1));
+                itemInfo.layout();
+                itemScale.setX(factor);
+                itemScale.setY(factor);
+                itemInfo.relocate(x + (w - iw * factor) / 2, y + (h - ih * factor) * 0.80);
+            }
+        };
+        VBox content = new VBox(8, playerLayout);
         content.setAlignment(Pos.CENTER);
         screens.getChildren().add(fitted(content));
         // Keep title, mode and timer readable in SMALL without scaling them with boards.
@@ -62,6 +120,15 @@ public class BattleView {
         root.setFocusTraversable(true);
     }
 
+    private static Bounds boundsIn(Node node, Parent ancestor) {
+        Bounds bounds = node.getBoundsInLocal();
+        while (node != ancestor) {
+            bounds = node.localToParent(bounds);
+            node = node.getParent();
+        }
+        return bounds;
+    }
+
     private Pane fitted(VBox content) {
         Scale scale = new Scale(1, 1, 0, 0);
         content.getTransforms().add(scale);
@@ -74,6 +141,7 @@ public class BattleView {
                 if (cw <= 0 || ch <= 0) return;
                 double factor = Math.min(w / cw, h / ch);
                 content.resize(cw, ch);
+                content.layout();
                 scale.setX(factor);
                 scale.setY(factor);
                 content.relocate((w - cw * factor) / 2, (h - ch * factor) / 2);
@@ -86,6 +154,15 @@ public class BattleView {
     public Parent getRoot() { return root; }
     public void renderPlayer(PlayerId id, GameSnapshot snapshot) {
         (id == PlayerId.PLAYER1 ? p1 : p2).render(snapshot);
+    }
+    public boolean isClearAnimating(PlayerId id) {
+        return (id == PlayerId.PLAYER1 ? p1 : p2).animating;
+    }
+    public void playClearAnimation(PlayerId id, ClearResult event) {
+        PlayerArea area = id == PlayerId.PLAYER1 ? p1 : p2;
+        if (event == null || area.animating) return;
+        area.animating = true;
+        area.game.playClearAnimation(event, () -> area.animating = false);
     }
     public void setTimer(String text) {
         timer.setText(text == null ? "" : text);
@@ -243,8 +320,15 @@ public class BattleView {
     public void setItemMode(boolean enabled) {
         root.getStyleClass().remove("battle-item-mode");
         if (enabled) root.getStyleClass().add("battle-item-mode");
+        itemInfo.setVisible(enabled);
+        itemInfo.setManaged(false);
+        itemInfo.getParent().requestLayout();
         p1.game.setBattleItemMode(enabled);
         p2.game.setBattleItemMode(enabled);
+    }
+    public void updateControlGuides(Settings settings, PlayerId localPlayer) {
+        p1.updateControls(settings, PlayerId.PLAYER1, localPlayer);
+        p2.updateControls(settings, PlayerId.PLAYER2, localPlayer);
     }
     public void setOnBackAction(Runnable action) { onBackAction = action; }
     public void runBackAction() { if (onBackAction != null) onBackAction.run(); }
@@ -253,6 +337,11 @@ public class BattleView {
     private static class PlayerArea {
         final VBox root;
         final Label name;
+        final Label[] controlKeys = new Label[5];
+        final VBox controlBox;
+        final VBox info;
+        final Node board;
+        final StackPane attackFrame;
         final GameView game = new GameView();
         final Label score = new Label("0"), level = new Label("LEVEL : 1");
         final Label skip = new Label("SKIP : 7"), incoming = new Label("INCOMING : 0 / 10");
@@ -274,7 +363,7 @@ public class BattleView {
             VBox playerScore = new VBox(3, player, scoreTitle, score);
             playerScore.setAlignment(Pos.CENTER);
             HBox header = new HBox(28, playerScore, preview);
-            header.setAlignment(Pos.CENTER);
+            header.setAlignment(first ? Pos.CENTER_LEFT : Pos.CENTER_RIGHT);
             level.getStyleClass().add("battle-info-value");
             skip.getStyleClass().add("battle-info-value");
             incoming.getStyleClass().add("battle-attack");
@@ -289,19 +378,25 @@ public class BattleView {
                     attackPreview.add(cell, c, r);
                 }
             }
-            StackPane attackFrame = new StackPane(attackPreview);
+            attackFrame = new StackPane(attackPreview);
             attackFrame.getStyleClass().add("battle-incoming-frame");
-            VBox info = new VBox(7, level, skip, incoming, attackFrame);
+            info = new VBox(7, level, skip, incoming, attackFrame);
             info.setAlignment(Pos.TOP_CENTER);
-            HBox field = new HBox(18, game.detachBattleBoard(), info);
+            board = game.detachBattleBoard();
+            HBox field = first ? new HBox(18, board, info) : new HBox(18, info, board);
             field.setAlignment(Pos.CENTER);
-            root = new VBox(18, header, field, controls(first));
-            root.setAlignment(Pos.CENTER);
+            controlBox = controls(first);
+            controlBox.setMaxWidth(Region.USE_PREF_SIZE);
+            root = new VBox(18, header, field, controlBox);
+            root.setAlignment(first ? Pos.TOP_LEFT : Pos.TOP_RIGHT);
             root.getStyleClass().add("battle-player");
+            root.setStyle(first ? "-fx-alignment: top-left;" : "-fx-alignment: top-right;");
         }
 
+        boolean animating;
+
         void render(GameSnapshot s) {
-            game.renderBattle(s);
+            if (!animating) game.renderBattle(s);
             if (s == null) return;
             score.setText(String.valueOf(s.getScore()));
             level.setText("LEVEL : " + s.getLevel());
@@ -320,6 +415,22 @@ public class BattleView {
             }
         }
 
+        void updateControls(Settings settings, PlayerId player, PlayerId localPlayer) {
+            boolean ownControls = localPlayer == null || localPlayer == player;
+            controlBox.setVisible(ownControls);
+            // Keep both player areas aligned, even when the remote guide is hidden.
+            if (!ownControls) return;
+            java.util.function.Function<Settings.KeyAction, String> keyName = action -> {
+                KeyCode key = localPlayer == null ? settings.getBattleKey(player, action) : settings.getKey(action);
+                return key == null ? "-" : key.getName();
+            };
+            controlKeys[0].setText(keyName.apply(Settings.KeyAction.MOVE_LEFT) + " / " + keyName.apply(Settings.KeyAction.MOVE_RIGHT));
+            controlKeys[1].setText(keyName.apply(Settings.KeyAction.SOFT_DROP));
+            controlKeys[2].setText(keyName.apply(Settings.KeyAction.ROTATE));
+            controlKeys[3].setText(keyName.apply(Settings.KeyAction.HARD_DROP));
+            controlKeys[4].setText(keyName.apply(Settings.KeyAction.SKIP));
+        }
+
         private VBox controls(boolean first) {
             Label title = new Label("CONTROLS");
             title.getStyleClass().add("game-info-title");
@@ -333,6 +444,7 @@ public class BattleView {
             String[] names = {"이동", "아래", "회전", "하드드랍", "스킵"};
             for (int i = 0; i < keys.length; i++) {
                 Label key = new Label(keys[i]);
+                controlKeys[i] = key;
                 key.setMinWidth(58);
                 key.setAlignment(Pos.CENTER);
                 key.getStyleClass().addAll("game-small-bordered-label", "battle-control-key");
