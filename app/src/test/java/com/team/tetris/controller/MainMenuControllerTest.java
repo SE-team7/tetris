@@ -183,6 +183,8 @@ class MainMenuControllerTest {
             context.controller.handleKey(KeyCode.DOWN);
             context.controller.handleKey(KeyCode.DOWN);
 
+            context.controller.handleKey(KeyCode.DOWN);
+
             assertEquals(
                 MainMenuItem.SETTINGS,
                 context.controller.getSelectedMenu()
@@ -195,6 +197,26 @@ class MainMenuControllerTest {
                 context.stage.getScene().getRoot()
             );
 
+            context.stage.hide();
+            return null;
+        });
+    }
+
+    @Test
+    void localAndP2PInvokeSeparateActions() throws Exception {
+        runFx(() -> {
+            TestContext context = createContext();
+            int[] calls = {0, 0};
+            context.controller.setBattleActions(() -> calls[0]++, () -> calls[1]++);
+            context.controller.handleKey(KeyCode.DOWN);
+            context.controller.handleKey(KeyCode.DOWN);
+            assertEquals(MainMenuItem.BATTLE_MODE, context.controller.getSelectedMenu());
+            context.controller.handleKey(KeyCode.ENTER);
+            assertArrayEquals(new int[]{1, 0}, calls);
+            context.controller.handleKey(KeyCode.DOWN);
+            assertEquals(MainMenuItem.P2P_BATTLE_MODE, context.controller.getSelectedMenu());
+            context.controller.handleKey(KeyCode.ENTER);
+            assertArrayEquals(new int[]{1, 1}, calls);
             context.stage.hide();
             return null;
         });

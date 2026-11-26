@@ -6,6 +6,7 @@ import java.util.Map;
 import com.team.tetris.domain.BattleConfig;
 import com.team.tetris.domain.BattleResult;
 import com.team.tetris.domain.BattleState;
+import com.team.tetris.domain.ClearResult;
 import com.team.tetris.domain.PlayerId;
 import com.team.tetris.domain.Settings;
 import com.team.tetris.domain.Settings.KeyAction;
@@ -64,6 +65,9 @@ public class BattleController {
         view.clearResult();
         service.startLocalBattle(config);
         agents.values().forEach(PlayerAgent::reset);
+        PlayerId humanPlayer = agents.size() == 1 ? agents.keySet().iterator().next().opponent() : null;
+        view.updateControlGuides(settings, humanPlayer);
+        agents.keySet().forEach(player -> view.setControlsVisible(player, false));
         renderer.start();
         render();
         view.requestFocus();
@@ -90,7 +94,9 @@ public class BattleController {
     }
 
     public void startRendering() {
+        clearAgents();
         localBattle = false;
+        view.updateControlGuides(settings, service.getLocalPlayer());
         view.clearResult();
         renderer.start();
         render();
@@ -116,6 +122,13 @@ public class BattleController {
 
         if (service.getState() != BattleState.RUNNING) return;
 
+        if (!localBattle && service.isNetworkBattle()) {
+            PlayerId player = service.getLocalPlayer();
+            KeyAction action = settings.findGameAction(key);
+            if (player != null && action != null) service.submitAction(player, action);
+            return;
+        }
+
         handlePlayerKey(PlayerId.PLAYER1, key, true);
         handlePlayerKey(PlayerId.PLAYER2, key, true);
     }
@@ -134,7 +147,7 @@ public class BattleController {
     ) {
         if (!pressed || agents.containsKey(player)) return;
 
-        KeyAction action = settings.findBattleAction(player, key);
+        KeyAction action = agents.isEmpty() ? settings.findBattleAction(player, key) : settings.findGameAction(key);
         if (action == null) return;
 
         // 싱글플레이와 동일하게 OS 키 반복을 사용한다.
@@ -167,25 +180,39 @@ public class BattleController {
             service.getPlayerSnapshot(PlayerId.PLAYER1)
         );
 
-        view.renderPlayer(
-            PlayerId.PLAYER2,
-            service.getPlayerSnapshot(PlayerId.PLAYER2)
-        );
-
-        long remaining = service.getRemainingMillis();
-        if (remaining >= 0) {
-            long seconds = remaining / 1000;
-            view.setTimer(String.format(
-                "TIME %02d:%02d",
-                seconds / 60,
-                seconds % 60
-            ));
-        } else view.setTimer("");
-
-        if (service.getState() == BattleState.FINISHED) {
-            showResult(service.getResult());
+    for (PlayerId player : PlayerId.values()) {
+        if (!view.isClearAnimating(player)) {
+            ClearResult event = service.pollClearAnimation(player);
+            if (event != null) {
+                view.playClearAnimation(player, event);
+            }
         }
     }
+
+    view.renderPlayer(
+        PlayerId.PLAYER1,
+        service.getPlayerSnapshot(PlayerId.PLAYER1)
+    );
+
+    view.renderPlayer(
+        PlayerId.PLAYER2,
+        service.getPlayerSnapshot(PlayerId.PLAYER2)
+    );
+
+    long remaining = service.getRemainingMillis();
+    if (remaining >= 0) {
+        long seconds = remaining / 1000;
+        view.setTimer(String.format(
+            "TIME %02d:%02d",
+            seconds / 60,
+            seconds % 60
+        ));
+    } else view.setTimer("");
+
+    if (service.getState() == BattleState.FINISHED) {
+        showResult(service.getResult());
+    }
+}
 
     private void showResult(BattleResult result) {
         if (result == null) return;

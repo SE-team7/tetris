@@ -1,27 +1,26 @@
 package com.team.tetris.service;
 
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.List;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import com.team.tetris.domain.Block;
 import com.team.tetris.domain.BlockType;
 import com.team.tetris.domain.Board;
 import com.team.tetris.domain.ClearResult;
 import com.team.tetris.domain.Difficulty;
-import com.team.tetris.domain.ItemType;
 import com.team.tetris.domain.Position;
 
 class GameEngineServiceTest {
@@ -478,19 +477,25 @@ class GameEngineServiceTest {
         }
     }
 
-    @Test
-    void fiftyEightClearedLinesSpawnFiveItemBlocks() {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void fiftyEightClearedLinesSpawnFiveItemsOnlyInItemMode(boolean itemMode) {
         Board board = new Board();
         GameEngineService engine = new GameEngineService(
                 board, new StubBlockFactory(), new ScoreService(), new LevelService());
-        engine.startGame(Difficulty.EASY, true);
+        engine.startGame(Difficulty.EASY, itemMode);
 
         List<Integer> itemSpawnLines = new ArrayList<>();
         for (int clear = 0; clear < 20; clear++) {
             clearBottomRows(engine, board, clear < 18 ? 3 : 2);
-            if (engine.getNextBlock().hasItem()) {
+
+            Block preview = engine.getNextBlock();
+            assertEquals(preview.getItemType(),
+                    engine.getSnapshot().getNextBlock().getItemType());
+
+            if (preview.hasItem()) {
                 engine.tick();
-                assertTrue(engine.getCurrentBlock().hasItem());
+                assertSame(preview, engine.getCurrentBlock());
                 itemSpawnLines.add(engine.getClearedLines());
                 engine.hardDrop();
                 engine.tick();
@@ -498,7 +503,7 @@ class GameEngineServiceTest {
         }
 
         assertEquals(58, engine.getClearedLines());
-        assertEquals(List.of(12, 21, 30, 42, 51), itemSpawnLines);
+        assertEquals(itemMode ? List.of(12, 21, 30, 42, 51) : List.of(), itemSpawnLines);
     }
 
     private Block clearBottomRows(GameEngineService engine, Board board, int rows) {

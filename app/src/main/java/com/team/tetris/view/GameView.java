@@ -384,17 +384,33 @@ public class GameView {
         }
     }
     private VBox createItemInfoBox() {
+        return createItemInfoBox(false);
+    }
+
+    public VBox createBattleItemInfoBox() {
+        return createItemInfoBox(true);
+    }
+
+    private VBox createItemInfoBox(boolean compact) {
         Label title = new Label("ITEM INFO");
         title.getStyleClass().add("item-info-title");
         GridPane infoGrid = new GridPane();
         infoGrid.setAlignment(Pos.CENTER);
         infoGrid.setHgap(10);
         infoGrid.setVgap(4);
-        addItemInfoRow(infoGrid,  0,   ItemType.WEIGHT,  "아래 4열 블록 제거");
-        addItemInfoRow(infoGrid, 1,ItemType.LINE_CLEAR,  "해당 줄 삭제" );
-        addItemInfoRow(infoGrid,  2,   ItemType.BOMB,  "중심 3×3 제거");
-        addItemInfoRow(infoGrid,  3,   ItemType.CROSS,  "행·열 제거");
-        addItemInfoRow(infoGrid,  4,   ItemType.GAP_DESTROY,  "아래 2열 압축");
+        addItemInfoRow(infoGrid,  0,   ItemType.WEIGHT,  "Weight: 아래 4열 블록 제거");
+        addItemInfoRow(infoGrid, 1,ItemType.LINE_CLEAR,  "Line Clear: 해당 줄 삭제" );
+        addItemInfoRow(infoGrid,  2,   ItemType.BOMB,  "Bomb:중심 3×3 제거");
+        addItemInfoRow(infoGrid,  3,   ItemType.CROSS,  "Cross: 행·열 제거");
+        addItemInfoRow(infoGrid,  4,   ItemType.GAP_DESTROY,  "Gap Destroy: 아래 2열 빈칸 압축");
+        if (compact) {
+            for (var node : infoGrid.getChildren()) {
+                int row = GridPane.getRowIndex(node) == null ? 0 : GridPane.getRowIndex(node);
+                int col = GridPane.getColumnIndex(node) == null ? 0 : GridPane.getColumnIndex(node);
+                GridPane.setRowIndex(node, row / 3);
+                GridPane.setColumnIndex(node, (row % 3) * 2 + col);
+            }
+        }
         VBox box = new VBox(6,  title,  infoGrid);
         box.setAlignment(Pos.CENTER);
         box.setPadding(new Insets(8,  12,  8,  12));

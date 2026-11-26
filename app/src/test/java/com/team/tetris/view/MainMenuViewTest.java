@@ -41,7 +41,7 @@ class MainMenuViewTest {
             MainMenuView view = new MainMenuView();
             List<Label> labels = getMenuLabels(view);
 
-            assertEquals(6, labels.size());
+            assertEquals(7, labels.size());
             assertEquals("▶ 일반 모드 시작", labels.get(0).getText());
             assertTrue(labels.get(0).getStyleClass().contains("menu-item-selected"));
             assertEquals("   아이템 모드 시작", labels.get(1).getText());
@@ -59,15 +59,16 @@ class MainMenuViewTest {
             String[] texts = {
                 "일반 모드 시작",
                 "아이템 모드 시작",
-                "대전 모드 시작",
+                "로컬 대전 모드 시작",
+                "P2P 대전 모드 시작",
                 "설정",
                 "스코어보드",
                 "종료"
             };
 
             MainMenuItem[] items = MainMenuItem.values();
-            assertEquals(6, items.length);
-            assertEquals(6, labels.size());
+            assertEquals(7, items.length);
+            assertEquals(7, labels.size());
 
             for (int selected = 0; selected < items.length; selected++) {
                 view.render(items[selected]);
@@ -90,10 +91,11 @@ class MainMenuViewTest {
     }
 
     @Test
-    void battleModeExists() throws Exception {
+    void bothBattleModesExist() throws Exception {
         runFx(() -> {
             MainMenuView view = new MainMenuView();
-            assertEquals("   대전 모드 시작", getMenuLabels(view).get(2).getText());
+            assertEquals("   로컬 대전 모드 시작", getMenuLabels(view).get(2).getText());
+            assertEquals("   P2P 대전 모드 시작", getMenuLabels(view).get(3).getText());
             return null;
         });
     }

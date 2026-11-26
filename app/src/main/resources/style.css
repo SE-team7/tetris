@@ -791,3 +791,20 @@
 }
 .p2p-chat-panel .p2p-chat-send:hover { -fx-background-color: #1D479F; }
 .p2p-chat-panel .p2p-chat-error { -fx-text-fill: -chat-error; -fx-font-size: 12px; }
+/* Settings: stable control geometry and keyboard selection. */
+.settings-root .button, .settings-root .combo-box {
+    -fx-border-width: 2px;
+    -fx-border-color: #B5B5B5;
+    -fx-padding: 3px 8px;
+}
+.settings-root .button:settings-selected,
+.settings-root .combo-box:settings-selected {
+    -fx-border-color: #4A90E2;
+}
+/* DARK: ComboBox keyboard selection */
+.theme-dark .combo-box-popup .list-cell:filled:selected,
+.theme-dark .combo-box-popup .list-cell:filled:focused {
+    -fx-background-color: #0078D7;
+    -fx-text-fill: #FFFFFF;
+}
+

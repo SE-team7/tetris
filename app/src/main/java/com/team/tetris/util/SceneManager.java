@@ -238,7 +238,9 @@ public class SceneManager {
     private void show(Scene scene, Parent root) {
         stage.setScene(scene);
         stage.show();
-        Platform.runLater(root::requestFocus);
+        Platform.runLater(() -> {
+            if (stage.getScene() == scene) root.requestFocus();
+        });
     }
 
     public void applyScreenSize(ScreenSize size) {

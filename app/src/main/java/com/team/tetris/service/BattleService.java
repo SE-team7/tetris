@@ -17,6 +17,7 @@ import com.team.tetris.domain.BattleEndReason;
 import com.team.tetris.domain.BattleResult;
 import com.team.tetris.domain.BattleState;
 import com.team.tetris.domain.Board;
+import com.team.tetris.domain.ClearResult;
 import com.team.tetris.domain.GameSnapshot;
 import com.team.tetris.domain.PlayerId;
 import com.team.tetris.domain.Settings.KeyAction;
@@ -357,6 +358,12 @@ public class BattleService {
         return null;
     }
 
+    /** UI 전용: 해당 플레이어의 삭제 효과를 한 번씩 소비한다. */
+    public ClearResult pollClearAnimation(PlayerId player) {
+        PlayerRunner runner = runners.get(player);
+        return runner == null ? null : runner.clearAnimations.poll();
+    }
+
     // 남은 제한시간(ms). 시간제한 모드가 아니면 -1
     public long getRemainingMillis() {
         synchronized (lock) {
@@ -565,6 +572,7 @@ public class BattleService {
         final PlayerId player;
         final GameEngineService engine;
         final ConcurrentLinkedQueue<InputEvent> inputs = new ConcurrentLinkedQueue<>();
+        final ConcurrentLinkedQueue<ClearResult> clearAnimations = new ConcurrentLinkedQueue<>();
 
         // 엔진 스레드에서만 사용: 눌린 키 → 다음 반복 시각(ns)
         private final Map<KeyAction, Long> heldKeys = new EnumMap<>(KeyAction.class);
@@ -745,7 +753,10 @@ public class BattleService {
 
         // 대전에는 삭제 애니메이션을 기다리지 않음: 미뤄둔 줄 삭제를 바로 반영
         private void settleLineClears() {
-            while (engine.pollClearEvent() != null) {
+            ClearResult event;
+            while ((event = engine.pollClearEvent()) != null) {
+                clearAnimations.offer(event);
+                while (clearAnimations.size() > 16) clearAnimations.poll();
                 dirty.set(true);
             }
             if (engine.applyPendingLineClear()) {

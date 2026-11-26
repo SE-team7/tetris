@@ -12,7 +12,7 @@ import javafx.scene.layout.VBox;
 public class MainMenuView {
 
     public enum MainMenuItem {
-        START_GAME, START_ITEM_GAME, BATTLE_MODE, SETTINGS, SCOREBOARD, EXIT
+        START_GAME, START_ITEM_GAME, BATTLE_MODE, P2P_BATTLE_MODE, SETTINGS, SCOREBOARD, EXIT
     }
 
     private final VBox root;
@@ -22,14 +22,15 @@ public class MainMenuView {
     private static final String[] MENU_TEXTS = {
         "일반 모드 시작",
         "아이템 모드 시작",
-        "대전 모드 시작",
+        "로컬 대전 모드 시작",
+        "P2P 대전 모드 시작",
         "설정",
         "스코어보드",
         "종료"
     };
 
     public MainMenuView() {
-        root = new VBox(20);
+        root = new VBox(14);
         root.setAlignment(Pos.CENTER);
 
         Label mainTitle = new Label("DROP");

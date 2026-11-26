@@ -18,7 +18,7 @@ public class HeuristicBotAgent implements PlayerAgent {
 
     private static final int THINK_TICKS = 30;
     //여기 조절하면됨
-    private static final long ACTION_INTERVAL_NANOS = 100_000_000L;
+    private static final long ACTION_INTERVAL_NANOS = 200_000_000L;
 
     private final HeuristicBotPlanner planner = new HeuristicBotPlanner();
     private final Deque<KeyAction> queue = new ArrayDeque<>();

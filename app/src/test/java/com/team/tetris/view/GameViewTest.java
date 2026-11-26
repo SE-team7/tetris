@@ -211,7 +211,7 @@ class GameViewTest {
             assertTrue(text.contains("해당 줄 삭제"));
             assertTrue(text.contains("중심 3×3 제거"));
             assertTrue(text.contains("행·열 제거"));
-            assertTrue(text.contains("아래 2열 압축"));
+            assertTrue(text.contains("아래 2열 빈칸 압축"));
 
             GridPane infoGrid = (GridPane) itemInfoBox.getChildren().get(1);
 
