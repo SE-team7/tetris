@@ -169,8 +169,8 @@ class NetworkControllerTest {
 
         side.controller.join("127.0.0.1", closedPort);
 
-        waitUntil(() -> side.controller.getState() == State.DISCONNECTED);
-        assertFalse(side.events.errors.isEmpty());
+        waitUntil(() -> side.controller.getState() == State.DISCONNECTED
+                && !side.events.errors.isEmpty());
         assertTrue(side.controller.getRecentHosts().isEmpty(), "실패한 주소는 저장하지 않음");
     }
 
