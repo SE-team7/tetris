@@ -14,6 +14,8 @@ class LevelServiceTest {
     private static final long NORMAL_STEP = 80L;
     private static final long EASY_STEP = (long) (NORMAL_STEP * 0.8);  // 64
     private static final long HARD_STEP = (long) (NORMAL_STEP * 1.2);  // 96
+    private static final long EASY_MIN = (long) (MIN_INTERVAL * 1.2);  // 240
+    private static final long HARD_MIN = (long) (MIN_INTERVAL * 0.8);  // 160
     private static final int LINE_SCORE_PER_LEVEL = 30;
 
     @Test
@@ -147,6 +149,22 @@ class LevelServiceTest {
             assertEquals(BASE_INTERVAL, service.getDropIntervalMillis(),
                     "레벨1 기본 간격은 난이도에 상관없이 동일해야 함: " + difficulty);
         }
+    }
+
+    @Test
+    void easyDifficultyFloorsAtSlowerMinimum() {
+        LevelService service = new LevelService();
+        service.reset(Difficulty.EASY);
+        service.updateLevel(LINE_SCORE_PER_LEVEL * 1000);
+        assertEquals(EASY_MIN, service.getDropIntervalMillis());
+    }
+
+    @Test
+    void hardDifficultyFloorsAtFasterMinimum() {
+        LevelService service = new LevelService();
+        service.reset(Difficulty.HARD);
+        service.updateLevel(LINE_SCORE_PER_LEVEL * 1000);
+        assertEquals(HARD_MIN, service.getDropIntervalMillis());
     }
 
     @Test

@@ -1,7 +1,5 @@
 package com.team.tetris.view;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.IdentityHashMap;
@@ -12,6 +10,13 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -22,6 +27,7 @@ import com.team.tetris.domain.ItemType;
 
 import javafx.application.Platform;
 import javafx.scene.control.Label;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
@@ -200,59 +206,47 @@ class GameViewTest {
                     itemInfoBox
                 );
 
-            assertTrue(
-                text.contains("ITEM INFO")
-            );
+            assertTrue(text.contains("ITEM INFO"));
+            assertTrue(text.contains("아래 4열 블록 제거"));
+            assertTrue(text.contains("해당 줄 삭제"));
+            assertTrue(text.contains("중심 3×3 제거"));
+            assertTrue(text.contains("행·열 제거"));
+            assertTrue(text.contains("아래 2열 압축"));
 
-            assertTrue(
-                text.contains("W")
-            );
+            GridPane infoGrid = (GridPane) itemInfoBox.getChildren().get(1);
 
-            assertTrue(
-                text.contains(
-                    "아래 블록 제거"
-                )
-            );
+            String[] fileNames = {
+                    "weight.png",
+                    "lineclear.png",
+                    "bomb.png",
+                    "cross.png",
+                    "gapdestroy.png"
+            };
 
-            assertTrue(
-                text.contains("L")
-            );
+            for (int row = 0; row < fileNames.length; row++) {
+                final int targetRow = row;
 
-            assertTrue(
-                text.contains(
-                    "해당 줄 삭제"
-                )
-            );
+                Label imageLabel = infoGrid.getChildren().stream()
+                        .filter(node -> {
+                            Integer column = GridPane.getColumnIndex(node);
+                            Integer gridRow = GridPane.getRowIndex(node);
 
-            assertTrue(
-                text.contains("B")
-            );
+                            return (column == null ? 0 : column) == 0
+                                    && (gridRow == null ? 0 : gridRow) == targetRow;
+                        })
+                        .map(node -> (Label) node)
+                        .findFirst()
+                        .orElseThrow();
 
-            assertTrue(
-                text.contains(
-                    "중심 3×3 제거"
-                )
-            );
+                assertInstanceOf(ImageView.class, imageLabel.getGraphic());
 
-            assertTrue(
-                text.contains("+")
-            );
+                ImageView imageView = (ImageView) imageLabel.getGraphic();
 
-            assertTrue(
-                text.contains(
-                    "행·열 제거"
-                )
-            );
-
-            assertTrue(
-                text.contains("D")
-            );
-
-            assertTrue(
-                text.contains(
-                    "아래 두 열 압축"
-                )
-            );
+                assertNotNull(imageView.getImage());
+                assertFalse(imageView.getImage().isError());
+                assertTrue(imageView.getImage().getUrl()
+                        .endsWith("/image/item/" + fileNames[row]));
+            }
 
             return null;
         });
@@ -657,64 +651,41 @@ class GameViewTest {
     }
 
     @Test
-    void specialFixedBlocksUseItemLetters()
-        throws Exception {
-
+    void specialFixedBlocksUseItemImages() throws Exception {
         runFx(() -> {
+            GameView view = new GameView();
 
-            GameView view =
-                new GameView();
+            BlockType[][] board = new BlockType[20][10];
+            board[0][0] = BlockType.WEIGHT;
+            board[0][1] = BlockType.BOMB;
+            board[0][2] = BlockType.CROSS;
+            board[0][3] = BlockType.GAP_DESTROY;
 
-            BlockType[][] board =
-                new BlockType[20][10];
+            view.render(board, null, null, 0, 1, false);
 
-            board[0][0] =
-                BlockType.WEIGHT;
+            Label[][] cells = getField(
+                    view, "boardCells", Label[][].class);
 
-            board[0][1] =
-                BlockType.BOMB;
+            String[] fileNames = {
+                    "weight.png",
+                    "bomb.png",
+                    "cross.png",
+                    "gapdestroy.png"
+            };
 
-            board[0][2] =
-                BlockType.CROSS;
+            for (int col = 0; col < fileNames.length; col++) {
+                Label cell = cells[0][col];
 
-            board[0][3] =
-                BlockType.GAP_DESTROY;
+                assertEquals("", cell.getText());
+                assertInstanceOf(ImageView.class, cell.getGraphic());
 
-            view.render(
-                board,
-                null,
-                null,
-                0,
-                1,
-                false
-            );
+                ImageView imageView = (ImageView) cell.getGraphic();
 
-            Label[][] cells =
-                getField(
-                    view,
-                    "boardCells",
-                    Label[][].class
-                );
-
-            assertEquals(
-                "W",
-                cells[0][0].getText()
-            );
-
-            assertEquals(
-                "B",
-                cells[0][1].getText()
-            );
-
-            assertEquals(
-                "+",
-                cells[0][2].getText()
-            );
-
-            assertEquals(
-                "D",
-                cells[0][3].getText()
-            );
+                assertNotNull(imageView.getImage());
+                assertFalse(imageView.getImage().isError());
+                assertTrue(imageView.getImage().getUrl()
+                        .endsWith("/image/item/" + fileNames[col]));
+            }
 
             return null;
         });
@@ -1072,7 +1043,7 @@ class GameViewTest {
 
             assertTrue(
                 normalBoardStyle
-                    .contains("white")
+                    .contains("#FFFFFF")
             );
 
             assertTrue(
@@ -2079,4 +2050,114 @@ class GameViewTest {
 
         return task.get();
     }
+
+    // Additional tests for battle reuse, rendering and responsive layout.
+    @Test
+    void battleModeChangesFrameAndCanReturnToNormal() throws Exception {
+        runFx(() -> {
+            GameView view = new GameView();
+            view.setBattleItemMode(true);
+            String itemStyle = (String) invokePrivate(view, "getFrameStyle", new Class<?>[]{boolean.class}, false);
+            assertTrue(itemStyle.contains("#D6C2FF"));
+            view.setBattleItemMode(false);
+            String normalStyle = (String) invokePrivate(view, "getFrameStyle", new Class<?>[]{boolean.class}, false);
+            assertTrue(normalStyle.contains("#FFFFFF"));
+            return null;
+        });
+    }
+
+    @Test
+    void renderResetsPreviousCellsAndPauseStatus() throws Exception {
+        runFx(() -> {
+            GameView view = new GameView();
+            BlockType[][] board = new BlockType[20][10];
+            board[0][0] = BlockType.I;
+            view.render(board, null, null, 12, 1, true);
+            Label[][] cells = getField(view, "boardCells", Label[][].class);
+            assertTrue(cells[0][0].getStyle().contains("#00FFFF"));
+            assertEquals("PAUSED", getField(view, "statusLabel", Label.class).getText());
+            view.render(null, null, null, 42, 1, false);
+            assertFalse(cells[0][0].getStyle().contains("#00FFFF"));
+            assertEquals("42", getField(view, "scoreLabel", Label.class).getText());
+            assertEquals("", getField(view, "statusLabel", Label.class).getText());
+            return null;
+        });
+    }
+
+    @Test
+    void battleSnapshotNullDoesNotChangeScore() throws Exception {
+        runFx(() -> {
+            GameView view = new GameView();
+            view.updateScore(55);
+            view.renderBattle(null);
+            assertEquals("55", getField(view, "scoreLabel", Label.class).getText());
+            return null;
+        });
+    }
+
+    @Test
+    void battleSnapshotDrawsAttackCells() throws Exception {
+        runFx(() -> {
+            GameView view = new GameView();
+            BlockType[][] board = new BlockType[20][10];
+            boolean[][] attacks = new boolean[20][10];
+            attacks[0][0] = true;
+            com.team.tetris.domain.GameSnapshot snapshot =
+                new com.team.tetris.domain.GameSnapshot(board, attacks, null, null,
+                    345, 2, 5, null, false);
+            view.renderBattle(snapshot);
+            Label[][] cells = getField(view, "boardCells", Label[][].class);
+            assertTrue(cells[0][0].getStyle().contains("#666666"));
+            assertEquals("345", getField(view, "scoreLabel", Label.class).getText());
+            return null;
+        });
+    }
+
+    @Test
+    void battleComponentsCanBeDetached() throws Exception {
+        runFx(() -> {
+            GameView view = new GameView();
+            GridPane board = getField(view, "boardGrid", GridPane.class);
+            GridPane next = getField(view, "nextGrid", GridPane.class);
+            assertEquals(board, view.detachBattleBoard());
+            assertEquals(next, view.detachBattleNext());
+            assertEquals(null, board.getParent());
+            assertEquals(null, next.getParent());
+            return null;
+        });
+    }
+
+    @Test
+    void largeLayoutOnlyAppliesWhenBoardIsInSingleView() throws Exception {
+        runFx(() -> {
+            GameView view = new GameView();
+            BorderPane root = (BorderPane) view.getRoot();
+            GridPane board = getField(view, "boardGrid", GridPane.class);
+            BorderPane panel = getField(view, "sidePanel", BorderPane.class);
+            root.resize(1200, 800);
+            assertEquals(55.0, board.getTranslateX(), 0.001);
+            assertEquals(-16.0, panel.getTranslateX(), 0.001);
+            root.resize(800, 600);
+            assertEquals(0.0, board.getTranslateX(), 0.001);
+            assertEquals(0.0, panel.getTranslateX(), 0.001);
+            view.detachBattleBoard();
+            root.resize(1200, 800);
+            assertEquals(0.0, board.getTranslateX(), 0.001);
+            return null;
+        });
+    }
+
+    @Test
+    void showBattleCreatesTwoPlayerPlaceholders() throws Exception {
+        runFx(() -> {
+            GameView view = new GameView();
+            view.showBattle();
+            BorderPane root = (BorderPane) view.getRoot();
+            assertInstanceOf(javafx.scene.layout.HBox.class, root.getCenter());
+            javafx.scene.layout.HBox battle = (javafx.scene.layout.HBox) root.getCenter();
+            assertEquals(2, battle.getChildren().size());
+            return null;
+        });
+    }
+
 }

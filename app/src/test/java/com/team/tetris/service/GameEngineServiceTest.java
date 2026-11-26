@@ -7,9 +7,13 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import com.team.tetris.domain.Block;
 import com.team.tetris.domain.BlockType;
@@ -414,7 +418,7 @@ class GameEngineServiceTest {
         engine.hardDrop();
         engine.tick();
 
-        // 폭탄이 반드시 다음 턴에 나오지 않을 수 있다(랜덤). isItemBlockTurn은 10줄 삭제마다 켜짐.
+        // 아직 누적 줄 삭제 보상을 받지 않았으므로 폭탄은 등장하지 않는다.
         // 그러나 이 테스트에선 아이템 모드만 활성화하고 pollClearEvent로 어느 이벤트든 확인.
         // 라인 완성이 없더라도 아이템 효과가 발생하면 enqueue 되어야 한다.
         // 따라서 "clearEvents가 비어있지 않은 가능성"만 확인하는 방식 대신,
@@ -442,6 +446,49 @@ class GameEngineServiceTest {
         assertEquals(firstNext, engine.getCurrentBlock(),
                 "직전의 nextBlock이 currentBlock이 되어야 함");
         assertNotNull(engine.getNextBlock(), "새로운 next가 준비되어야 함");
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void fiftyEightClearedLinesSpawnFiveItemsOnlyInItemMode(boolean itemMode) {
+        Board board = new Board();
+        GameEngineService engine = new GameEngineService(
+                board, new StubBlockFactory(), new ScoreService(), new LevelService());
+        engine.startGame(Difficulty.EASY, itemMode);
+
+        List<Integer> itemSpawnLines = new ArrayList<>();
+        for (int clear = 0; clear < 20; clear++) {
+            int rows = clear < 18 ? 3 : 2;
+            fillRowsForSquareBlock(board, rows);
+            engine.tick();
+            engine.hardDrop();
+            engine.tick();
+            assertTrue(engine.applyPendingLineClear());
+
+            Block preview = engine.getNextBlock();
+            assertEquals(preview.getItemType(), engine.getSnapshot().getNextBlock().getItemType());
+            if (preview.hasItem()) {
+                engine.tick();
+                assertEquals(preview, engine.getCurrentBlock());
+                itemSpawnLines.add(engine.getClearedLines());
+                engine.hardDrop();
+                engine.tick();
+            }
+        }
+
+        assertEquals(58, engine.getClearedLines());
+        assertEquals(itemMode ? List.of(12, 21, 30, 42, 51) : List.of(), itemSpawnLines);
+    }
+
+    private void fillRowsForSquareBlock(Board board, int rows) {
+        int topRow = Board.ROWS - rows;
+        for (int row = topRow; row < Board.ROWS; row++) {
+            for (int col = 0; col < Board.COLS; col++) {
+                if (row >= topRow + 2 || (col != 4 && col != 5)) {
+                    board.lockBlock(bombAt(row, col));
+                }
+            }
+        }
     }
 
     @Test

@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 import com.team.tetris.domain.Difficulty;
+import com.team.tetris.domain.PlayerId;
 
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -17,7 +18,7 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.layout.Region;
-
+import javafx.scene.control.ScrollPane;
 
 public class SettingsView {
 
@@ -26,8 +27,10 @@ public class SettingsView {
     private static final double COLUMN_GAP = 20;
 
     private final VBox root;
+    private final ScrollPane scroll = new ScrollPane();
 
     private final ComboBox<String> screenSizeComboBox;
+    private final ComboBox<String> themeComboBox = new ComboBox<>();
 
     /*
      * 2차 추가:
@@ -36,6 +39,11 @@ public class SettingsView {
     private final ComboBox<Difficulty> difficultyComboBox;
 
     private final Map<String, Button> keyButtons;
+    private final Map<PlayerId, Map<String, Button>> localButtons = new LinkedHashMap<>();
+    private final Button singleTab = new Button("일반 / P2P");
+    private final Button localTab = new Button("LOCAL BATTLE");
+    private final GridPane localGrid = new GridPane();
+    private final GridPane singleGrid = new GridPane();
 
     private final Button colorBlindButton;
 
@@ -50,6 +58,8 @@ public class SettingsView {
 
         root = new VBox(8);
         root.setAlignment(Pos.TOP_CENTER);
+        root.getStyleClass().add("settings-root");
+        scroll.getStyleClass().add("settings-scroll");
         root.setPadding(new Insets(12));
 
         /*
@@ -58,6 +68,7 @@ public class SettingsView {
         Label titleLabel =
             new Label("SETTINGS");
 
+        titleLabel.getStyleClass().add("settings-title");
         titleLabel.setStyle(
             "-fx-font-size: 36px;"
             + "-fx-font-weight: bold;"
@@ -98,6 +109,12 @@ public class SettingsView {
         screenSizeRow.setAlignment(
             Pos.CENTER
         );
+
+        themeComboBox.getItems().addAll("DARK", "LIGHT");
+        themeComboBox.setValue("DARK");
+        themeComboBox.setPrefWidth(150);
+        HBox themeRow = new HBox(COLUMN_GAP, createSettingLabel("테마"), themeComboBox);
+        themeRow.setAlignment(Pos.CENTER);
 
         /*
          * DIFFICULTY
@@ -143,13 +160,13 @@ public class SettingsView {
         Label keySettingsTitle =
             new Label("키 설정");
 
+        keySettingsTitle.getStyleClass().add("settings-section-title");
         keySettingsTitle.setStyle(
             "-fx-font-size: 16px;"
             + "-fx-font-weight: bold;"
         );
 
-        GridPane keyGrid =
-            new GridPane();
+        GridPane keyGrid = singleGrid;
 
         keyGrid.setHgap(COLUMN_GAP);
         keyGrid.setVgap(8);
@@ -201,6 +218,30 @@ public class SettingsView {
             "SKIP",
             "-"
         );
+
+        HBox tabs = new HBox(8, singleTab, localTab);
+        tabs.setAlignment(Pos.CENTER);
+        singleTab.setPrefWidth(120);
+        localTab.setPrefWidth(120);
+        localGrid.setHgap(10);
+        localGrid.setVgap(8);
+        localGrid.setAlignment(Pos.CENTER);
+        localGrid.add(new Label("PLAYER 1"), 1, 0);
+        localGrid.add(new Label("PLAYER 2"), 2, 0);
+        localButtons.put(PlayerId.PLAYER1, new LinkedHashMap<>());
+        localButtons.put(PlayerId.PLAYER2, new LinkedHashMap<>());
+        int localRow = 1;
+        for (String action : keyButtons.keySet()) {
+            localGrid.add(new Label(action), 0, localRow);
+            for (PlayerId player : new PlayerId[]{PlayerId.PLAYER1, PlayerId.PLAYER2}) {
+                Button button = new Button("-");
+                button.setPrefWidth(100);
+                localButtons.get(player).put(action, button);
+                localGrid.add(button, player == PlayerId.PLAYER1 ? 1 : 2, localRow);
+            }
+            localRow++;
+        }
+        setLocalTab(false);
 
         /*
          * COLOR BLIND MODE
@@ -267,14 +308,11 @@ public class SettingsView {
             Pos.CENTER
         );
 
-        fixedKeyNotice.setStyle(
-            "-fx-text-fill: #AAAAAA;"
-            + "-fx-font-size: 13px;"
-            + "-fx-padding: 8px;"
-        );
+        fixedKeyNotice.getStyleClass().add("fixed-key-notice");
         fixedKeyNotice.setWrapText(true);
         fixedKeyNotice.setMinHeight(Region.USE_PREF_SIZE);
         fixedKeyNotice.setMaxWidth(Double.MAX_VALUE);
+        fixedKeyNotice.setPrefWidth(300);
 
         /*
          * BUTTONS
@@ -302,9 +340,9 @@ public class SettingsView {
         messageLabel =
             new Label();
 
-        messageLabel.setStyle(
-            "-fx-font-size: 12px;"
-        );
+        messageLabel.getStyleClass().add("settings-message");
+        messageLabel.setStyle("-fx-font-size: 12px;");
+        messageLabel.setWrapText(true);
 
         /*
          * ORDER
@@ -312,9 +350,12 @@ public class SettingsView {
         root.getChildren().addAll(
             titleLabel,
             screenSizeRow,
+            themeRow,
             difficultyRow,
             keySettingsTitle,
+            tabs,
             keyGrid,
+            localGrid,
             colorBlindGrid,
             fixedKeyNotice,
             saveButton,
@@ -324,6 +365,15 @@ public class SettingsView {
             messageLabel
         );
 
+        scroll.setContent(root);
+        scroll.setFitToHeight(true);
+        scroll.setStyle("-fx-background-color: #F7F7F7;");
+        scroll.setFitToWidth(true);
+        scroll.setPannable(true);
+        scroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        root.setMinHeight(Region.USE_PREF_SIZE);
+        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scroll.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
         setColorBlindMode(false);
     }
 
@@ -342,6 +392,7 @@ public class SettingsView {
             LABEL_WIDTH
         );
 
+        label.getStyleClass().add("settings-label");
         label.setStyle(
             "-fx-font-size: 15px;"
             + "-fx-font-weight: bold;"
@@ -403,9 +454,26 @@ public class SettingsView {
         return row + 1;
     }
 
-    public Parent getRoot() {
-        return root;
+    public Button getSingleTab() { return singleTab; }
+    public Button getLocalTab() { return localTab; }
+    public void setLocalTab(boolean local) {
+        singleGrid.setVisible(!local);
+        singleGrid.setManaged(!local);
+        localGrid.setVisible(local);
+        localGrid.setManaged(local);
+        // The active tab is not a focused keyboard control.
+        singleTab.setStyle("");
+        localTab.setStyle("");
     }
+    public Button getBattleKeyButton(PlayerId player, String action) {
+        return localButtons.get(player).get(action);
+    }
+    public void setBattleKeyText(PlayerId player, String action, String text) {
+        Button button = getBattleKeyButton(player, action);
+        if (button != null) button.setText(text);
+    }
+
+    public Parent getRoot() { return scroll; }
 
     public ComboBox<String>
         getScreenSizeComboBox() {
@@ -531,4 +599,7 @@ public class SettingsView {
             message
         );
     }
+    public ComboBox<String> getThemeComboBox() {
+    return themeComboBox;
+}
 }

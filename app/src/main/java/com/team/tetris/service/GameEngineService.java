@@ -7,11 +7,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import com.team.tetris.domain.AttackQueue;
+import com.team.tetris.domain.AttackRows;
 import com.team.tetris.domain.Block;
 import com.team.tetris.domain.BlockType;
 import com.team.tetris.domain.Board;
 import com.team.tetris.domain.ClearResult;
 import com.team.tetris.domain.Difficulty;
+import com.team.tetris.domain.GameSnapshot;
 import com.team.tetris.domain.ItemType;
 import com.team.tetris.domain.Position;
 
@@ -19,14 +22,17 @@ public class GameEngineService {
 
     //한 판 최대 스킵 횟수
     private static final int MAX_SKIPS = 7;
+    private static final int LINES_PER_ITEM = 10;
 
     private final Board board;
     private final BlockFactory blockFactory;
     private final ScoreService scoreService;
     private final LevelService levelService;
+    private final AttackService attackService;
+    private final Deque<Block> queuedItemBlocks = new ArrayDeque<>();
 
     private Block currentBlock;
-    private Block nextBlock;
+    private Block nextNormalBlock;
     private boolean blockLocked;
     private int clearedLines;
     private int skipsUsed;
@@ -36,8 +42,8 @@ public class GameEngineService {
 
     private Difficulty difficulty;
     private boolean itemMode;
-    private boolean isItemBlockTurn;
     private ClearResult pendingLineClear;
+    private AttackRows pendingAttack; // 미뤄둔 줄 삭제가 끝나면 보낼 공격
     private boolean weightCollided;
     private final Deque<ClearResult> clearEvents = new ArrayDeque<>();
 
@@ -49,10 +55,22 @@ public class GameEngineService {
                              BlockFactory blockFactory,
                              ScoreService scoreService,
                              LevelService levelService) {
+        // 싱글 모드: 받은 공격도 없고 보낼 상대도 없음
+        this(board, blockFactory, scoreService, levelService,
+                new AttackService(board, new AttackQueue(), attack -> { }));
+    }
+
+    // 대전 모드: 자신의 보드로 만든 AttackService를 함께 넘긴다
+    public GameEngineService(Board board,
+                             BlockFactory blockFactory,
+                             ScoreService scoreService,
+                             LevelService levelService,
+                             AttackService attackService) {
         this.board = board;
         this.blockFactory = blockFactory;
         this.scoreService = scoreService;
         this.levelService = levelService;
+        this.attackService = attackService;
     }
 
     //변수 초기화
@@ -69,9 +87,10 @@ public class GameEngineService {
         blockLocked = false;
         clearedLines = 0;
         skipsUsed = 0;
-        isItemBlockTurn = false;
-        nextBlock = createNextBlock();
+        queuedItemBlocks.clear();
+        nextNormalBlock = blockFactory.createRandomBlock(difficulty);
         pendingLineClear = null;
+        pendingAttack = null;
         weightCollided = false;
         clearEvents.clear();
 
@@ -84,21 +103,23 @@ public class GameEngineService {
         //isItemBlockTurn = Math.random() < 0.5; // 테스트용 라인입니당 ^_^
 
         // 지난 틱에서 미뤄진 라인 삭제가 있으면 이번 틱에 처리만 하고 끝
-        if (pendingLineClear != null) {
-            ClearResult pending = pendingLineClear;
-            pendingLineClear = null;
-            board.applyClear(pending);
-            applyScoreAndCounter(
-                    pending.getScoreLineCount(),
-                    pending.getItemCounterLineCount()
-            );
+        if (applyPendingLineClear()) {
             return;
         }
 
         // 현재 블럭이 없으면 다음 블럭을 올리고, 다음 블럭 새로 생성
         if (currentBlock == null) {
-            currentBlock = nextBlock;
-            nextBlock = createNextBlock();
+            // 대전 모드: 현재 블럭의 삭제 처리가 모두 끝난 뒤, 다음 블럭 생성 전에 받은 공격 적용
+            if (attackService.applyAttack()) {
+                gameOver = true;
+                return;
+            }
+
+            currentBlock = queuedItemBlocks.pollFirst();
+            if (currentBlock == null) {
+                currentBlock = nextNormalBlock;
+                nextNormalBlock = blockFactory.createRandomBlock(difficulty);
+            }
             weightCollided = false;
 
             // 생성 위치에 놓을 수 없으면 게임오버
@@ -117,7 +138,10 @@ public class GameEngineService {
         if (blockLocked) {
             if (currentBlock != null && currentBlock.hasItem()) {
                 ClearResult itemResult = board.findItemEffect(currentBlock);
+                // 대전 모드: 행 삭제 전에 공격 생성 → 삭제 → 전송
+                AttackRows itemAttack = board.createAttackRows(itemResult, currentBlock.getCells());
                 board.applyClear(itemResult);
+                attackService.sendAttack(itemAttack);
                 applyScoreAndCounter(
                         itemResult.getScoreLineCount(),
                         itemResult.getItemCounterLineCount()
@@ -129,6 +153,8 @@ public class GameEngineService {
 
             ClearResult pending = board.findFullLines();
             if (!pending.isEmpty()) {
+                // 대전 모드: 행이 지워지기 전에 공격 생성, 실제 삭제 후 전송
+                pendingAttack = board.createAttackRows(pending, currentBlock.getCells());
                 pendingLineClear = pending;
                 clearEvents.add(pending);
             }
@@ -154,23 +180,30 @@ public class GameEngineService {
                 pending.getScoreLineCount(),
                 pending.getItemCounterLineCount()
         );
+        sendPendingAttack();
         return true;
     }
 
-    private Block createNextBlock() {
-        if (isItemBlockTurn && itemMode) {
-            isItemBlockTurn = false;
-            return blockFactory.createItemBlock();
+    //미뤄둔 줄 삭제가 반영된 직후 공격 전송
+    private void sendPendingAttack() {
+        if (pendingAttack == null) {
+            return;
         }
-        return blockFactory.createRandomBlock(difficulty);
+        AttackRows attack = pendingAttack;
+        pendingAttack = null;
+        attackService.sendAttack(attack);
     }
 
     //점수/카운터/레벨 반영 (아이템 효과·라인 삭제 공통)
     private void applyScoreAndCounter(int scoreLines, int counterLines) {
         if (counterLines > 0) {
+            int previousMilestone = clearedLines / LINES_PER_ITEM;
             clearedLines += counterLines;
-            if (clearedLines % 10 == 0) {
-                isItemBlockTurn = true;
+            if (itemMode) {
+                int newMilestones = clearedLines / LINES_PER_ITEM - previousMilestone;
+                for (int i = 0; i < newMilestones; i++) {
+                    queuedItemBlocks.addLast(blockFactory.createItemBlock());
+                }
             }
         }
         if (scoreLines > 0) {
@@ -363,7 +396,8 @@ public class GameEngineService {
     }
 
     public Block getNextBlock() {
-        return nextBlock;
+        Block nextItemBlock = queuedItemBlocks.peekFirst();
+        return nextItemBlock == null ? nextNormalBlock : nextItemBlock;
     }
 
     public int getScore() {
@@ -384,6 +418,27 @@ public class GameEngineService {
 
     public int getSkipsRemaining() {
         return MAX_SKIPS - skipsUsed;
+    }
+
+    //대전 모드: 현재 상태 복사본 (화면 표시·P2P 전송용). 엔진 스레드에서 호출한다
+    public GameSnapshot getSnapshot() {
+        boolean[][] attackCells = new boolean[Board.ROWS][Board.COLS];
+        for (int row = 0; row < Board.ROWS; row++) {
+            for (int col = 0; col < Board.COLS; col++) {
+                attackCells[row][col] = board.isAttackCell(row, col);
+            }
+        }
+        return new GameSnapshot(
+                board.getCells(),
+                attackCells,
+                currentBlock,
+                getNextBlock(),
+                getScore(),
+                getLevel(),
+                getSkipsRemaining(),
+                attackService.getPendingAttack(),
+                gameOver
+        );
     }
 
     public long getDropIntervalMillis() {

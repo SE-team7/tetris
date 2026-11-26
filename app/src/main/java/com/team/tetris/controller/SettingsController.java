@@ -2,27 +2,47 @@ package com.team.tetris.controller;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.IdentityHashMap;
+import java.util.Map;
+import javafx.beans.property.SimpleObjectProperty;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
+import javafx.scene.paint.Paint;
 
 import com.team.tetris.domain.Difficulty;
 import com.team.tetris.domain.Settings;
+import com.team.tetris.domain.PlayerId;
 import com.team.tetris.domain.Settings.KeyAction;
 import com.team.tetris.domain.Settings.ScreenSize;
+import com.team.tetris.domain.Settings.Theme;
 import com.team.tetris.service.ScoreboardService;
 import com.team.tetris.service.SettingsService;
 import com.team.tetris.util.SceneManager;
 import com.team.tetris.view.SettingsView;
 
+import javafx.css.PseudoClass;
 import javafx.scene.Node;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.skin.ComboBoxListViewSkin;
+import javafx.scene.shape.Polygon;
+import javafx.scene.text.Text;
+import javafx.scene.text.Font;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 
 public class SettingsController {
 
-    private enum NavigationType {
+    private enum Type {
         SCREEN_SIZE,
+        THEME,
         DIFFICULTY,
         KEY,
+        KEY_TAB,
+        BATTLE_KEY,
         COLOR_BLIND,
         SAVE,
         RESET_DEFAULT,
@@ -30,1119 +50,580 @@ public class SettingsController {
         BACK
     }
 
-    private static class NavigationItem {
-
-        private final NavigationType type;
-        private final String keyActionName;
-
-        private NavigationItem(
-            NavigationType type
-        ) {
-            this(type, null);
-        }
-
-        private NavigationItem(
-            NavigationType type,
-            String keyActionName
-        ) {
-            this.type = type;
-            this.keyActionName = keyActionName;
-        }
+    private record Item(Type type, String keyName, PlayerId player) {
+        Item(Type type) { this(type, null, null); }
+        Item(Type type, String keyName) { this(type, keyName, null); }
     }
 
-    private final SettingsView settingsView;
-    private final SettingsService settingsService;
-    private final ScoreboardService scoreboardService;
-    private final SceneManager sceneManager;
+    private final SettingsView view;
+    private final SettingsService service;
+    private final ScoreboardService scoreboard;
+    private final SceneManager scenes;
     private final Settings settings;
 
-    private final List<NavigationItem> navigationItems =
-        new ArrayList<>();
+    private final List<Item> items = new ArrayList<>();
+    private record ButtonAppearance(SimpleObjectProperty<Background> background,
+        SimpleObjectProperty<Border> border, SimpleObjectProperty<Paint> text) {}
+    private final Map<Button, ButtonAppearance> appearances = new IdentityHashMap<>();
+    private final Map<ComboBox<?>, ButtonAppearance> comboAppearances = new IdentityHashMap<>();
 
-    /*
-     * 키 변경 중인 Action
-     */
-    private KeyAction waitingForKeyAction;
-
-    /*
-     * Enter로 확정하기 전의 새 키
-     */
-    private KeyCode pendingKeyCode;
-
-    private int selectedIndex;
-
-    /*
-     * 저장된 난이도를 View에 표시할 때
-     * changeDifficulty가 다시 호출되는 것을 방지
-     */
-    private boolean updatingDifficultyView;
+    private KeyAction waitingKey;
+    private PlayerId waitingPlayer;
+    private boolean localTabSelected;
+    private boolean pendingLocalTab;
+    private KeyCode pendingKey;
+    private int selected = -1;
+    private int playerColumn = 0;
+    private boolean updatingDifficulty;
 
     public SettingsController(
-        SettingsView settingsView,
-        SettingsService settingsService,
-        ScoreboardService scoreboardService,
-        SceneManager sceneManager,
+        SettingsView view,
+        SettingsService service,
+        ScoreboardService scoreboard,
+        SceneManager scenes,
         Settings settings
     ) {
-
-        this.settingsView = settingsView;
-        this.settingsService = settingsService;
-        this.scoreboardService = scoreboardService;
-        this.sceneManager = sceneManager;
+        this.view = view;
+        this.service = service;
+        this.scoreboard = scoreboard;
+        this.scenes = scenes;
         this.settings = settings;
 
-        createNavigationItems();
-
+        createItems();
         connectActions();
-        connectKeySettings();
-        connectKeyboardNavigation();
-        connectFocusTracking();
+        connectKeys();
+        connectKeyboard();
+        connectFocus();
 
-        renderSettings();
+        render();
 
-        sceneManager.applyScreenSize(
-            settings.getScreenSize()
-        );
+        scenes.applyScreenSize(settings.getScreenSize());
+        scenes.applyTheme(settings.getTheme());
+        updateSelection();
     }
 
-    /*
-     * ↑ / ↓ 이동 순서
-     */
-    private void createNavigationItems() {
-
-        navigationItems.add(
-            new NavigationItem(
-                NavigationType.SCREEN_SIZE
-            )
-        );
-
-        navigationItems.add(
-            new NavigationItem(
-                NavigationType.DIFFICULTY
-            )
-        );
-
-        for (
-            String actionName :
-            settingsView.getKeyActionNames()
-        ) {
-
-            navigationItems.add(
-                new NavigationItem(
-                    NavigationType.KEY,
-                    actionName
-                )
-            );
+    private void createItems() {
+        items.clear();
+        items.add(new Item(Type.SCREEN_SIZE));
+        items.add(new Item(Type.THEME));
+        items.add(new Item(Type.DIFFICULTY));
+        items.add(new Item(Type.KEY_TAB));
+        if (localTabSelected) {
+            for (String name : view.getKeyActionNames()) {
+                items.add(new Item(Type.BATTLE_KEY, name, PlayerId.PLAYER1));
+            }
+        } else {
+            for (String name : view.getKeyActionNames()) items.add(new Item(Type.KEY, name));
         }
-
-        navigationItems.add(
-            new NavigationItem(
-                NavigationType.COLOR_BLIND
-            )
-        );
-
-        navigationItems.add(
-            new NavigationItem(
-                NavigationType.SAVE
-            )
-        );
-
-        navigationItems.add(
-            new NavigationItem(
-                NavigationType.RESET_DEFAULT
-            )
-        );
-
-        navigationItems.add(
-            new NavigationItem(
-                NavigationType.RESET_SCOREBOARD
-            )
-        );
-
-        navigationItems.add(
-            new NavigationItem(
-                NavigationType.BACK
-            )
-        );
+        items.add(new Item(Type.COLOR_BLIND));
+        items.add(new Item(Type.SAVE));
+        items.add(new Item(Type.RESET_DEFAULT));
+        items.add(new Item(Type.RESET_SCOREBOARD));
+        items.add(new Item(Type.BACK));
     }
 
-    /*
-     * MOUSE / COMBOBOX
-     */
+    private void previewTab(boolean local) {
+        pendingLocalTab = local;
+        updateSelection();
+    }
+
+    private void selectTab(boolean local) {
+        pendingLocalTab = local;
+        localTabSelected = local;
+        view.setLocalTab(local);
+        createItems();
+        selected = 3;
+        playerColumn = 0;
+        updateSelection();
+    }
+
     private void connectActions() {
+        view.getScreenSizeComboBox().setOnAction(e -> {
+            String value = view.getScreenSizeComboBox().getValue();
+            if (value != null) changeScreenSize(ScreenSize.valueOf(value));
+        });
 
-        settingsView
-            .getScreenSizeComboBox()
-            .setOnAction(event -> {
+        view.getThemeComboBox().setOnAction(e -> {
+            String value = view.getThemeComboBox().getValue();
 
-                String value =
-                    settingsView
-                        .getScreenSizeComboBox()
-                        .getValue();
+            if (value != null) {
+                settings.setTheme(Theme.valueOf(value));
+                scenes.applyTheme(settings.getTheme());
+                updateSelection();
+                view.showMessage("화면 테마: " + value);
+            }
+        });
 
-                if (value != null) {
+        view.setOnDifficultyChanged(value -> {
+            if (!updatingDifficulty) changeDifficulty(value);
+        });
 
-                    changeScreenSize(
-                        ScreenSize.valueOf(
-                            value
-                        )
-                    );
-                }
-            });
-
-        settingsView
-            .setOnDifficultyChanged(
-                difficulty -> {
-
-                    if (
-                        !updatingDifficultyView
-                    ) {
-
-                        changeDifficulty(
-                            difficulty
-                        );
-                    }
-                }
-            );
-
-        settingsView
-            .getColorBlindButton()
-            .setOnAction(
-                event ->
-                    toggleColorBlindMode()
-            );
-
-        settingsView
-            .getSaveButton()
-            .setOnAction(
-                event -> save()
-            );
-
-        settingsView
-            .getResetDefaultButton()
-            .setOnAction(
-                event -> resetToDefault()
-            );
-
-        settingsView
-            .getResetScoreboardButton()
-            .setOnAction(
-                event -> resetScoreboard()
-            );
-
-        settingsView
-            .getBackButton()
-            .setOnAction(
-                event -> backToMainMenu()
-            );
+        view.getColorBlindButton().setOnAction(e -> toggleColorBlindMode());
+        view.getSaveButton().setOnAction(e -> save());
+        view.getResetDefaultButton().setOnAction(e -> resetToDefault());
+        view.getResetScoreboardButton().setOnAction(e -> resetScoreboard());
+        view.getBackButton().setOnAction(e -> backToMainMenu());
     }
 
-    /*
-     * KEY SETTING BUTTONS
-     */
-    private void connectKeySettings() {
-
-        for (
-            String actionName :
-            settingsView.getKeyActionNames()
-        ) {
-
-            Button button =
-                settingsView.getKeyButton(
-                    actionName
-                );
-
-            if (button == null) {
-                continue;
-            }
-
-            KeyAction action =
-                findKeyAction(
-                    actionName
-                );
-
-            if (action == null) {
-
-                button.setOnAction(
-                    event ->
-                        settingsView.showMessage(
-                            actionName
-                            + " : 아직 설정에 연결되지 않았습니다."
-                        )
-                );
-
-                continue;
-            }
-
-            button.setOnAction(
-                event ->
-                    beginKeyCapture(
-                        action
-                    )
-            );
-        }
-    }
-
-    private KeyAction findKeyAction(
-        String actionName
-    ) {
-
-        for (
-            KeyAction action :
-            KeyAction.values()
-        ) {
-
-            if (
-                action.name()
-                    .equals(actionName)
-            ) {
-
-                return action;
-            }
-        }
-
-        return null;
-    }
-
-    /*
-     * 키 변경 시작
-     */
-    private void beginKeyCapture(
-        KeyAction action
-    ) {
-
-        if (
-            waitingForKeyAction
-                != null
-        ) {
-
-            if (
-                pendingKeyCode
-                    != null
-            ) {
-
-                confirmPendingKey();
-
-                if (
-                    waitingForKeyAction
-                        != null
-                ) {
-                    return;
-                }
-
-            } else {
-
-                KeyCode oldKey =
-                    settings.getKey(
-                        waitingForKeyAction
-                    );
-
-                if (oldKey != null) {
-
-                    settingsView.setKeyText(
-                        waitingForKeyAction.name(),
-                        oldKey.getName()
-                    );
+    private void connectKeys() {
+        view.getSingleTab().setOnAction(e -> selectTab(false));
+        view.getLocalTab().setOnAction(e -> selectTab(true));
+        for (PlayerId player : new PlayerId[]{PlayerId.PLAYER1, PlayerId.PLAYER2}) {
+            for (String name : view.getKeyActionNames()) {
+                Button button = view.getBattleKeyButton(player, name);
+                KeyAction action = findAction(name);
+                if (button != null && action != null) {
+                    button.setOnAction(e -> beginBattleCapture(player, action));
                 }
             }
         }
 
-        waitingForKeyAction =
-            action;
+        for (String name : view.getKeyActionNames()) {
+            Button button = view.getKeyButton(name);
+            KeyAction action = findAction(name);
 
-        pendingKeyCode =
-            null;
-
-        settingsView.setKeyText(
-            action.name(),
-            ""
-        );
-
-        settingsView.showMessage(
-            action.name()
-            + " : 새 키를 누른 뒤 저장해주세요."
-        );
+            if (button != null && action != null) {
+                button.setOnAction(e -> beginKeyCapture(action));
+            }
+        }
     }
 
-    /*
-     * SETTINGS KEYBOARD CONTROL
-     */
-    private void connectKeyboardNavigation() {
+    private KeyAction findAction(String name) {
+        try {
+            return KeyAction.valueOf(name);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
 
-        settingsView
-            .getRoot()
-            .addEventFilter(
-                KeyEvent.KEY_PRESSED,
-                event -> {
+    private void connectKeyboard() {
+        view.getRoot().addEventFilter(KeyEvent.KEY_PRESSED, e -> {
+            if (e.getCode() == KeyCode.TAB) {
+                backToMainMenu();
+                e.consume();
+                return;
+            }
+            if (waitingKey != null) {
+                capture(e.getCode());
+                e.consume();
+                return;
+            }
 
-                    /*
-                     * 키 변경 모드
-                     */
-                    if (
-                        waitingForKeyAction
-                            != null
-                    ) {
+            if (view.getScreenSizeComboBox().isShowing()
+                || view.getThemeComboBox().isShowing()
+                || view.getDifficultyComboBox().isShowing()) {
+                return;
+            }
 
-                        handleKeyCapture(
-                            event.getCode()
-                        );
-
-                        event.consume();
-                        return;
-                    }
-
-                    /*
-                     * ComboBox가 열려 있으면
-                     * ComboBox 자체가 키를 처리
-                     */
-                    if (
-                        settingsView
-                            .getScreenSizeComboBox()
-                            .isShowing()
-                        ||
-                        settingsView
-                            .getDifficultyComboBox()
-                            .isShowing()
-                    ) {
-
-                        return;
-                    }
-
-                    KeyCode key =
-                        event.getCode();
-
-                    if (
-                        key == KeyCode.UP
-                    ) {
-
-                        moveSelection(-1);
-                        event.consume();
-
-                    } else if (
-                        key == KeyCode.DOWN
-                    ) {
-
-                        moveSelection(1);
-                        event.consume();
-
-                    } else if (
-                        key == KeyCode.ENTER
-                    ) {
-
-                        activateCurrentItem();
-                        event.consume();
-                    }
+            switch (e.getCode()) {
+                case UP -> move(-1);
+                case DOWN -> move(1);
+                case LEFT -> {
+                    if (selected < 0) return;
+                    if (items.get(selected).type() == Type.KEY_TAB) previewTab(false);
+                    else if (items.get(selected).type() == Type.BATTLE_KEY) {
+                        playerColumn = 0;
+                        updateSelection();
+                    } else return;
                 }
-            );
-    }
-
-    /*
-     * 키 변경 과정
-     */
-    private void handleKeyCapture(
-        KeyCode key
-    ) {
-
-        if (
-            key == KeyCode.ENTER
-            && pendingKeyCode != null
-        ) {
-
-            confirmPendingKey();
-            return;
-        }
-
-        pendingKeyCode =
-            key;
-
-        settingsView.setKeyText(
-            waitingForKeyAction.name(),
-            key.getName()
-        );
-
-        settingsView.showMessage(
-            waitingForKeyAction.name()
-            + " : ENTER를 눌러 확정"
-        );
-    }
-
-    private void confirmPendingKey() {
-
-        if (
-            waitingForKeyAction == null
-            || pendingKeyCode == null
-        ) {
-            return;
-        }
-
-        KeyAction action =
-            waitingForKeyAction;
-
-        KeyCode key =
-            pendingKeyCode;
-
-        boolean changed =
-            settings.setKey(
-                action,
-                key
-            );
-
-        if (!changed) {
-
-            pendingKeyCode =
-                null;
-
-            settingsView.setKeyText(
-                action.name(),
-                ""
-            );
-
-            settingsView.showMessage(
-                "이미 사용 중인 키입니다."
-            );
-
-            return;
-        }
-
-        settingsView.setKeyText(
-            action.name(),
-            key.getName()
-        );
-
-        settingsView.showMessage(
-            action.name()
-            + " → "
-            + key.getName()
-        );
-
-        waitingForKeyAction =
-            null;
-
-        pendingKeyCode =
-            null;
-    }
-
-    /*
-     * FOCUS / SELECTION
-     */
-    private void connectFocusTracking() {
-
-        int index = 0;
-
-        addFocusTracking(
-            settingsView
-                .getScreenSizeComboBox(),
-            index++
-        );
-
-        addFocusTracking(
-            settingsView
-                .getDifficultyComboBox(),
-            index++
-        );
-
-        for (
-            String actionName :
-            settingsView.getKeyActionNames()
-        ) {
-
-            Button button =
-                settingsView.getKeyButton(
-                    actionName
-                );
-
-            if (button != null) {
-
-                addFocusTracking(
-                    button,
-                    index
-                );
-            }
-
-            index++;
-        }
-
-        addFocusTracking(
-            settingsView
-                .getColorBlindButton(),
-            index++
-        );
-
-        addFocusTracking(
-            settingsView
-                .getSaveButton(),
-            index++
-        );
-
-        addFocusTracking(
-            settingsView
-                .getResetDefaultButton(),
-            index++
-        );
-
-        addFocusTracking(
-            settingsView
-                .getResetScoreboardButton(),
-            index++
-        );
-
-        addFocusTracking(
-            settingsView
-                .getBackButton(),
-            index
-        );
-    }
-
-    private void addFocusTracking(
-        Node node,
-        int index
-    ) {
-
-        node.focusedProperty()
-            .addListener(
-                (
-                    observable,
-                    oldValue,
-                    newValue
-                ) -> {
-
-                    if (newValue) {
-
-                        selectedIndex =
-                            index;
-
-                        updateSelectionStyle();
-                    }
+                case RIGHT -> {
+                    if (selected < 0) return;
+                    if (items.get(selected).type() == Type.KEY_TAB) previewTab(true);
+                    else if (items.get(selected).type() == Type.BATTLE_KEY) {
+                        playerColumn = 1;
+                        updateSelection();
+                    } else return;
                 }
-            );
+                case ENTER -> activate();
+                default -> { return; }
+            }
+
+            e.consume();
+        });
     }
 
-    /*
-     * 선택된 항목을 직접 표시
-     */
-    private void updateSelectionStyle() {
-
-        for (
-            int i = 0;
-            i < navigationItems.size();
-            i++
-        ) {
-
-            Node node =
-                getNavigationNode(
-                    navigationItems.get(i)
-                );
-
-            if (node == null) {
-                continue;
+    private void connectFocus() {
+        track(view.getScreenSizeComboBox(), new Item(Type.SCREEN_SIZE));
+        track(view.getThemeComboBox(), new Item(Type.THEME));
+        track(view.getDifficultyComboBox(), new Item(Type.DIFFICULTY));
+        track(view.getSingleTab(), new Item(Type.KEY_TAB));
+        track(view.getLocalTab(), new Item(Type.KEY_TAB));
+        for (String name : view.getKeyActionNames()) {
+            track(view.getKeyButton(name), new Item(Type.KEY, name));
+            for (PlayerId player : new PlayerId[]{PlayerId.PLAYER1, PlayerId.PLAYER2}) {
+                track(view.getBattleKeyButton(player, name), new Item(Type.BATTLE_KEY, name, player));
             }
+        }
+        track(view.getColorBlindButton(), new Item(Type.COLOR_BLIND));
+        track(view.getSaveButton(), new Item(Type.SAVE));
+        track(view.getResetDefaultButton(), new Item(Type.RESET_DEFAULT));
+        track(view.getResetScoreboardButton(), new Item(Type.RESET_SCOREBOARD));
+        track(view.getBackButton(), new Item(Type.BACK));
+    }
 
-            if (
-                i == selectedIndex
-            ) {
+    private void track(Node node, Item item) {
+        if (node == null) return;
 
-                node.setStyle(
-                    "-fx-background-color: linear-gradient(#f4f4f4, #dddddd);"
-                    + "-fx-border-color: #4A90E2;"
-                    + "-fx-border-width: 2px;"
-                    + "-fx-border-radius: 3px;"
-                    + "-fx-background-radius: 3px;"
-                    + "-fx-text-fill: black;"
-                    + "-fx-focus-color: transparent;"
-                    + "-fx-faint-focus-color: transparent;"
-                );
+        node.addEventFilter(MouseEvent.MOUSE_PRESSED, e -> {
+            int index = items.indexOf(item.type() == Type.BATTLE_KEY
+                ? new Item(Type.BATTLE_KEY, item.keyName(), PlayerId.PLAYER1) : item);
+            if (index < 0) return;
+            selected = index;
+            if (item.type() == Type.BATTLE_KEY)
+                playerColumn = item.player() == PlayerId.PLAYER2 ? 1 : 0;
+            if (item.type() == Type.KEY_TAB) pendingLocalTab = node == view.getLocalTab();
+            updateSelection();
+        });
+    }
 
-            } else {
+    private void move(int direction) {
+        selected = selected < 0
+            ? (direction > 0 ? 0 : items.size() - 1)
+            : Math.floorMod(selected + direction, items.size());
+        updateSelection();
+    }
 
-                node.setStyle(
-                    "-fx-background-color: linear-gradient(#f4f4f4, #dddddd);"
-                    + "-fx-border-color: #b5b5b5;"
-                    + "-fx-border-width: 1px;"
-                    + "-fx-border-radius: 3px;"
-                    + "-fx-background-radius: 3px;"
-                    + "-fx-text-fill: black;"
-                    + "-fx-focus-color: transparent;"
-                    + "-fx-faint-focus-color: transparent;"
-                );
+    private void activate() {
+        if (selected < 0) return;
+        Item item = items.get(selected);
+
+        switch (item.type()) {
+            case SCREEN_SIZE -> view.getScreenSizeComboBox().show();
+            case THEME -> view.getThemeComboBox().show();
+            case DIFFICULTY -> view.getDifficultyComboBox().show();
+            case KEY -> {
+                KeyAction action = findAction(item.keyName());
+                if (action != null) beginKeyCapture(action);
             }
+            case KEY_TAB -> selectTab(pendingLocalTab);
+            case BATTLE_KEY -> beginBattleCapture(
+                playerColumn == 0 ? PlayerId.PLAYER1 : PlayerId.PLAYER2,
+                findAction(item.keyName()));
+            case COLOR_BLIND -> toggleColorBlindMode();
+            case SAVE -> save();
+            case RESET_DEFAULT -> resetToDefault();
+            case RESET_SCOREBOARD -> resetScoreboard();
+            case BACK -> backToMainMenu();
         }
     }
 
-    private Node getNavigationNode(
-        NavigationItem item
-    ) {
-
-        return switch (
-            item.type
-        ) {
-
-            case SCREEN_SIZE ->
-                settingsView
-                    .getScreenSizeComboBox();
-
-            case DIFFICULTY ->
-                settingsView
-                    .getDifficultyComboBox();
-
-            case KEY ->
-                settingsView
-                    .getKeyButton(
-                        item.keyActionName
-                    );
-
-            case COLOR_BLIND ->
-                settingsView
-                    .getColorBlindButton();
-
-            case SAVE ->
-                settingsView
-                    .getSaveButton();
-
-            case RESET_DEFAULT ->
-                settingsView
-                    .getResetDefaultButton();
-
-            case RESET_SCOREBOARD ->
-                settingsView
-                    .getResetScoreboardButton();
-
-            case BACK ->
-                settingsView
-                    .getBackButton();
+    private Node node(Item item) {
+        return switch (item.type()) {
+            case SCREEN_SIZE -> view.getScreenSizeComboBox();
+            case THEME -> view.getThemeComboBox();
+            case DIFFICULTY -> view.getDifficultyComboBox();
+            case KEY -> view.getKeyButton(item.keyName());
+            case KEY_TAB -> pendingLocalTab ? view.getLocalTab() : view.getSingleTab();
+            case BATTLE_KEY -> view.getBattleKeyButton(
+                playerColumn == 0 ? PlayerId.PLAYER1 : PlayerId.PLAYER2,
+                item.keyName());
+            case COLOR_BLIND -> view.getColorBlindButton();
+            case SAVE -> view.getSaveButton();
+            case RESET_DEFAULT -> view.getResetDefaultButton();
+            case RESET_SCOREBOARD -> view.getResetScoreboardButton();
+            case BACK -> view.getBackButton();
         };
     }
 
-    /*
-     * ↑ / ↓
-     */
-    private void moveSelection(
-        int direction
-    ) {
-
-        selectedIndex +=
-            direction;
-
-        if (
-            selectedIndex < 0
-        ) {
-
-            selectedIndex =
-                navigationItems.size()
-                - 1;
-
-        } else if (
-            selectedIndex
-                >= navigationItems.size()
-        ) {
-
-            selectedIndex =
-                0;
+    private void updateSelection() {
+        for (String name : view.getKeyActionNames()) {
+            if (localTabSelected) markSelected(view.getKeyButton(name), false);
+            else for (PlayerId player : new PlayerId[]{PlayerId.PLAYER1, PlayerId.PLAYER2})
+                markSelected(view.getBattleKeyButton(player, name), false);
         }
-
-        focusCurrentItem();
+        markSelected(view.getSingleTab(), selected == 3 && !pendingLocalTab);
+        markSelected(view.getLocalTab(), selected == 3 && pendingLocalTab);
+        for (int i = 0; i < items.size(); i++) {
+            Item item = items.get(i);
+            if (item.type() == Type.KEY_TAB) continue;
+            if (item.type() == Type.BATTLE_KEY) {
+                markSelected(view.getBattleKeyButton(PlayerId.PLAYER1, item.keyName()),
+                    i == selected && playerColumn == 0);
+                markSelected(view.getBattleKeyButton(PlayerId.PLAYER2, item.keyName()),
+                    i == selected && playerColumn == 1);
+            } else {
+                markSelected(node(item), i == selected);
+            }
+        }
     }
 
-    private void focusCurrentItem() {
-
-        /*
-         * JavaFX 기본 focus 스타일에 의존하지 않고
-         * 선택 상태를 직접 표시
-         */
-        updateSelectionStyle();
+    private void markSelected(Node control, boolean focused) {
+        if (control == null) return;
+        if (control instanceof ComboBox<?> combo) {
+            markComboSelected(combo, focused);
+            return;
+        }
+        if (!(control instanceof Button button)) {
+            control.pseudoClassStateChanged(PseudoClass.getPseudoClass("settings-selected"), focused);
+            return;
+        }
+        // Keep button geometry and paint independent of CSS reapplication.
+        ButtonAppearance appearance = appearances.computeIfAbsent(button, b -> {
+            ButtonAppearance a = new ButtonAppearance(new SimpleObjectProperty<>(),
+                new SimpleObjectProperty<>(), new SimpleObjectProperty<>());
+            b.backgroundProperty().bind(a.background());
+            b.borderProperty().bind(a.border());
+            b.textFillProperty().bind(a.text());
+            b.paddingProperty().bind(new SimpleObjectProperty<>(new Insets(3, 8, 3, 8)));
+            b.alignmentProperty().bind(new SimpleObjectProperty<>(Pos.CENTER));
+            b.setMinHeight(24);
+            b.setPrefHeight(24);
+            return a;
+        });
+        boolean dark = settings.getTheme() == Theme.DARK;
+        appearance.background().set(new Background(new BackgroundFill(
+            Color.web(dark ? "#353535" : "#E8E8E8"), CornerRadii.EMPTY, Insets.EMPTY)));
+        appearance.border().set(new Border(new BorderStroke(
+            Color.web(focused ? "#4A90E2" : dark ? "#777777" : "#B5B5B5"),
+            BorderStrokeStyle.SOLID, CornerRadii.EMPTY, new BorderWidths(2))));
+        appearance.text().set(Color.web(dark ? "#FFFFFF" : "#202020"));
     }
 
-    /*
-     * ENTER
-     */
-    private void activateCurrentItem() {
+    private void markComboSelected(ComboBox<?> combo, boolean focused) {
+        ButtonAppearance appearance = comboAppearances.computeIfAbsent(combo, c -> {
+            ButtonAppearance a = new ButtonAppearance(new SimpleObjectProperty<>(),
+                new SimpleObjectProperty<>(), new SimpleObjectProperty<>());
+            c.backgroundProperty().bind(a.background());
+            c.borderProperty().bind(a.border());
+            c.paddingProperty().bind(new SimpleObjectProperty<>(Insets.EMPTY));
+            c.setMinHeight(32);
+            c.setPrefHeight(32);
+            installComboSkin(c, a);
+            return a;
+        });
+        boolean dark = settings.getTheme() == Theme.DARK;
+        appearance.background().set(new Background(new BackgroundFill(
+            Color.web(dark ? "#353535" : "#E8E8E8"), CornerRadii.EMPTY, Insets.EMPTY)));
+        appearance.border().set(new Border(new BorderStroke(
+            Color.web(focused ? "#4A90E2" : dark ? "#777777" : "#B5B5B5"),
+            BorderStrokeStyle.SOLID, CornerRadii.EMPTY, new BorderWidths(2))));
+        appearance.text().set(Color.web(dark ? "#FFFFFF" : "#202020"));
+        combo.pseudoClassStateChanged(PseudoClass.getPseudoClass("settings-selected"), focused);
+    }
 
-        NavigationItem item =
-            navigationItems.get(
-                selectedIndex
-            );
-
-        switch (
-            item.type
-        ) {
-
-            case SCREEN_SIZE ->
-
-                settingsView
-                    .getScreenSizeComboBox()
-                    .show();
-
-            case DIFFICULTY ->
-
-                settingsView
-                    .getDifficultyComboBox()
-                    .show();
-
-            case KEY -> {
-
-                KeyAction action =
-                    findKeyAction(
-                        item.keyActionName
-                    );
-
-                if (
-                    action == null
-                ) {
-
-                    settingsView.showMessage(
-                        item.keyActionName
-                        + " : 아직 설정에 연결되지 않았습니다."
-                    );
-
-                } else {
-
-                    beginKeyCapture(
-                        action
-                    );
-                }
+    private <T> void installComboSkin(ComboBox<T> combo, ButtonAppearance appearance) {
+        combo.setSkin(new ComboBoxListViewSkin<T>(combo) {
+            private final Pane face = new Pane();
+            private final Text value = new Text();
+            private final Polygon arrow = new Polygon(0, 0, 8, 0, 4, 4);
+            {
+                face.setManaged(false);
+                face.setMouseTransparent(true);
+                face.backgroundProperty().bind(appearance.background());
+                value.setFont(Font.font(12));
+                value.fillProperty().bind(appearance.text());
+                value.textProperty().bind(javafx.beans.binding.Bindings.createStringBinding(
+                    () -> combo.getValue() == null ? "" : (combo.getConverter() == null ? combo.getValue().toString() : combo.getConverter().toString(combo.getValue())),
+                    combo.valueProperty(), combo.converterProperty()));
+                arrow.fillProperty().bind(appearance.text());
+                face.getChildren().addAll(value, arrow);
+                getChildren().add(face);
             }
 
-            case COLOR_BLIND ->
-
-                toggleColorBlindMode();
-
-            case SAVE ->
-
-                save();
-
-            case RESET_DEFAULT ->
-
-                resetToDefault();
-
-            case RESET_SCOREBOARD ->
-
-                resetScoreboard();
-
-            case BACK ->
-
-                backToMainMenu();
-        }
+            @Override
+            protected void layoutChildren(double x, double y, double w, double h) {
+                super.layoutChildren(x, y, w, h);
+                // Keep the native popup and input behavior; paint the closed face independently.
+                face.resizeRelocate(x, y, w, h);
+                value.relocate(7, (h - value.getLayoutBounds().getHeight()) / 2);
+                arrow.relocate(Math.max(0, w - 24), (h - 4) / 2);
+                face.toFront();
+            }
+        });
     }
 
-    /*
-     * COLOR BLIND
-     */
-    private void toggleColorBlindMode() {
-
-        boolean enabled =
-            !settings.isColorBlindMode();
-
-        settings.setColorBlindMode(
-            enabled
-        );
-
-        settingsView.setColorBlindMode(
-            enabled
-        );
-
-        settingsView.showMessage(
-            enabled
-                ? "색맹 모드 ON"
-                : "색맹 모드 OFF"
-        );
+    private void beginBattleCapture(PlayerId player, KeyAction action) {
+        if (action == null) return;
+        waitingPlayer = player;
+        waitingKey = action;
+        pendingKey = null;
+        view.setBattleKeyText(player, action.name(), "");
+        view.showMessage(player.name() + " / " + action.name() + " : 새 키를 입력하세요.");
     }
 
-    /*
-     * SHOW
-     */
-    public void show() {
+    private void beginKeyCapture(KeyAction action) {
+        waitingPlayer = null;
+        waitingKey = action;
+        pendingKey = null;
 
-        waitingForKeyAction =
-            null;
-
-        pendingKeyCode =
-            null;
-
-        selectedIndex =
-            0;
-
-        renderSettings();
-
-        sceneManager.showSettings();
-
-        settingsView
-            .getRoot()
-            .setFocusTraversable(true);
-
-        settingsView
-            .getRoot()
-            .requestFocus();
-
-        updateSelectionStyle();
+        view.setKeyText(action.name(), "");
+        view.showMessage(action.name() + " : 새 키를 입력하세요.");
     }
 
-    /*
-     * 기존 API
-     */
-    public void handleKey(
-        KeyCode key
-    ) {
-
-        if (
-            waitingForKeyAction
-                != null
-        ) {
-
-            handleKeyCapture(
-                key
-            );
-        }
-    }
-
-    public boolean changeKey(
-        KeyAction action,
-        KeyCode key
-    ) {
-
-        boolean changed =
-            settings.setKey(
-                action,
-                key
-            );
-
-        if (!changed) {
-
-            settingsView.showMessage(
-                "이미 사용 중인 키입니다."
-            );
-
-            return false;
-        }
-
-        settingsView.setKeyText(
-            action.name(),
-            key.getName()
-        );
-
-        return true;
-    }
-
-    /*
-     * SCREEN SIZE
-     */
-    public void changeScreenSize(
-        ScreenSize screenSize
-    ) {
-
-        settings.setScreenSize(
-            screenSize
-        );
-
-        sceneManager.applyScreenSize(
-            screenSize
-        );
-
-        settingsView.showMessage(
-            "화면 크기: "
-            + screenSize.name()
-        );
-    }
-
-    /*
-     * DIFFICULTY
-     */
-    public void changeDifficulty(
-        Difficulty difficulty
-    ) {
-
-        if (
-            difficulty == null
-        ) {
+    private void capture(KeyCode key) {
+        if (key == KeyCode.ENTER && pendingKey != null) {
+            confirmKey();
             return;
         }
 
-        settings.setDifficulty(
-            difficulty
-        );
-
-        settingsView.showMessage(
-            "난이도: "
-            + difficulty.name()
-        );
+        pendingKey = key;
+        if (waitingPlayer == null) view.setKeyText(waitingKey.name(), key.getName());
+        else view.setBattleKeyText(waitingPlayer, waitingKey.name(), key.getName());
+        view.showMessage(waitingKey.name() + " : ENTER를 눌러 확정");
     }
 
-    /*
-     * SCOREBOARD RESET
-     */
-    public void resetScoreboard() {
+    private void confirmKey() {
+        if (waitingKey == null || pendingKey == null) return;
 
-        scoreboardService
-            .resetScoreboard();
-
-        settingsView.showMessage(
-            "스코어보드를 초기화했습니다."
-        );
-    }
-
-    /*
-     * DEFAULT
-     */
-    public void resetToDefault() {
-
-        waitingForKeyAction =
-            null;
-
-        pendingKeyCode =
-            null;
-
-        Settings defaults =
-            settingsService
-                .resetToDefault();
-
-        copySettings(
-            defaults,
-            settings
-        );
-
-        renderSettings();
-
-        sceneManager.applyScreenSize(
-            settings.getScreenSize()
-        );
-
-        updateSelectionStyle();
-
-        settingsView.showMessage(
-            "기본 설정으로 복구했습니다."
-        );
-    }
-
-    /*
-     * SAVE
-     */
-    public void save() {
-
-        if (
-            waitingForKeyAction
-                != null
-        ) {
-
-            if (
-                pendingKeyCode
-                    == null
-            ) {
-
-                settingsView.showMessage(
-                    "새 키를 먼저 입력해주세요."
-                );
-
-                return;
-            }
-
-            confirmPendingKey();
-
-            if (
-                waitingForKeyAction
-                    != null
-            ) {
-                return;
-            }
+        boolean accepted = waitingPlayer == null
+            ? settings.setKey(waitingKey, pendingKey)
+            : setLocalKey(waitingPlayer, waitingKey, pendingKey);
+        if (!accepted) {
+            pendingKey = null;
+            if (waitingPlayer == null) view.setKeyText(waitingKey.name(), "");
+            else view.setBattleKeyText(waitingPlayer, waitingKey.name(), "");
+            view.showMessage("이미 사용 중이거나 사용할 수 없는 키입니다.");
+            return;
         }
 
-        if (
-            settingsService.save(
-                settings
-            )
-        ) {
+        if (waitingPlayer == null) view.setKeyText(waitingKey.name(), pendingKey.getName());
+        else view.setBattleKeyText(waitingPlayer, waitingKey.name(), pendingKey.getName());
+        waitingPlayer = null;
+        waitingKey = null;
+        pendingKey = null;
+        view.showMessage("키 변경 완료");
+    }
 
-            renderSettings();
-            updateSelectionStyle();
+    private boolean setLocalKey(PlayerId player, KeyAction action, KeyCode key) {
+        if (Settings.isFixedKey(key)) return false;
+        for (PlayerId other : new PlayerId[]{PlayerId.PLAYER1, PlayerId.PLAYER2}) {
+            for (KeyAction candidate : KeyAction.values()) {
+                if (candidate.isFixed()) continue;
+                if (other == player && candidate == action) continue;
+                if (settings.getBattleKey(other, candidate) == key) return false;
+            }
+        }
+        return settings.setBattleKey(player, action, key);
+    }
 
-            settingsView.showMessage(
-                "설정을 저장했습니다."
-            );
+    private void toggleColorBlindMode() {
+        boolean value = !settings.isColorBlindMode();
+        settings.setColorBlindMode(value);
+        view.setColorBlindMode(value);
+        view.showMessage(value ? "색맹 모드 ON" : "색맹 모드 OFF");
+    }
 
+    public void show() {
+        waitingKey = null;
+        waitingPlayer = null;
+        pendingKey = null;
+        selected = -1;
+        playerColumn = 0;
+        pendingLocalTab = localTabSelected;
+
+        render();
+        view.showMessage("");
+        scenes.showSettings();
+        updateSelection();
+    }
+
+    public void handleKey(KeyCode key) {
+        if (waitingKey != null) capture(key);
+    }
+
+    public boolean changeKey(KeyAction action, KeyCode key) {
+        boolean changed = settings.setKey(action, key);
+
+        if (changed) {
+            view.setKeyText(action.name(), key.getName());
         } else {
-
-            settingsView.showMessage(
-                "설정 저장에 실패했습니다."
-            );
+            view.showMessage("이미 사용 중인 키입니다.");
         }
+
+        return changed;
     }
 
-    /*
-     * BACK
-     */
+    public void changeScreenSize(ScreenSize value) {
+        settings.setScreenSize(value);
+        scenes.applyScreenSize(value);
+        view.showMessage("화면 크기: " + value.name());
+    }
+
+    public void changeDifficulty(Difficulty value) {
+        if (value == null) return;
+
+        settings.setDifficulty(value);
+        view.showMessage("난이도: " + value.name());
+    }
+
+    public void resetScoreboard() {
+        scoreboard.resetScoreboard();
+        view.showMessage("스코어보드를 초기화했습니다.");
+    }
+
+    public void resetToDefault() {
+        Settings defaults = service.resetToDefault();
+        settings.copyFrom(defaults);
+
+        waitingKey = null;
+        waitingPlayer = null;
+        pendingKey = null;
+
+        scenes.applyScreenSize(settings.getScreenSize());
+        scenes.applyTheme(settings.getTheme());
+
+        render();
+        updateSelection();
+
+        view.showMessage("기본 설정으로 복구했습니다.");
+    }
+
+    public void save() {
+        if (waitingKey != null) {
+            if (pendingKey == null) {
+                view.showMessage("새 키를 먼저 입력해주세요.");
+                return;
+            }
+
+            confirmKey();
+
+            if (waitingKey != null) return;
+        }
+
+        view.showMessage(
+            service.save(settings)
+                ? "설정을 저장했습니다."
+                : "설정 저장에 실패했습니다."
+        );
+    }
+
     public void backToMainMenu() {
-
-        waitingForKeyAction =
-            null;
-
-        pendingKeyCode =
-            null;
-
-        sceneManager.showMainMenu();
+        waitingKey = null;
+        waitingPlayer = null;
+        pendingKey = null;
+        selected = -1;
+        view.showMessage("");
+        scenes.showMainMenu();
     }
 
-    /*
-     * SETTINGS -> VIEW
-     */
-    private void renderSettings() {
-
-        settingsView
-            .getScreenSizeComboBox()
-            .setValue(
-                settings
-                    .getScreenSize()
-                    .name()
-            );
-
-        Difficulty difficulty =
-            settings.getDifficulty();
-
-        if (
-            difficulty != null
-        ) {
-
-            updatingDifficultyView =
-                true;
-
-            settingsView.setDifficulty(
-                difficulty
-            );
-
-            updatingDifficultyView =
-                false;
-        }
-
-        settingsView.setColorBlindMode(
-            settings
-                .isColorBlindMode()
+    private void render() {
+        view.getScreenSizeComboBox().setValue(
+            settings.getScreenSize().name()
         );
 
-        for (
-            KeyAction action :
-            KeyAction.values()
-        ) {
+        view.getThemeComboBox().setValue(
+            settings.getTheme().name()
+        );
 
-            KeyCode key =
-                settings.getKey(
-                    action
-                );
+        updatingDifficulty = true;
+        view.setDifficulty(settings.getDifficulty());
+        updatingDifficulty = false;
 
-            if (
-                key != null
-            ) {
+        view.setColorBlindMode(settings.isColorBlindMode());
 
-                settingsView.setKeyText(
-                    action.name(),
-                    key.getName()
-                );
+        for (PlayerId player : new PlayerId[]{PlayerId.PLAYER1, PlayerId.PLAYER2}) {
+            for (String name : view.getKeyActionNames()) {
+                KeyAction action = findAction(name);
+                KeyCode key = settings.getBattleKey(player, action);
+                if (key != null) view.setBattleKeyText(player, name, key.getName());
             }
         }
-    }
+        for (KeyAction action : KeyAction.values()) {
+            KeyCode key = settings.getKey(action);
 
-    private void copySettings(
-        Settings source,
-        Settings target
-    ) {
-
-        target.copyFrom(
-            source
-        );
+            if (key != null) {
+                view.setKeyText(action.name(), key.getName());
+            }
+        }
     }
 }
