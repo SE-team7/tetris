@@ -1,4 +1,6 @@
-# Tetris 게임 개발
+# DROP the SEVEN (DP7)
+
+DP7은 JavaFX로 만든 테트리스 게임입니다. 일반·아이템 모드를 혼자 플레이하거나, 한 PC에서 로컬 대전을 하고 두 PC에서 P2P 대전을 할 수 있습니다.
 
 ## 다운로드
 
@@ -27,119 +29,186 @@ Java를 설치하지 않아도 바로 실행할 수 있습니다.
 
 ---
 
+## 게임 모드
+
+| 플레이 방식 | 선택 가능한 모드 |
+|---|---|
+| 싱글 플레이 | 일반, 아이템 |
+| 로컬 2인 대전 | 일반, 아이템, 시간제한 |
+| P2P 1:1 대전 | 일반, 아이템, 시간제한 |
+
+- **일반 모드**에서는 가로줄을 채워 지우고 점수를 얻습니다.
+- **아이템 모드**에서는 누적 10줄을 지울 때마다 아이템 블록이 생성 대기열에 추가됩니다. 아이템은 무게추, 줄 삭제, 폭탄, 십자가, 빈칸 파괴의 다섯 종류입니다.
+- **대전**에서는 여러 줄을 한 번에 지워 상대에게 공격 줄을 보낼 수 있습니다. **시간제한 모드**에서는 3분, 5분, 10분 중 하나를 선택하며, 시간이 끝나면 점수로 승패를 결정합니다.
+- **스코어보드**는 싱글 플레이의 일반·아이템 모드별로 10위까지 기록합니다. 10위와 동점인 기록도 보관합니다.
+
+### 기본 조작
+
+**설정**에서 난이도, 창 크기, 라이트·다크 테마, 색맹 모드, 조작키를 바꿀 수 있습니다. 싱글 플레이와 P2P는 같은 키 설정을 쓰며, 로컬 대전은 1P와 2P의 키를 각각 설정합니다.
+
+### P2P 대전 시작
+
+1. 두 플레이어가 메인 메뉴에서 **P2P 대전 모드 시작**을 선택합니다.
+2. 호스트는 **서버 만들기**를 선택하고, 대기 화면에 표시된 주소를 상대에게 알려줍니다.
+3. 참가자는 **서버 접속**에서 호스트 주소를 입력하거나 최근 접속 주소를 선택합니다. 연결에는 TCP `7777` 포트를 사용합니다.
+4. 연결되면 호스트가 모드를 선택합니다. 시간제한 모드에서는 제한시간도 선택합니다.
+5. 두 플레이어가 모두 **게임 시작**을 누르면 대전이 시작됩니다.
+
+### 로컬 저장 데이터
+
+설정과 기록은 사용자 홈의 `.tetris/` 폴더에 저장됩니다.
+
+| 파일 | 내용 |
+|---|---|
+| `settings.properties` | 화면, 난이도, 조작키 설정 |
+| `scoreboard.csv` | 모드별 싱글 플레이 기록 |
+| `recent_hosts.txt` | 최근 접속한 P2P 호스트 주소 |
+
 ## 개발 환경
 
-- Java: JDK 21
-- JavaFX: 21
-- Build Tool: Gradle Wrapper
-- Test: JUnit Jupiter
-- IDE: VS Code
-- 개발 OS: Windows / macOS
+| 항목 | 설정 |
+|---|---|
+| Java | JDK 21 (Gradle Java Toolchain) |
+| JavaFX | 21 (`javafx.controls`, `javafx.fxml`) |
+| 빌드 | Gradle Wrapper 9.2.0 |
+| 테스트 | JUnit Jupiter 5.12.1, JaCoCo 커버리지 |
+| 의존성 저장소 | Maven Central |
 
-> 프로젝트는 Gradle Wrapper를 사용합니다. 팀원별로 별도의 Gradle 버전을 설치할 필요가 없습니다.
-> JavaFX 의존성도 Gradle에서 관리하므로 JavaFX SDK를 별도로 다운로드하여 경로를 설정할 필요가 없습니다.
+## 빌드 및 테스트
+
+| 작업 | Windows (PowerShell) | macOS |
+|---|---|---|
+| 전체 빌드 (테스트 포함) | `.\gradlew.bat clean build` | `./gradlew clean build` |
+| 테스트 실행 | `.\gradlew.bat test` | `./gradlew test` |
+| 테스트 및 커버리지 보고서 생성 | `.\gradlew.bat jacocoTestReport` | `./gradlew jacocoTestReport` |
+
+테스트 코드는 `app/src/test/java/com/team/tetris/`에 있습니다. 
+
+- 테스트 결과는 `app/build/reports/tests/test/index.html`에서 확인할 수 있습니다.
 
 ## 프로젝트 구조
 
 ```text
 tetris/
-├─ app/
-│  ├─ build.gradle
-│  └─ src/
-│     ├─ main/
-│     │  ├─ java/
-│     │  │  └─ com/team/tetris/
-│     │  │     └─ Main.java
-│     │  └─ resources/
-│     └─ test/
-├─ gradle/
-├─ gradle.properties
-├─ gradlew
-├─ gradlew.bat
-└─ settings.gradle
+├── app/
+│   ├── build.gradle
+│   └── src/
+│       └── main/
+│           ├── java/com/team/tetris/
+│           │   ├── controller/
+│           │   │   ├── BattleController.java
+│           │   │   ├── BattleModeController.java
+│           │   │   ├── BattleTypeController.java
+│           │   │   ├── GameController.java
+│           │   │   ├── GameOverController.java
+│           │   │   ├── MainMenuController.java
+│           │   │   ├── NetworkController.java
+│           │   │   ├── P2PConnectionController.java
+│           │   │   ├── P2PWaitingController.java
+│           │   │   ├── ScoreboardController.java
+│           │   │   ├── ScoreboardMenu.java
+│           │   │   ├── SettingsController.java
+│           │   │   └── TimeLimitController.java
+│           │   ├── domain/
+│           │   │   ├── AttackQueue.java
+│           │   │   ├── AttackRows.java
+│           │   │   ├── BattleConfig.java
+│           │   │   ├── BattleEndReason.java
+│           │   │   ├── BattleMode.java
+│           │   │   ├── BattleResult.java
+│           │   │   ├── BattleState.java
+│           │   │   ├── Block.java
+│           │   │   ├── BlockType.java
+│           │   │   ├── Board.java
+│           │   │   ├── ClearResult.java
+│           │   │   ├── Difficulty.java
+│           │   │   ├── GameMode.java
+│           │   │   ├── GameSnapshot.java
+│           │   │   ├── ItemType.java
+│           │   │   ├── PlayerId.java
+│           │   │   ├── Position.java
+│           │   │   ├── Score.java
+│           │   │   └── Settings.java
+│           │   ├── Launcher.java
+│           │   ├── Main.java
+│           │   ├── network/
+│           │   │   ├── BattleGateway.java
+│           │   │   ├── BattleServiceGateway.java
+│           │   │   ├── HostAddress.java
+│           │   │   ├── MessageCodec.java
+│           │   │   ├── MessagePayload.java
+│           │   │   ├── MessageType.java
+│           │   │   ├── NetworkEvents.java
+│           │   │   ├── NetworkListener.java
+│           │   │   ├── NetworkMessage.java
+│           │   │   ├── NetworkService.java
+│           │   │   ├── PayloadMapper.java
+│           │   │   └── RecentHostStore.java
+│           │   ├── service/
+│           │   │   ├── AttackService.java
+│           │   │   ├── BattleService.java
+│           │   │   ├── BlockFactory.java
+│           │   │   ├── GameEngineService.java
+│           │   │   ├── item/
+│           │   │   │   ├── BombEffect.java
+│           │   │   │   ├── CrossEffect.java
+│           │   │   │   ├── GapDestroyEffect.java
+│           │   │   │   ├── ItemEffect.java
+│           │   │   │   ├── LineClearEffect.java
+│           │   │   │   └── WeightEffect.java
+│           │   │   ├── LevelService.java
+│           │   │   ├── ScoreboardService.java
+│           │   │   ├── ScoreService.java
+│           │   │   └── SettingsService.java
+│           │   ├── util/
+│           │   │   ├── FileManager.java
+│           │   │   └── SceneManager.java
+│           │   └── view/
+│           │       ├── BattleModeView.java
+│           │       ├── BattleTypeView.java
+│           │       ├── BattleView.java
+│           │       ├── GameOverView.java
+│           │       ├── GameView.java
+│           │       ├── MainMenuView.java
+│           │       ├── P2PConnectionView.java
+│           │       ├── P2PWaitingView.java
+│           │       ├── ScoreboardView.java
+│           │       ├── SettingsView.java
+│           │       └── TimeLimitView.java
+│           └── resources/
+│               ├── icon/
+│               │   ├── DP7.icns
+│               │   ├── DP7.ico
+│               │   └── DP7.png
+│               ├── image/
+│               │   └── item/
+│               │       ├── bomb.png
+│               │       ├── cross.png
+│               │       ├── gapdestroy.png
+│               │       ├── lineclear.png
+│               │       └── weight.png
+│               └── style.css
+├── gradle/
+│   ├── libs.versions.toml
+│   └── wrapper/
+│       ├── gradle-wrapper.jar
+│       └── gradle-wrapper.properties
+├── gradle.properties
+├── gradlew
+├── gradlew.bat
+└── settings.gradle
 ```
 
-`app`은 실제 테트리스 애플리케이션이 위치하는 Gradle 서브프로젝트
+| 패키지 | 역할 |
+|---|---|
+| `controller` | 사용자 입력과 화면별 게임 흐름 처리 |
+| `domain` | 보드, 블록, 대전 상태, 점수, 설정 모델 정의 |
+| `network` | TCP 연결, 메시지 인코딩·디코딩, 대전 데이터 변환 |
+| `service` | 게임 진행, 대전, 공격, 레벨, 점수 및 설정 처리 |
+| `service/item` | 아이템별 효과 구현 |
+| `util` | 파일 저장과 JavaFX 화면 전환 |
+| `view` | 게임, 대전, 설정, 스코어보드 화면 표시 |
 
-## 실행 전 준비
-
-JDK 21 사용을 권장하며, 프로젝트 자체의 Java 버전은 Gradle Java Toolchain에서 21로 지정되어 있습니다.
-
-## 실행 방법
-
-저장소를 clone한 후 프로젝트 루트(`tetris`)에서 실행합니다.
-
-### Windows
-
-```powershell
-.\gradlew.bat run
-```
-
-### macOS
-
-최초 실행 시 필요하면 Gradle Wrapper에 실행 권한을 부여합니다.
-
-```bash
-chmod +x gradlew
-./gradlew run
-```
-
-정상 실행되면 JavaFX 게임 창이 표시됩니다.
-
-## 빌드
-
-### Windows
-
-```powershell
-.\gradlew.bat clean build
-```
-
-### macOS
-
-```bash
-./gradlew clean build
-```
-
-## 테스트
-
-### Windows
-
-```powershell
-.\gradlew.bat test
-```
-
-### macOS
-
-```bash
-./gradlew test
-```
-
-테스트 코드는 필요에 따라 다음 경로에 작성합니다.
-
-```text
-app/src/test/java/com/team/tetris/
-```
-
-## 개발 규칙
-
-- 공통 개발 버전은 Java 21 / JavaFX 21을 사용합니다.
-- Gradle 명령은 가급적 프로젝트에 포함된 Gradle Wrapper(`gradlew`, `gradlew.bat`)를 사용합니다.
-- 개인 PC의 절대 경로(JAVA_HOME 경로 등)를 프로젝트 설정 파일에 작성하지 않습니다.
-- 새로운 외부 라이브러리가 필요한 경우 `app/build.gradle`의 `dependencies`에 추가하고 팀에 공유합니다.
-- `build/`, `.gradle/` 등 자동 생성 파일은 Git에 커밋하지 않습니다.
-- 소스 코드와 리소스에서는 Windows/macOS에 종속적인 절대 경로 사용을 피합니다.
-
-## 주요 Gradle 설정
-
-현재 `app/build.gradle`에는 다음 공통 환경이 설정되어 있습니다.
-
-- Java Toolchain 21
-- JavaFX 21
-  - `javafx.controls`
-  - `javafx.fxml`
-- JUnit Jupiter
-- Maven Central
-- Main Class: `com.team.tetris.Main`
 
 ## 배포
 

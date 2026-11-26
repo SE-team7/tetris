@@ -398,11 +398,11 @@ public class GameView {
         infoGrid.setAlignment(Pos.CENTER);
         infoGrid.setHgap(10);
         infoGrid.setVgap(4);
-        addItemInfoRow(infoGrid,  0,   ItemType.WEIGHT,  "아래 4열 블록 제거");
-        addItemInfoRow(infoGrid, 1,ItemType.LINE_CLEAR,  "해당 줄 삭제" );
-        addItemInfoRow(infoGrid,  2,   ItemType.BOMB,  "중심 3×3 제거");
-        addItemInfoRow(infoGrid,  3,   ItemType.CROSS,  "행·열 제거");
-        addItemInfoRow(infoGrid,  4,   ItemType.GAP_DESTROY,  "아래 2열 압축");
+        addItemInfoRow(infoGrid,  0,   ItemType.WEIGHT,  "Weight: 아래 4열 블록 제거");
+        addItemInfoRow(infoGrid, 1,ItemType.LINE_CLEAR,  "Line Clear: 해당 줄 삭제" );
+        addItemInfoRow(infoGrid,  2,   ItemType.BOMB,  "Bomb:중심 3×3 제거");
+        addItemInfoRow(infoGrid,  3,   ItemType.CROSS,  "Cross: 행·열 제거");
+        addItemInfoRow(infoGrid,  4,   ItemType.GAP_DESTROY,  "Gap Destroy: 아래 2열 빈칸 압축");
         if (compact) {
             for (var node : infoGrid.getChildren()) {
                 int row = GridPane.getRowIndex(node) == null ? 0 : GridPane.getRowIndex(node);
