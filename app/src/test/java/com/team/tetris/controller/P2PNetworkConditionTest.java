@@ -92,8 +92,12 @@ class P2PNetworkConditionTest {
         client.controller.setReady(true);
         waitUntil(server.controller::isPeerReady);
         server.controller.setReady(true);
+        // 엔진이 RUNNING이 된 직후에 컨트롤러가 IN_BATTLE로 바뀐다.
+        // IN_BATTLE 전에는 sendAttack 등이 버려지므로 둘 다 기다린다.
         waitUntil(() -> server.battle.getState() == BattleState.RUNNING
-                && client.battle.getState() == BattleState.RUNNING);
+                && client.battle.getState() == BattleState.RUNNING
+                && server.controller.getState() == State.IN_BATTLE
+                && client.controller.getState() == State.IN_BATTLE);
     }
 
     // ================================================================ 느린 네트워크
