@@ -2,18 +2,49 @@ package com.team.tetris;
 
 import java.util.function.Consumer;
 
-import com.team.tetris.controller.*;
-import com.team.tetris.domain.*;
+import com.team.tetris.controller.BattleController;
+import com.team.tetris.controller.BattleModeController;
+import com.team.tetris.controller.BattleTypeController;
+import com.team.tetris.controller.GameController;
+import com.team.tetris.controller.GameOverController;
+import com.team.tetris.controller.MainMenuController;
+import com.team.tetris.controller.NetworkController;
+import com.team.tetris.controller.OpponentTypeController;
+import com.team.tetris.controller.P2PConnectionController;
+import com.team.tetris.controller.P2PWaitingController;
+import com.team.tetris.controller.ScoreboardController;
+import com.team.tetris.controller.SettingsController;
+import com.team.tetris.controller.TimeLimitController;
+import com.team.tetris.domain.BattleConfig;
+import com.team.tetris.domain.Difficulty;
+import com.team.tetris.domain.PlayerId;
+import com.team.tetris.domain.Settings;
+import com.team.tetris.network.MessagePayload;
+import com.team.tetris.network.NetworkEvents;
 import com.team.tetris.network.NetworkService;
 import com.team.tetris.network.RecentHostStore;
-import com.team.tetris.network.NetworkEvents;
-import com.team.tetris.network.MessagePayload;
-import com.team.tetris.service.*;
-import com.team.tetris.util.*;
-import com.team.tetris.view.*;
+import com.team.tetris.service.BattleService;
+import com.team.tetris.service.GameEngineService;
+import com.team.tetris.service.HeuristicBotAgent;
+import com.team.tetris.service.ScoreboardService;
+import com.team.tetris.service.SettingsService;
+import com.team.tetris.util.FileManager;
+import com.team.tetris.util.SceneManager;
+import com.team.tetris.view.BattleModeView;
 import com.team.tetris.view.BattleModeView.BattleModeItem;
+import com.team.tetris.view.BattleTypeView;
 import com.team.tetris.view.BattleTypeView.BattleTypeItem;
+import com.team.tetris.view.BattleView;
+import com.team.tetris.view.GameOverView;
+import com.team.tetris.view.GameView;
+import com.team.tetris.view.MainMenuView;
+import com.team.tetris.view.OpponentTypeView;
 import com.team.tetris.view.OpponentTypeView.OpponentType;
+import com.team.tetris.view.P2PConnectionView;
+import com.team.tetris.view.P2PWaitingView;
+import com.team.tetris.view.ScoreboardView;
+import com.team.tetris.view.SettingsView;
+import com.team.tetris.view.TimeLimitView;
 
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -418,13 +449,15 @@ public class Main extends Application {
         );
 
         networkController.setEvents(new NetworkEvents() {
-            private long latestLagMillis;
-            private boolean latestLagging;
+            private long lagMillis;
+            private boolean lagging;
 
             @Override public void onStateChanged(NetworkController.State state) {
-                if (state == NetworkController.State.HOSTING || state == NetworkController.State.CONNECTING) {
-                    latestLagging = false;
+                if (state == NetworkController.State.HOSTING
+                    || state == NetworkController.State.CONNECTING) {
+                    lagging = false;
                 }
+
                 if (state != NetworkController.State.CONNECTED) {
                     p2pWaitingView.setChatEnabled(false);
                 } else if (hostFlow && networkController.getConfig() == null) {
@@ -438,6 +471,7 @@ public class Main extends Application {
                         && stage.getScene().getRoot() == p2pWaitingView.getRoot());
                 }
             }
+            
             @Override public void onConfigChanged(MessagePayload.Config config) {
                 if (battleView.hasPostMatchChat() && stage.getScene().getRoot() == battleView.getRoot()) {
                     return;
@@ -459,8 +493,9 @@ public class Main extends Application {
                 if (ready) p2pWaitingController.showOpponentReady();
             }
             @Override public void onLagChanged(long ms, boolean lagging) {
-                latestLagMillis = ms;
-                latestLagging = lagging;
+                lagMillis = ms;
+                this.lagging = lagging;
+                
                 p2pWaitingController.showLag(ms, lagging);
                 if (p2pBattleShown) battleView.setLag(ms, lagging);
             }
@@ -473,7 +508,7 @@ public class Main extends Application {
                     scenes.showP2PConnection();
                 };
                 showP2PBattle(battleController, battleView, scenes);
-                battleView.setLag(latestLagMillis, latestLagging);
+                battleView.setLag(lagMillis, lagging);
             }
             @Override public void onBattleFinished(MessagePayload.Result result) {
                 p2pBattleShown = false;
