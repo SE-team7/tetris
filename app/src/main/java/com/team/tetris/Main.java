@@ -418,7 +418,13 @@ public class Main extends Application {
         );
 
         networkController.setEvents(new NetworkEvents() {
+            private long latestLagMillis;
+            private boolean latestLagging;
+
             @Override public void onStateChanged(NetworkController.State state) {
+                if (state == NetworkController.State.HOSTING || state == NetworkController.State.CONNECTING) {
+                    latestLagging = false;
+                }
                 if (state != NetworkController.State.CONNECTED) {
                     p2pWaitingView.setChatEnabled(false);
                 } else if (hostFlow && networkController.getConfig() == null) {
@@ -453,7 +459,10 @@ public class Main extends Application {
                 if (ready) p2pWaitingController.showOpponentReady();
             }
             @Override public void onLagChanged(long ms, boolean lagging) {
+                latestLagMillis = ms;
+                latestLagging = lagging;
                 p2pWaitingController.showLag(ms, lagging);
+                if (p2pBattleShown) battleView.setLag(ms, lagging);
             }
             @Override public void onBattleStarted() {
                 battleBack[0] = () -> {
@@ -464,9 +473,11 @@ public class Main extends Application {
                     scenes.showP2PConnection();
                 };
                 showP2PBattle(battleController, battleView, scenes);
+                battleView.setLag(latestLagMillis, latestLagging);
             }
             @Override public void onBattleFinished(MessagePayload.Result result) {
                 p2pBattleShown = false;
+                battleView.setLag(0, false);
                 battleController.showP2PResult(result, networkController.isHost());
                 battleView.setPostMatchChat(p2pWaitingView.getChatPanel());
                 p2pWaitingView.setChatEnabled(networkController.getState() == NetworkController.State.CONNECTED
@@ -516,6 +527,7 @@ public class Main extends Application {
             }
             @Override public void onConnectionClosed(String reason, boolean peerLeft) {
                 p2pBattleShown = false;
+                battleView.setLag(0, false);
                 battleController.stopRenderingOnly();
                 battleView.showChoice("CONNECTION CLOSED",
                     peerLeft ? (hostFlow ? "CLIENT LEFT THE GAME" : "SERVER LEFT THE GAME")
@@ -598,6 +610,7 @@ public class Main extends Application {
         Runnable[] back
     ) {
         prepareBattleView(view, battleMode, battleMinutes, false, settings.getDifficulty());
+        view.setLag(0, false);
 
         back[0] = () -> {
             controller.stop();

@@ -78,6 +78,31 @@ class BattleViewTest {
     }
 
     @Test
+    void lagWarningShowsLatestDelayAndClearsOnRecovery() throws Exception {
+        fx(() -> {
+            BattleView view = new BattleView();
+            Label lag = (Label) view.getRoot().lookup(".battle-lag");
+            assertNotNull(lag);
+            assertFalse(lag.isVisible());
+            assertFalse(lag.isManaged());
+
+            view.setLag(325, true);
+            assertEquals("NETWORK LAG : 325ms", lag.getText());
+            assertTrue(lag.isVisible());
+            assertTrue(lag.isManaged());
+
+            view.setLag(450, true);
+            assertEquals("NETWORK LAG : 450ms", lag.getText());
+
+            view.setLag(45, false);
+            assertEquals("", lag.getText());
+            assertFalse(lag.isVisible());
+            assertFalse(lag.isManaged());
+            return null;
+        });
+    }
+
+    @Test
     void statusAndResultAcceptNullAndClear() throws Exception {
         fx(() -> {
             BattleView view = new BattleView();
