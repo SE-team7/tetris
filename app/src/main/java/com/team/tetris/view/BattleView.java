@@ -16,6 +16,7 @@ import javafx.scene.transform.Scale;
 public class BattleView {
     private final BorderPane root = new BorderPane();
     private final Label timer = new Label(""), status = new Label("");
+    private final Label lag = new Label();
     private final Label result = new Label(), rematch = new Label();
     private final PlayerArea p1 = new PlayerArea("PLAYER 1", true);
     private final PlayerArea p2 = new PlayerArea("PLAYER 2", false);
@@ -36,9 +37,13 @@ public class BattleView {
         title.getStyleClass().add("battle-title");
         timer.getStyleClass().add("battle-timer");
         status.getStyleClass().add("battle-status");
+        lag.getStyleClass().add("battle-lag");
+        setLag(0, false);
         result.getStyleClass().add("battle-result");
         rematch.getStyleClass().add("battle-rematch");
-        VBox top = new VBox(5, title, status, timer, result, rematch);
+        HBox statusRow = new HBox(12, status, lag);
+        statusRow.setAlignment(Pos.CENTER);
+        VBox top = new VBox(5, title, statusRow, timer, result, rematch);
         top.setAlignment(Pos.CENTER);
         HBox players = new HBox(100, p1.root, p2.root);
         players.setAlignment(Pos.CENTER);
@@ -180,6 +185,11 @@ public class BattleView {
         }
     }
     public void setStatus(String text) { status.setText(text == null ? "" : text); }
+    public void setLag(long ms, boolean lagging) {
+        lag.setText(lagging ? "NETWORK LAG : " + ms + "ms" : "");
+        lag.setVisible(lagging);
+        lag.setManaged(lagging);
+    }
     public void showResult(String text, String rematchText) {
         result.setText(text == null ? "" : text);
         rematch.setText(rematchText == null ? "" : rematchText);
