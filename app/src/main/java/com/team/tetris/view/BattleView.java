@@ -1,14 +1,27 @@
 package com.team.tetris.view;
 
-import com.team.tetris.domain.*;
-import javafx.geometry.Pos;
+import com.team.tetris.domain.AttackRows;
+import com.team.tetris.domain.BlockType;
+import com.team.tetris.domain.Board;
+import com.team.tetris.domain.ClearResult;
+import com.team.tetris.domain.GameSnapshot;
+import com.team.tetris.domain.PlayerId;
+import com.team.tetris.domain.Settings;
+
 import javafx.geometry.Bounds;
+import javafx.geometry.Pos;
+import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.Label;
 import javafx.scene.input.KeyCode;
-import javafx.scene.Cursor;
-import javafx.scene.layout.*;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Pane;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.transform.Scale;
@@ -27,6 +40,7 @@ public class BattleView {
     private final Label finishTitle = new Label(), finishReason = new Label();
     private final Label finishScores = new Label(), finishGuide = new Label();
     private final HBox finishActions = new HBox(30);
+    private final StackPane postMatchChat = new StackPane();
     private Runnable firstAction, secondAction;
     private int selectedAction;
     private boolean interactiveFinish;
@@ -122,6 +136,7 @@ public class BattleView {
         finishScreen.setManaged(false);
         screens.getChildren().add(finishScreen);
         root.setCenter(screens);
+        postMatchChat.getStyleClass().add("battle-post-match-chat");
         root.setFocusTraversable(true);
     }
 
@@ -196,10 +211,34 @@ public class BattleView {
     }
     public void clearResult() {
         showResult("", "");
+        setPostMatchChat(null);
         finishScreen.setVisible(false);
         finishScreen.setManaged(false);
         interactiveFinish = false;
         finishActions.getChildren().clear();
+    }
+
+    public void setPostMatchChat(Parent panel) {
+        boolean open = panel != null;
+        timer.setManaged(timer.isVisible() && (!open || !timer.getText().isBlank()));
+        result.setManaged(!open || !result.getText().isBlank());
+        rematch.setManaged(!open || !rematch.getText().isBlank());
+        finishScores.setManaged(!open || !finishScores.getText().isBlank());
+        if (panel == null) {
+            postMatchChat.getChildren().clear();
+            root.setBottom(null);
+        } else {
+            postMatchChat.getChildren().setAll(panel);
+            root.setBottom(postMatchChat);
+        }
+    }
+
+    public boolean hasPostMatchChat() {
+        return !postMatchChat.getChildren().isEmpty();
+    }
+
+    private void requestFinishFocus() {
+        if (!postMatchChat.isFocusWithin()) requestFocus();
     }
     public void showFinish(String winner, String reason, int first, int second, boolean local) {
         finishTitle.setText(winner);
@@ -207,6 +246,7 @@ public class BattleView {
         boolean p2p = "SERVER".equals(p1.name.getText());
         finishScores.setText((p2p ? "SERVER SCORE : " : "PLAYER 1 SCORE : ") + first
             + "       " + (p2p ? "CLIENT SCORE : " : "PLAYER 2 SCORE : ") + second);
+        finishScores.setManaged(true);
         finishTitle.getStyleClass().removeAll("battle-finish-win", "battle-finish-lose");
         if (winner != null && (winner.contains("WINS") || winner.equals("YOU WIN!")))
             finishTitle.getStyleClass().add("battle-finish-win");
@@ -228,6 +268,7 @@ public class BattleView {
         else if (title.contains("LOSE")) finishTitle.getStyleClass().add("battle-finish-lose");
         finishReason.setText(detail == null ? "" : detail);
         finishScores.setText("");
+        finishScores.setManaged(!hasPostMatchChat());
         finishGuide.setText("");
         finishGuide.setManaged(false);
         firstAction = onLeft;
@@ -241,7 +282,7 @@ public class BattleView {
         refreshSelection();
         finishScreen.setManaged(true);
         finishScreen.setVisible(true);
-        requestFocus();
+        requestFinishFocus();
     }
 
     /** Retains the win/loss title, reason and scores while enabling actions. */
@@ -257,7 +298,7 @@ public class BattleView {
         refreshSelection();
         finishScreen.setManaged(true);
         finishScreen.setVisible(true);
-        requestFocus();
+        requestFinishFocus();
     }
 
     public void showWaiting(String title, String detail) {
@@ -322,6 +363,10 @@ public class BattleView {
         p1.name.setText(p2p ? "SERVER" : "PLAYER 1");
         p2.name.setText(p2p ? "CLIENT" : "PLAYER 2");
     }
+
+    public void setControlsVisible(PlayerId id, boolean visible) {
+        (id == PlayerId.PLAYER1 ? p1 : p2).controlBox.setVisible(visible);
+    }
     public void applyColorBlindMode(boolean enabled) {
         p1.game.applyColorBlindMode(enabled);
         p2.game.applyColorBlindMode(enabled);
@@ -358,7 +403,6 @@ public class BattleView {
         private static final int ATTACK_ROWS = 10, ATTACK_COLS = Board.COLS;
         private final Rectangle[][] attackCells = new Rectangle[ATTACK_ROWS][ATTACK_COLS];
         private final GridPane attackPreview = new GridPane();
-
         PlayerArea(String name, boolean first) {
             this.name = new Label(name);
             Label player = this.name;

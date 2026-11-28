@@ -139,6 +139,7 @@ public class MessageCodec {
             }
             case MessagePayload.RematchResponse r -> out.writeBoolean(r.accepted());
             case MessagePayload.Ping p -> out.writeLong(p.timestampNanos());
+            case MessagePayload.Chat c -> out.writeUTF(c.text());
         }
     }
 
@@ -166,6 +167,7 @@ public class MessageCodec {
             }
             case REMATCH_RESPONSE -> new MessagePayload.RematchResponse(in.readBoolean());
             case PING, PONG -> new MessagePayload.Ping(in.readLong());
+            case CHAT -> new MessagePayload.Chat(in.readUTF());
             case PAUSE, RESUME, REMATCH_REQUEST, LEAVE -> null;
         };
     }

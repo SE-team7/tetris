@@ -65,6 +65,7 @@ public final class NetworkMessage {
             case RESULT -> MessagePayload.Result.class;
             case REMATCH_RESPONSE -> MessagePayload.RematchResponse.class;
             case PING, PONG -> MessagePayload.Ping.class;
+            case CHAT -> MessagePayload.Chat.class;
             case PAUSE, RESUME, REMATCH_REQUEST, LEAVE -> null;
         };
     }

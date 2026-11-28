@@ -40,7 +40,8 @@ class MessageCodecTest {
                 NetworkMessage.of(MessageType.REMATCH_RESPONSE, 1, new MessagePayload.RematchResponse(true)),
                 NetworkMessage.of(MessageType.LEAVE, 1),
                 NetworkMessage.of(MessageType.PING, 0, new MessagePayload.Ping(123456789L)),
-                NetworkMessage.of(MessageType.PONG, 0, new MessagePayload.Ping(-5L)));
+                NetworkMessage.of(MessageType.PONG, 0, new MessagePayload.Ping(-5L)),
+                NetworkMessage.of(MessageType.CHAT, 1, new MessagePayload.Chat("안녕하세요")));
     }
 
     @Test

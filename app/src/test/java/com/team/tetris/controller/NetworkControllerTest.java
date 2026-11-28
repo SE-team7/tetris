@@ -562,6 +562,36 @@ class NetworkControllerTest {
     }
 
     @Test
+    void postMatchChatWorksWhileWaitingForRematchAndAcceptsInFlightChat() throws InterruptedException {
+        startBattle(NORMAL);
+        long finishedId = server.controller.getBattleId();
+        var hostChat = new CopyOnWriteArrayList<String>();
+        var guestChat = new CopyOnWriteArrayList<String>();
+        var hostEvents = new RecordingNetworkEvents() {
+            @Override public void onChatReceived(String text) { hostChat.add(text); }
+        };
+        server.controller.setEvents(hostEvents);
+        client.controller.setEvents(new NetworkEvents() {
+            @Override public void onChatReceived(String text) { guestChat.add(text); }
+        });
+        assertThrows(IllegalStateException.class, () -> client.controller.sendChat("during battle"));
+
+        server.battle.result = new MessagePayload.Result("PLAYER1", false, "GAME_OVER");
+        waitUntil(() -> client.controller.getBattleId() > finishedId);
+        client.controller.requestRematch();
+        waitUntil(() -> hostEvents.rematchRequests == 1);
+
+        client.network.send(NetworkMessage.of(MessageType.CHAT, finishedId,
+                new MessagePayload.Chat("good game")));
+        client.controller.sendChat("  one more?  ");
+        server.controller.sendChat("sure");
+
+        waitUntil(() -> hostChat.size() == 2 && guestChat.size() == 1);
+        assertEquals(List.of("good game", "one more?"), hostChat);
+        assertEquals(List.of("sure"), guestChat);
+    }
+
+    @Test
     void clientDoesNotJudgeByItself() throws InterruptedException {
         startBattle(NORMAL);
 

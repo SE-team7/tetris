@@ -104,6 +104,7 @@ public class NetworkController {
     private boolean peerReady;
     private boolean paused;
     private boolean rematchRequested;
+    private long finishedChatBattleId = -1;
     private long lastSnapshotSequence;
     private String joiningHost;
     private int joiningPort;
@@ -194,6 +195,7 @@ public class NetworkController {
         }
         requireState(State.CONNECTED);
         config = newConfig;
+        finishedChatBattleId = -1;
         battleId++;
         localReady = false;
         peerReady = false;
@@ -230,6 +232,7 @@ public class NetworkController {
     }
 
     private void scheduleStart(long delayMillis) {
+        finishedChatBattleId = -1;
         changeState(State.STARTING);
         long id = battleId;
         startTask = timer.schedule(() -> beginBattle(id), delayMillis, TimeUnit.MILLISECONDS);
@@ -480,6 +483,7 @@ public class NetworkController {
             case PING, PONG -> {
                 // NetworkService에서 처리됨
             }
+            case CHAT -> onChat(message);
         }
     }
 
@@ -533,6 +537,28 @@ public class NetworkController {
         ui(() -> events.onRematchAnswered(accepted));
         // 수락돼도 자동 준비하지 않음: 양쪽이 '게임 시작'을 눌러야 시작
         status(accepted ? "상대가 재대전을 수락했습니다. 게임 시작을 눌러주세요." : "상대가 재대전을 거절했습니다.");
+    }
+
+    /**
+     * 대기실이나 대전 종료 화면에서 상대에게 채팅 전송.
+     * 연결·설정 전, 카운트다운, 대전 중에는 전송하지 않고 예외를 던진다.
+     * 본문은 MessagePayload.Chat 생성 시 앞뒤 공백 제거·200자 제한·줄바꿈 금지가 적용된다.
+     */
+    public synchronized void sendChat(String text) {
+        if (state != State.CONNECTED || config == null) {
+            throw new IllegalStateException("chat is only available in the waiting room");
+        }
+        MessagePayload.Chat chat = new MessagePayload.Chat(text);
+        network.send(NetworkMessage.of(MessageType.CHAT, battleId, chat));
+    }
+
+    private void onChat(NetworkMessage message) {
+        long id = message.getBattleId();
+        if (state != State.CONNECTED || config == null || (id != battleId && id != finishedChatBattleId)) {
+            return;
+        }
+        String text = message.getPayload(MessagePayload.Chat.class).text();
+        ui(() -> events.onChatReceived(text));
     }
 
     private void onPeerLeft() {
@@ -590,6 +616,8 @@ public class NetworkController {
         status("대전 종료 - 게임 시작을 누르면 새 대전을 시작합니다.");
         if (host && config != null) {
             // 다음 대전 번호를 알려 이전 대전의 늦은 메시지를 구분
+            // 클라이언트가 새 CONFIG를 읽기 전에 전송한 종료 화면 채팅도 받는다.
+            finishedChatBattleId = battleId;
             battleId++;
             network.send(NetworkMessage.of(MessageType.CONFIG, battleId, config));
         }
@@ -637,6 +665,7 @@ public class NetworkController {
         host = asHost;
         config = null;
         battleId = 0;
+        finishedChatBattleId = -1;
         localReady = false;
         peerReady = false;
         paused = false;

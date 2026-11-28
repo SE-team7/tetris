@@ -2,17 +2,49 @@ package com.team.tetris;
 
 import java.util.function.Consumer;
 
-import com.team.tetris.controller.*;
-import com.team.tetris.domain.*;
+import com.team.tetris.controller.BattleController;
+import com.team.tetris.controller.BattleModeController;
+import com.team.tetris.controller.BattleTypeController;
+import com.team.tetris.controller.GameController;
+import com.team.tetris.controller.GameOverController;
+import com.team.tetris.controller.MainMenuController;
+import com.team.tetris.controller.NetworkController;
+import com.team.tetris.controller.OpponentTypeController;
+import com.team.tetris.controller.P2PConnectionController;
+import com.team.tetris.controller.P2PWaitingController;
+import com.team.tetris.controller.ScoreboardController;
+import com.team.tetris.controller.SettingsController;
+import com.team.tetris.controller.TimeLimitController;
+import com.team.tetris.domain.BattleConfig;
+import com.team.tetris.domain.Difficulty;
+import com.team.tetris.domain.PlayerId;
+import com.team.tetris.domain.Settings;
+import com.team.tetris.network.MessagePayload;
+import com.team.tetris.network.NetworkEvents;
 import com.team.tetris.network.NetworkService;
 import com.team.tetris.network.RecentHostStore;
-import com.team.tetris.network.NetworkEvents;
-import com.team.tetris.network.MessagePayload;
-import com.team.tetris.service.*;
-import com.team.tetris.util.*;
-import com.team.tetris.view.*;
+import com.team.tetris.service.BattleService;
+import com.team.tetris.service.GameEngineService;
+import com.team.tetris.service.HeuristicBotAgent;
+import com.team.tetris.service.ScoreboardService;
+import com.team.tetris.service.SettingsService;
+import com.team.tetris.util.FileManager;
+import com.team.tetris.util.SceneManager;
+import com.team.tetris.view.BattleModeView;
 import com.team.tetris.view.BattleModeView.BattleModeItem;
+import com.team.tetris.view.BattleTypeView;
 import com.team.tetris.view.BattleTypeView.BattleTypeItem;
+import com.team.tetris.view.BattleView;
+import com.team.tetris.view.GameOverView;
+import com.team.tetris.view.GameView;
+import com.team.tetris.view.MainMenuView;
+import com.team.tetris.view.OpponentTypeView;
+import com.team.tetris.view.OpponentTypeView.OpponentType;
+import com.team.tetris.view.P2PConnectionView;
+import com.team.tetris.view.P2PWaitingView;
+import com.team.tetris.view.ScoreboardView;
+import com.team.tetris.view.SettingsView;
+import com.team.tetris.view.TimeLimitView;
 
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -33,7 +65,9 @@ public class Main extends Application {
 
     private BattleModeController battleModeController;
     private BattleTypeController battleTypeController;
+    private OpponentTypeController opponentTypeController;
     private TimeLimitController timeLimitController;
+    private Runnable opponentBack = () -> {};
     private P2PConnectionController p2pConnectionController;
     private P2PWaitingController p2pWaitingController;
 
@@ -59,6 +93,7 @@ public class Main extends Application {
 
         BattleModeView battleModeView = new BattleModeView();
         BattleTypeView battleTypeView = new BattleTypeView();
+        OpponentTypeView opponentTypeView = new OpponentTypeView();
         TimeLimitView timeLimitView = new TimeLimitView();
         P2PConnectionView p2pConnectionView = new P2PConnectionView();
         P2PWaitingView p2pWaitingView = new P2PWaitingView();
@@ -88,6 +123,7 @@ public class Main extends Application {
             gameOverView,
             battleModeView,
             battleTypeView,
+            opponentTypeView,
             timeLimitView,
             p2pConnectionView,
             p2pWaitingView,
@@ -183,13 +219,12 @@ public class Main extends Application {
                     return;
                 }
 
-                startLocalBattle(
-                    battleController,
-                    battleView,
-                    scenes,
-                    settings,
-                    battleBack
-                );
+                opponentBack = () -> {
+                    battleModeController.show();
+                    scenes.showBattleMode();
+                };
+                opponentTypeController.show();
+                scenes.showOpponentType();
             },
             () -> {
                 if (battleType == BattleTypeItem.P2P && hostFlow) {
@@ -212,6 +247,26 @@ public class Main extends Application {
                     return;
                 }
 
+                opponentBack = () -> {
+                    timeLimitController.show();
+                    scenes.showTimeLimit();
+                };
+                opponentTypeController.show();
+                scenes.showOpponentType();
+            },
+            () -> {
+                battleModeController.show();
+                scenes.showBattleMode();
+            }
+        );
+
+        opponentTypeController = new OpponentTypeController(
+            opponentTypeView,
+            opponent -> {
+                battleController.clearAgents();
+                if (opponent == OpponentType.CPU) {
+                    battleController.setAgent(PlayerId.PLAYER2, new HeuristicBotAgent());
+                }
                 startLocalBattle(
                     battleController,
                     battleView,
@@ -220,16 +275,20 @@ public class Main extends Application {
                     battleBack
                 );
             },
-            () -> {
-                battleModeController.show();
-                scenes.showBattleMode();
-            }
+            () -> opponentBack.run()
         );
 
+        Runnable resetP2PChat = () -> {
+            battleView.setPostMatchChat(null);
+            p2pWaitingView.restoreChatPanel();
+            p2pWaitingView.setChatEnabled(false);
+            p2pWaitingView.clearChat();
+        };
         p2pConnectionController = new P2PConnectionController(
             p2pConnectionView,
             () -> {
                 try {
+                    resetP2PChat.run();
                     networkController.host(NetworkService.DEFAULT_PORT);
                     hostFlow = true;
                     battleType = BattleTypeItem.P2P;
@@ -243,6 +302,7 @@ public class Main extends Application {
             },
             ip -> {
                 try {
+                    resetP2PChat.run();
                     networkController.join(ip, NetworkService.DEFAULT_PORT);
                     hostFlow = false;
                     battleType = BattleTypeItem.P2P;
@@ -276,7 +336,9 @@ public class Main extends Application {
                 p2pBattleShown = false;
                 p2pConnectionController.show();
                 scenes.showP2PConnection();
-            }
+            },
+            null,
+            networkController::sendChat
         );
 
         mainMenuController.setBattleActions(
@@ -336,6 +398,11 @@ public class Main extends Application {
         );
 
         bindMenu(
+            opponentTypeView.getRoot(), opponentTypeController::handleKey,
+            () -> opponentBack.run()
+        );
+
+        bindMenu(
             p2pConnectionView.getRoot(), p2pConnectionController::handleKey,
             () -> { networkController.leave(); mainMenuController.show(); }
         );
@@ -348,6 +415,13 @@ public class Main extends Application {
         battleView.getRoot().addEventFilter(
             KeyEvent.KEY_PRESSED,
             e -> {
+                if (battleView.hasPostMatchChat() && p2pWaitingView.isChatInputFocused()) {
+                    if (e.getCode() == KeyCode.TAB) {
+                        battleView.requestFocus();
+                        e.consume();
+                    }
+                    return;
+                }
                 if (e.getCode() == KeyCode.TAB) {
                     battleBack[0].run();
                 } else if (battleType == BattleTypeItem.P2P && battleView.handleFinishKey(e.getCode())) {
@@ -362,6 +436,7 @@ public class Main extends Application {
         battleView.getRoot().addEventFilter(
             KeyEvent.KEY_RELEASED,
             e -> {
+                if (battleView.hasPostMatchChat() && p2pWaitingView.isChatInputFocused()) return;
                 battleController.handleKeyReleased(e.getCode());
                 e.consume();
             }
@@ -378,25 +453,41 @@ public class Main extends Application {
             private boolean lagging;
 
             @Override public void onStateChanged(NetworkController.State state) {
-                if (state == NetworkController.State.HOSTING || state == NetworkController.State.CONNECTING) {
+                if (state == NetworkController.State.HOSTING
+                    || state == NetworkController.State.CONNECTING) {
                     lagging = false;
                 }
-                if (state == NetworkController.State.CONNECTED) {
-                    if (hostFlow && networkController.getConfig() == null) {
-                        battleModeController.show();
-                        scenes.showBattleMode();
-                    } else {
-                        p2pWaitingController.showConnected();
-                        p2pWaitingController.setStartEnabled(networkController.getConfig() != null);
-                    }
+
+                if (state != NetworkController.State.CONNECTED) {
+                    p2pWaitingView.setChatEnabled(false);
+                } else if (hostFlow && networkController.getConfig() == null) {
+                    battleModeController.show();
+                    scenes.showBattleMode();
+                } else {
+                    boolean configured = networkController.getConfig() != null;
+                    p2pWaitingController.showConnected();
+                    p2pWaitingController.setStartEnabled(configured);
+                    p2pWaitingView.setChatEnabled(configured
+                        && stage.getScene().getRoot() == p2pWaitingView.getRoot());
                 }
             }
+            
             @Override public void onConfigChanged(MessagePayload.Config config) {
+                if (battleView.hasPostMatchChat() && stage.getScene().getRoot() == battleView.getRoot()) {
+                    return;
+                }
                 if (!hostFlow) {
                     p2pWaitingController.showClient(joinedHost, config);
                 }
                 p2pWaitingController.showConnected();
                 p2pWaitingController.setStartEnabled(true);
+                if (networkController.getState() == NetworkController.State.CONNECTED
+                    && stage.getScene().getRoot() == p2pWaitingView.getRoot()) {
+                    p2pWaitingView.setChatEnabled(true);
+                }
+            }
+            @Override public void onChatReceived(String text) {
+                p2pWaitingController.showPeerChat(text);
             }
             @Override public void onPeerReadyChanged(boolean ready) {
                 if (ready) p2pWaitingController.showOpponentReady();
@@ -404,6 +495,7 @@ public class Main extends Application {
             @Override public void onLagChanged(long ms, boolean lagging) {
                 lagMillis = ms;
                 this.lagging = lagging;
+                
                 p2pWaitingController.showLag(ms, lagging);
                 if (p2pBattleShown) battleView.setLag(ms, lagging);
             }
@@ -422,6 +514,9 @@ public class Main extends Application {
                 p2pBattleShown = false;
                 battleView.setLag(0, false);
                 battleController.showP2PResult(result, networkController.isHost());
+                battleView.setPostMatchChat(p2pWaitingView.getChatPanel());
+                p2pWaitingView.setChatEnabled(networkController.getState() == NetworkController.State.CONNECTED
+                    && networkController.getConfig() != null);
                 battleView.showResultChoices(
                     "REMATCH", () -> {
                         try {
@@ -441,7 +536,7 @@ public class Main extends Application {
                     "ACCEPT", () -> {
                         try {
                             networkController.respondRematch(true);
-                            showP2PRematchWaiting(scenes);
+                            showP2PRematchWaiting(scenes, battleView, p2pWaitingView);
                         } catch (RuntimeException ex) {
                             battleView.showChoice("REMATCH ERROR", ex.getMessage(),
                                 "P2P MENU", () -> openP2PConnection(scenes),
@@ -458,7 +553,7 @@ public class Main extends Application {
             }
             @Override public void onRematchAnswered(boolean accepted) {
                 if (accepted) {
-                    showP2PRematchWaiting(scenes);
+                    showP2PRematchWaiting(scenes, battleView, p2pWaitingView);
                 } else {
                     battleView.showChoice("REMATCH DECLINED", "Your opponent declined the rematch.",
                         "NEW GAME", () -> requestAnotherRematch(battleView),
@@ -517,7 +612,9 @@ public class Main extends Application {
     }
 
     /** 재대전 수락 후 대기실로: 첫 대전과 같이 양쪽이 다시 '게임 시작'을 눌러야 시작 */
-    private void showP2PRematchWaiting(SceneManager scenes) {
+    private void showP2PRematchWaiting(SceneManager scenes, BattleView battleView, P2PWaitingView waitingView) {
+        battleView.setPostMatchChat(null);
+        waitingView.restoreChatPanel();
         if (hostFlow) {
             p2pWaitingController.showHost(networkController.getHostAddressDetails(), getWaitingModeText());
         } else {

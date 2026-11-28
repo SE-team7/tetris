@@ -5,6 +5,7 @@ import com.team.tetris.domain.GameSnapshot;
 import com.team.tetris.domain.PlayerId;
 import javafx.application.Platform;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
@@ -225,6 +226,27 @@ class BattleViewTest {
             assertEquals(0, field(view, "finishActions", HBox.class).getChildren().size());
             assertFalse(view.handleFinishKey(KeyCode.ENTER));
             assertFalse(view.handleFinishKey(KeyCode.RIGHT));
+            return null;
+        });
+    }
+
+    @Test
+    void postMatchChatReturnsToWaitingRoomWithTheSameDraft() throws Exception {
+        fx(() -> {
+            BattleView battle = new BattleView();
+            P2PWaitingView waiting = new P2PWaitingView();
+            var input = (TextField) waiting.getRoot().lookup(".p2p-chat-input");
+            input.setText("one more round?");
+            battle.showWaiting("REMATCH REQUESTED", "Waiting for an answer");
+            battle.setPostMatchChat(waiting.getChatPanel());
+            assertTrue(battle.hasPostMatchChat());
+            assertSame(input, battle.getRoot().lookup(".p2p-chat-input"));
+
+            battle.clearResult();
+            waiting.restoreChatPanel();
+            assertFalse(battle.hasPostMatchChat());
+            assertSame(input, waiting.getRoot().lookup(".p2p-chat-input"));
+            assertEquals("one more round?", input.getText());
             return null;
         });
     }

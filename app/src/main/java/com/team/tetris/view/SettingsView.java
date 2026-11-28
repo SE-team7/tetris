@@ -40,7 +40,7 @@ public class SettingsView {
 
     private final Map<String, Button> keyButtons;
     private final Map<PlayerId, Map<String, Button>> localButtons = new LinkedHashMap<>();
-    private final Button singleTab = new Button("일반 / P2P");
+    private final Button singleTab = new Button("일반 / P2P / 봇");
     private final Button localTab = new Button("LOCAL BATTLE");
     private final GridPane localGrid = new GridPane();
     private final GridPane singleGrid = new GridPane();
@@ -221,7 +221,7 @@ public class SettingsView {
 
         HBox tabs = new HBox(8, singleTab, localTab);
         tabs.setAlignment(Pos.CENTER);
-        singleTab.setPrefWidth(120);
+        singleTab.setPrefWidth(150);
         localTab.setPrefWidth(120);
         localGrid.setHgap(10);
         localGrid.setVgap(8);
